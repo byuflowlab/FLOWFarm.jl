@@ -5,6 +5,7 @@ struct Turbine <: AbstractTurbine
     rotor_diameter
     hub_height
     aI
+    gamma
 end
 
 struct Coord
