@@ -5,12 +5,17 @@ using Plots
 model = Jensen(0.1)
 
 coord = Coord(0.0,0.0,0.0)
-turbine = Turbine(coord,100.,90.,1.0/3.0,0.0)
+rotor_diameter = 150.0
+hub_height = 90.0
+aI = 1.0/3.0
+gamma = 0.0
+
+turbine = Turbine(coord,rotor_diameter,hub_height,aI,gamma)
 println(turbine)
 
 num = 100
-xlocs = ones(num).*800.0
-ylocs = range(-100,stop=100,length=num)
+xlocs = ones(num).*1500.0
+ylocs = range(-300,stop=300,length=num)
 zlocs = ones(num).*turbine.hub_height
 locs = zeros(length(xlocs),3)
 locs[:,1] = xlocs[:]
