@@ -6,6 +6,8 @@ struct Turbine <: AbstractTurbine
     hub_height
     aI
     gamma
+    yaw
+    ct
 end
 
 struct Coord
