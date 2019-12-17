@@ -16,12 +16,15 @@ struct Multizone <: AbstractWakeModel
 end
 
 struct Gauss <: AbstractWakeModel
-    ka
-    kb
-    alpha
-    beta
-    ad
-    bd
+    version
+    # for version==2014
+    k_star
+    # for version==2016
+    turbulence_intensity
+    horizontal_spread_rate
+    vertical_spread_rate
+    alpha_star
+    beta_star
 end
 
 function wake_model(loc, deflection, model::Jensen, turbine::Turbine)
@@ -118,25 +121,74 @@ function wake_model(loc, deflection, model::Gauss, turbine::Turbine)
     dy = loc[2]-(turbine.coord.y+deflection_y)
     dz = loc[3]-(turbine.coord.z+turbine.hub_height+deflection_z)
 
+    # extract turbine properties
     Dt = turbine.rotor_diameter
+    yaw = turbine.yaw
+    ct = turbine.ct
 
-    """This is just a simple Gaussian model, needs to be replaced with the full
-    Bastankhah"""
-    k = 0.0325
-    CT = 8.0/9.0
-    sigma = k*dx + Dt/sqrt(8.0)
-    loss = (1.0-sqrt(1.0-CT/(8*sigma^2/(Dt^2))))*exp(-1.0/2.0*(dy/sigma)^2)
-    return loss
-end
+    as = model.alpha_star
+    bs = model.beta_star
+    TI = model.turbulence_intensity
 
+    # extract model parameters
+    ks = model.k_star       # wake spread rate (k* in 2014 paper)
+    TI = model.turbulence_intensity
+    ky = model.horizontal_spread_rate
+    kz = model.vertical_spread_rate
+    as = model.alpha_star
+    bs = model.beta_star
 
-"""total loss from every turbine at a single point"""
+    if model.version == 2014
+      """The Gaussian wake model presented by Bastankhah and Porte-Agel in
+      the paper: "A new analytical model for wind-turbine wakes" (2014)"""
 
-function wake_model(loc, deflection, model::AbstractWakeModel, farm::Array{turbine::Turbine,1})
-    loss_vec = zeros(length(deflection))
-    for (i,turbine) in enumerate(farm)
-        loss_vec[i] = wake_model(loc, deflection[i], model, turbine)
+      # calculate beta (paper eq: 6)
+      beta = 0.5*(1.0+sqrt(1.0-ct))/sqrt(1.0-ct)
+
+      # calculate the length of the potential core (2016 paper eq: 7.3)
+      x0 = ((1.0+sqrt(1.0+ct)))/(sqrt(2.0)*as*TI+bs*(1.0-sqrt(1.0-ct)))
+
+      # calculate loss (paper eq: 23)
+      enum =((dz/Dt)^2+(dy/Dt)^2)
+      if dx > x0
+        denom = (ks*dx/Dt+0.2*sqrt(beta))^2
+      else
+        denom = (ks*x0/Dt+0.2*sqrt(beta))^2
+      end
+      loss = (1.0 - sqrt(1.0-ct/(8.0*denom)))*exp(-enum/(2.0*denom))
+
+    elseif model.version == 2016
+      """The Gaussian wake model presented by Bastankhah and Porte-Agel in
+      the paper: "Experimental and theoretical study of wind turbine wakes
+      in yawed conditions" (2016)"""
+
+      # calculate the length of the potential core (paper eq: 7.3)
+      x0 = (cos(yaw)*(1+sqrt(1+ct)))/(sqrt(2)*as*TI+bs*(1-sqrt(1-ct)))
+
+      # calculate wake spread
+      if dx > x0
+
+        # calculate horizontal wake spread (paper eq: 7.2)
+        sigma_y = Dt*(ky*dx/Dt+cos(yaw)/sqrt(8))
+
+        # calculate vertical wake spread (paper eq: 7.2)
+        sigma_z = Dt*(kz*dx/Dt+1/sqrt(8))
+
+      else # linear interpolation in the near wakes
+
+        # calculate horizontal wake spread
+        sigma_y = Dt*(ky*x0/Dt+cos(yaw)/sqrt(8))
+
+        # calculate vertical wake spread
+        sigma_z = Dt*(kz*x0/Dt+1/sqrt(8))
+
+      end
+
+      # calculate velocity deficit
+      ey = exp(-0.5*(dy/sigma_y)^2)
+      ez = exp(-0.5*(dz/sigma_z)^2)
+
+      loss = (1-sqrt(1-ct*cos(yaw)/(8*(sigma_y*sigma_z/Dt^2))))*ey*ez
+
     end
-    loss = combination_model(loss_vec)
-    return loss
 end
