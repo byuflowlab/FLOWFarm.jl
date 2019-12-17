@@ -3,16 +3,16 @@ include("turbines.jl")
 
 abstract type AbstractWakeModel end
 
-struct Jensen <: AbstractWakeModel
-    alpha
+struct Jensen{TF} <: AbstractWakeModel
+    alpha::TF
 end
 
-struct Multizone <: AbstractWakeModel
-    me
-    ke
-    MU
-    aU
-    bU
+struct Multizone{TF} <: AbstractWakeModel
+    me::TF
+    ke::TF
+    MU::TF
+    aU::TF
+    bU::TF
 end
 
 struct Gauss <: AbstractWakeModel

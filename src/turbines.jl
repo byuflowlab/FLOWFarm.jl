@@ -1,17 +1,17 @@
 abstract type AbstractTurbine end
 
-struct Turbine <: AbstractTurbine
-    coord
-    rotor_diameter
-    hub_height
-    aI
-    gamma
-    yaw
-    ct
+struct Turbine{Coord,TF} <: AbstractTurbine
+    coord::Coord
+    rotor_diameter::TF
+    hub_height::TF
+    aI::TF
+    gamma::TF
+    yaw::TF
+    ct::TF
 end
 
-struct Coord
-    x
-    y
-    z
+struct Coord{TF}
+    x::TF
+    y::TF
+    z::TF
 end
