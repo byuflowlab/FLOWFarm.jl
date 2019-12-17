@@ -13,8 +13,8 @@ gamma = 0.0
 turbine = Turbine(coord,rotor_diameter,hub_height,aI,gamma)
 println(turbine)
 
-num = 100
-xlocs = ones(num).*1500.0
+num = 1000
+xlocs = ones(num).*900.0
 ylocs = range(-300,stop=300,length=num)
 zlocs = ones(num).*turbine.hub_height
 locs = zeros(length(xlocs),3)
@@ -23,7 +23,7 @@ locs[:,2] = ylocs[:]
 locs[:,3] = zlocs[:]
 loss_val = zeros(num)
 
-deflection = [0.0,0.0]
+deflection = [50.0,0.0]
 for i = 1:num
     loss_val[i] = wake_model(locs[i,:], deflection, model, turbine)
 end

@@ -1,0 +1,13 @@
+name = "FlowFarm"
+uuid = "eb2d4cfc-2064-11ea-0a1c-63d372e6a848"
+authors = ["PJ Stanley <stanley_andrewpj@yahoo.com>"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
