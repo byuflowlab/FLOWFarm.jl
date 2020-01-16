@@ -1,10 +1,9 @@
-include("turbines.jl")
-include("wake_models.jl")
+import FlowFarm; const ff = FlowFarm
 using Plots
 
-model = Jensen(0.1)
+model = ff.Jensen(0.1)
 
-coord = Coord(0.0,0.0,0.0)
+coord = ff.Coord(0.0,0.0,0.0)
 rotor_diameter = 150.0
 hub_height = 90.0
 aI = 1.0/3.0
@@ -12,7 +11,7 @@ gamma = 0.0
 yaw = 0.0
 ct = 0.7 #TODO handle ct and axial induction appropriately
 
-turbine = Turbine(coord, rotor_diameter, hub_height, aI, gamma, yaw, ct)
+turbine = ff.Turbine(coord, rotor_diameter, hub_height, aI, gamma, yaw, ct)
 println(turbine)
 
 num = 1000
@@ -27,7 +26,7 @@ loss_val = zeros(num)
 
 deflection = [100.0,0.0]
 for i = 1:num
-    loss_val[i] = wake_model(locs[i,:], deflection, model, turbine)
+    loss_val[i] = ff.wake_model(locs[i,:], deflection, model, turbine)
 end
 
 println(loss_val)
@@ -35,9 +34,9 @@ println(loss_val)
 
 
 
-model = Multizone([-0.5,0.3,1.0],0.05,[0.5,1.0,5.5],12.0,1.3)
+model = ff.Multizone([-0.5,0.3,1.0],0.05,[0.5,1.0,5.5],12.0,1.3)
 for i = 1:num
-    loss_val[i] = wake_model(locs[i,:], deflection, model, turbine)
+    loss_val[i] = ff.wake_model(locs[i,:], deflection, model, turbine)
 end
 println(loss_val)
 plot(ylocs,loss_val)
@@ -54,9 +53,9 @@ beta_star = 0.154
 # test Gauss model 2014
 version = 2014
 
-model = Gauss(version, k_star, turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+model = ff.Gauss(version, k_star, turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
 for i = 1:num
-    loss_val[i] = wake_model(locs[i,:], deflection, model, turbine)
+    loss_val[i] = ff.wake_model(locs[i,:], deflection, model, turbine)
 end
 println(loss_val)
 plot(ylocs,loss_val, show=true)
@@ -65,9 +64,9 @@ plot(ylocs,loss_val, show=true)
 # test Gauss model 2016
 version = 2016
 
-model = Gauss(version, k_star, turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+model = ff.Gauss(version, k_star, turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
 for i = 1:num
-    loss_val[i] = wake_model(locs[i,:], deflection, model, turbine)
+    loss_val[i] = ff.wake_model(locs[i,:], deflection, model, turbine)
 end
 println(loss_val)
 plot(ylocs,loss_val, show=true)

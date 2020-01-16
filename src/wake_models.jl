@@ -7,10 +7,10 @@ struct Jensen{TF} <: AbstractWakeModel
     alpha::TF
 end
 
-struct Multizone{TF} <: AbstractWakeModel
-    me::TF
+struct Multizone{ATF, TF} <: AbstractWakeModel
+    me::ATF
     ke::TF
-    MU::TF
+    MU::ATF
     aU::TF
     bU::TF
 end
