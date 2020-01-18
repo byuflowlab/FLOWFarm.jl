@@ -5,7 +5,6 @@ struct Turbine{Coord,TF} <: AbstractTurbine
     rotor_diameter::TF
     hub_height::TF
     aI::TF
-    gamma::TF
     yaw::TF
     ct::TF
 end
