@@ -27,12 +27,12 @@ using Test
         @test ff.wake_model([-1E-12, 0.0, hub_height], deflection, model, turbine) == 0.0
 
         # test max loss at turbine (data from Jensen 1983)
-        @test ff.wake_model([0.0, 0.0, hub_height], deflection, model, turbine) == (2. / 3.)
+        @test ff.wake_model([0.0, 0.0, hub_height], deflection, model, turbine) == (2. * aI)
 
-        # test centerline loss 40 diameters downstream (data from Jensen 1983)
+        # test centerline loss 40 meters downstream (data from Jensen 1983)
         @test ff.wake_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40
 
-        # test centerline loss 40 diameters downstream (data from Jensen 1983)
+        # test centerline loss 100 meters downstream (data from Jensen 1983)
         @test ff.wake_model([100., 0.0, hub_height], deflection, model, turbine) == centerloss100
 
         # test wake diameter 40 meters downstream (data from Jensen 1983)
