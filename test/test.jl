@@ -1,17 +1,16 @@
 import FlowFarm; const ff = FlowFarm
 using Plots
 
-model = ff.Jensen(0.1)
+model = ff.JensenTopHat(0.1)
 
 coord = ff.Coord(0.0,0.0,0.0)
 rotor_diameter = 150.0
 hub_height = 90.0
 aI = 1.0/3.0
-gamma = 0.0
 yaw = 0.0
 ct = 0.7 #TODO handle ct and axial induction appropriately
 
-turbine = ff.Turbine(coord, rotor_diameter, hub_height, aI, gamma, yaw, ct)
+turbine = ff.Turbine(coord, rotor_diameter, hub_height, aI, yaw, ct)
 println(turbine)
 
 num = 1000

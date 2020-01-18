@@ -3,7 +3,7 @@ include("turbines.jl")
 
 abstract type AbstractWakeModel end
 
-struct Jensen{TF} <: AbstractWakeModel
+struct JensenTopHat{TF} <: AbstractWakeModel
     alpha::TF
 end
 
@@ -27,8 +27,8 @@ struct Gauss <: AbstractWakeModel
     beta_star
 end
 
-function wake_model(loc, deflection, model::Jensen, turbine::Turbine)
-    """the original jensen wake model, from the paper: "A Note on Wind
+function wake_model(loc, deflection, model::JensenTopHat, turbine::Turbine)
+    """the original Jensen top hat wake model, from the paper: "A Note on Wind
     Generator Interaction" by N.O. Jensen (1983)"""
     # pull out the deflection distances in y (cross stream) and z (up and down)
     deflection_y = deflection[1]
@@ -95,13 +95,13 @@ function wake_model(loc, deflection, model::Multizone, turbine::Turbine)
         # calculate the coefficient c of the appropriate wake zone:
         # equations (15, 16, and 17) from the paper
         if del < Rw[1]
-            mU = MU[1]/(cos(aU+bU*turbine.gamma))
+            mU = MU[1]/(cos(aU+bU*turbine.yaw))
             c = (Dt/(Dt+2.0*ke*mU*dx))^2
         elseif del < Rw[2]
-            mU = MU[2]/(cos(aU+bU*turbine.gamma))
+            mU = MU[2]/(cos(aU+bU*turbine.yaw))
             c = (Dt/(Dt+2.0*ke*mU*dx))^2
         elseif del < Rw[3]
-            mU = MU[3]/(cos(aU+bU*turbine.gamma))
+            mU = MU[3]/(cos(aU+bU*turbine.yaw))
             c = (Dt/(Dt+2.0*ke*mU*dx))^2
         else
             c = 0.0
