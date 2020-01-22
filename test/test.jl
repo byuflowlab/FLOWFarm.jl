@@ -1,7 +1,7 @@
 import FlowFarm; const ff = FlowFarm
 using Plots
 
-model = ff.JensenTopHat(0.1)
+model = ff.Jensen(0.1)
 
 coord = ff.Coord(0.0,0.0,0.0)
 rotor_diameter = 150.0

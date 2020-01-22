@@ -7,6 +7,11 @@ struct JensenTopHat{TF} <: AbstractWakeModel
     alpha::TF
 end
 
+struct JensenCosine{TF} <: AbstractWakeModel
+    alpha::TF
+    beta::TF
+end
+
 struct Multizone{ATF, TF} <: AbstractWakeModel
     me::ATF
     ke::TF
@@ -52,6 +57,40 @@ function wake_model(loc, deflection, model::JensenTopHat, turbine::Turbine)
             loss = 0.0
         else # if you're inside the wake
             loss = 2.0*turbine.aI*(r0/(r0+model.alpha*dx))^2 #equation (2) from the paper
+        end
+    end
+    return loss
+end
+
+function wake_model(loc, deflection, model::JensenCosine, turbine::Turbine)
+    """the original Jensen cosine wake model, from the paper: "A Note on Wind
+    Generator Interaction" by N.O. Jensen (1983)"""
+    # pull out the deflection distances in y (cross stream) and z (up and down)
+    deflection_y = deflection[1]
+    deflection_z = deflection[2]
+
+    # find delta x, y, and z. dx is the downstream distance from the turbine to
+    # the point of interest. dy and dz are the distances from the point of interest
+    # and the wake center (in y and z)
+    dx = loc[1]-turbine.coord.x
+    dy = loc[2]-(turbine.coord.y+deflection_y)
+    dz = loc[3]-(turbine.coord.z+turbine.hub_height+deflection_z)
+
+    r0 = turbine.rotor_diameter/2.0 #turbine rotor radius
+    del = sqrt(dy^2+dz^2) #distance from wake center to the point of interest
+    r = model.alpha*dx + r0 #figure (1) from the paper
+
+    if dx < 0.
+        loss = 0.0 # no loss outside the wake
+    else
+        d = r0/tan(model.beta) # distance from fulcrum of wake cone to wind turbine hub
+        theta = atan(dy/(dx+d)) # angle from center of wake to point of interest
+        if theta > model.beta # if you're outside the wake
+            loss = 0.0
+        else # if you're inside the wake
+            n = pi / model.beta # see Jensen 1983 eq. 3. Value used for n in paper was 9, corresponding to beta = 20.0 deg.
+            ftheta = (1.0 + cos(n * theta)) / 2.0 # cosine term to be applied to loss equation as per Jensen 1983
+            loss = 2.0*turbine.aI*(ftheta*r0/(r0+model.alpha*dx))^2 #equation (2) from the paper
         end
     end
     return loss
