@@ -123,4 +123,61 @@ using Test
 
     end
     
+    @testset "Gauss Yaw Model" begin
+
+        coord = ff.Coord(0.0, 0.0, 0.0)
+        rotor_diameter = 40.0
+        hub_height = 90.0
+        aI = 1.0/3.0
+        yaw = 0.0
+        ct = 0.7 #TODO handle ct and axial induction appropriately
+
+        k_star = 0.075
+        turbulence_intensity = 0.07
+        horizontal_spread_rate = k_star
+        vertical_spread_rate = k_star
+        alpha_star = 2.32
+        beta_star = 0.154
+        
+        turbine = ff.Turbine(coord, rotor_diameter, hub_height, aI, yaw, ct)
+        
+        deflection = [0.0, 0.0]
+
+        model = ff.GaussYaw(turbulence_intensity, horizontal_spread_rate , vertical_spread_rate, alpha_star, beta_star)
+
+        centerloss40 = 1. - 4.35/8.1
+        centerloss100 = 1. - 5.7/8.1
+
+        # test no loss upstream (data from Jensen 1983)
+        @test ff.wake_model([-1E-12, 0.0, hub_height], deflection, model, turbine) == 0.0
+
+        # test max loss at turbine (data from Jensen 1983)
+        # @test ff.wake_model([0.0, 0.0, hub_height], deflection, model, turbine) == (2. * aI)
+
+        # # test centerline loss 40 meters downstream (data from Jensen 1983)
+        # @test ff.wake_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40
+
+        # # test centerline loss 100 meters downstream (data from Jensen 1983)
+        # @test ff.wake_model([100., 0.0, hub_height], deflection, model, turbine) == centerloss100
+
+        # # test wake diameter 40 meters downstream (data from Jensen 1983)
+        # @test ff.wake_model([40., dy40, hub_height], deflection, model, turbine) == 0.0
+        # @test ff.wake_model([40., (dy40 + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        # @test ff.wake_model([40., (dy40 - 1E1), hub_height], deflection, model, turbine) >= 0.0
+        # @test ff.wake_model([40., -(dy40), hub_height], deflection, model, turbine) == 0.0
+        # @test ff.wake_model([40., -(dy40 + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        # @test ff.wake_model([40., -(dy40 - 1E1), hub_height], deflection, model, turbine) >= 0.0
+
+        # # test wake diameter 100 meters downstream (data from Jensen 1983)
+        # @test ff.wake_model([100., dy100, hub_height], deflection, model, turbine) == 0.0
+        # @test ff.wake_model([100., (dy100 + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        # @test ff.wake_model([100., (dy100 - 1E1), hub_height], deflection, model, turbine) >= 0.0
+        # @test ff.wake_model([100., -(dy100), hub_height], deflection, model, turbine) == 0.0
+        # @test ff.wake_model([100., -(dy100 + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        # @test ff.wake_model([100., -(dy100 - 1E1), hub_height], deflection, model, turbine) >= 0.0
+
+        # # test value at point in wake 40 m downstream and with theta=15 degrees
+        # @test ff.wake_model([40., dy, hub_height], deflection, model, turbine) == loss40attheta
+
+    end
 end
