@@ -133,7 +133,7 @@ using Test
         ct = 0.82 # [1] fig. 2
 
         k_star = 0.022 # [1]  p. 525
-        turbulence_intensity = 0.1 #[1] p. 508
+        turbulence_intensity = 0.1 #0.0875 #[1] p. 508 - this value is only specified to be less than 0.1
         horizontal_spread_rate = k_star
         vertical_spread_rate = k_star
         alpha_star = 2.32 #[1] p. 534
@@ -168,8 +168,15 @@ using Test
         @test ff.wake_model([-1E-12, 0.0, hub_height], deflection, model, turbine) == 0.0
 
         deflection = [0.0, 0.0]
-        # test loss at x1 with no yaw
-        @test ff.wake_model([x1_0, 0.0, hub_height], deflection, model, turbine) == loss1_0
+        # test loss at x2 with no yaw
+        @test round(ff.wake_model([x2_0, 0.0, hub_height], deflection, model, turbine), digits=1) == round(loss2_0, digits=1)
+
+        # test loss at x3 with no yaw
+        @test round(ff.wake_model([x3_0, 0.0, hub_height], deflection, model, turbine), digits=1) == round(loss3_0, digits=1)
+
+        # test loss at x4 with no yaw
+        @test round(ff.wake_model([x4_0, 0.0, hub_height], deflection, model, turbine), digits=1) == round(loss4_0, digits=1)
+
 
         # # test centerline loss 40 meters downstream (data from Jensen 1983)
         # @test ff.wake_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40

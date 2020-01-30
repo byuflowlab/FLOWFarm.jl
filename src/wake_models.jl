@@ -223,14 +223,13 @@ function wake_model(loc, deflection, model::GaussYaw, turbine::Turbine)
     the paper: "Experimental and theoretical study of wind turbine wakes
     in yawed conditions" (2016)"""
 
-    # calculate the length of the potential core (paper eq: 7.3)
-    x0 = (cos(yaw)*(1.0+sqrt(1.0-ct)))/(sqrt(2.0)*(as*TI+bs*(1.0-sqrt(1.0-ct))))
-
-    
     if dx > 0.0 # loss in the wake
+
+        # calculate the length of the potential core (paper eq: 7.3)
+        x0 = Dt*(cos(yaw)*(1.0+sqrt(1.0-ct)))/(sqrt(2.0)*(as*TI+bs*(1.0-sqrt(1.0-ct))))
+
         # calculate wake spread
         if dx > x0
-
             # calculate horizontal wake spread (paper eq: 7.2)
             sigma_y = Dt*(ky*(dx-x0)/Dt+cos(yaw)/sqrt(8.0))
 
@@ -238,7 +237,6 @@ function wake_model(loc, deflection, model::GaussYaw, turbine::Turbine)
             sigma_z = Dt*(kz*(dx-x0)/Dt+1.0/sqrt(8.0))
 
         else # linear interpolation in the near wakes
-
             # calculate horizontal wake spread
             sigma_y = Dt*(ky*(x0-x0)/Dt+cos(yaw)/sqrt(8.0))
 
@@ -247,13 +245,12 @@ function wake_model(loc, deflection, model::GaussYaw, turbine::Turbine)
         end 
 
         # calculate velocity deficit
-        ey = exp(-0.5*(dy/sigma_y)^2)
-        ez = exp(-0.5*(dz/sigma_z)^2)
+        ey = exp(-0.5*(dy/sigma_y)^2.0)
+        ez = exp(-0.5*(dz/sigma_z)^2.0)
 
-        loss = (1.0-sqrt(1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/Dt^2))))*ey*ez
+        loss = (1.0-sqrt(1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/Dt^2.0))))*ey*ez
 
     else # loss upstream of turbine
-
         loss = 0.0
 
     end
