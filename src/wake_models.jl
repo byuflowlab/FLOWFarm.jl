@@ -211,10 +211,6 @@ function wake_model(loc, deflection, model::GaussYaw, turbine::Turbine)
     yaw = turbine.yaw
     ct = turbine.ct
 
-    as = model.alpha_star
-    bs = model.beta_star
-    TI = model.turbulence_intensity
-
     # extract model parameters
     # ks = model.k_star       # wake spread rate (k* in 2014 paper)
     TI = model.turbulence_intensity
@@ -228,7 +224,7 @@ function wake_model(loc, deflection, model::GaussYaw, turbine::Turbine)
     in yawed conditions" (2016)"""
 
     # calculate the length of the potential core (paper eq: 7.3)
-    x0 = (cos(yaw)*(1+sqrt(1+ct)))/(sqrt(2)*as*TI+bs*(1-sqrt(1-ct)))
+    x0 = (cos(yaw)*(1.0+sqrt(1.0-ct)))/(sqrt(2.0)*(as*TI+bs*(1.0-sqrt(1.0-ct))))
 
     
     if dx > 0.0 # loss in the wake
@@ -236,18 +232,18 @@ function wake_model(loc, deflection, model::GaussYaw, turbine::Turbine)
         if dx > x0
 
             # calculate horizontal wake spread (paper eq: 7.2)
-            sigma_y = Dt*(ky*dx/Dt+cos(yaw)/sqrt(8.0))
+            sigma_y = Dt*(ky*(dx-x0)/Dt+cos(yaw)/sqrt(8.0))
 
             # calculate vertical wake spread (paper eq: 7.2)
-            sigma_z = Dt*(kz*dx/Dt+1.0/sqrt(8.0))
+            sigma_z = Dt*(kz*(dx-x0)/Dt+1.0/sqrt(8.0))
 
         else # linear interpolation in the near wakes
 
             # calculate horizontal wake spread
-            sigma_y = Dt*(ky*x0/Dt+cos(yaw)/sqrt(8.0))
+            sigma_y = Dt*(ky*(x0-x0)/Dt+cos(yaw)/sqrt(8.0))
 
             # calculate vertical wake spread
-            sigma_z = Dt*(kz*x0/Dt+1.0/sqrt(8.0))
+            sigma_z = Dt*(kz*(x0-x0)/Dt+1.0/sqrt(8.0))
         end 
 
         # calculate velocity deficit

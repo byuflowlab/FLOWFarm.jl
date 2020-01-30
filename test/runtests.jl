@@ -124,35 +124,52 @@ using Test
     end
     
     @testset "Gauss Yaw Model" begin
+        # [1] based on data from Bastankhah and Porte-Agel 2016
 
-        coord = ff.Coord(0.0, 0.0, 0.0)
-        rotor_diameter = 40.0
-        hub_height = 90.0
-        aI = 1.0/3.0
+        coord = ff.Coord(0.000022, 0.0, 0.0) #[1] p. 509
+        rotor_diameter = 0.15 #[1] p. 509
+        hub_height = 0.125 #[1] p. 509
         yaw = 0.0
-        ct = 0.7 #TODO handle ct and axial induction appropriately
+        ct = 0.82 # [1] fig. 2
 
-        k_star = 0.075
-        turbulence_intensity = 0.07
+        k_star = 0.022 # [1]  p. 525
+        turbulence_intensity = 0.1 #[1] p. 508
         horizontal_spread_rate = k_star
         vertical_spread_rate = k_star
-        alpha_star = 2.32
-        beta_star = 0.154
+        alpha_star = 2.32 #[1] p. 534
+        beta_star = 0.154 #[1] p. 534
         
-        turbine = ff.Turbine(coord, rotor_diameter, hub_height, aI, yaw, ct)
+        turbine = ff.Turbine(coord, rotor_diameter, hub_height, 1.0/3.0, yaw, ct)
         
         deflection = [0.0, 0.0]
 
         model = ff.GaussYaw(turbulence_intensity, horizontal_spread_rate , vertical_spread_rate, alpha_star, beta_star)
 
-        centerloss40 = 1. - 4.35/8.1
-        centerloss100 = 1. - 5.7/8.1
+        # data from Bastankhah and Porte-Agel 2016, figure 19
+        yaw_20 = 20.0*pi/180.0
+        x1_20 = 4.221216585981899*rotor_diameter 
+        loss1_20 = 0.49396179751631175
+        x2_20 = 6.014102294253845*rotor_diameter
+        loss2_20 = 0.31515733529783185
+        x3_20 = 7.987265838770787*rotor_diameter 
+        loss3_20 = 0.22750736687013284
 
-        # test no loss upstream (data from Jensen 1983)
+        yaw_0 = 0.0*pi/180.0
+        x1_0 = 4.0000000000000036*rotor_diameter
+        loss1_0 = 0.5922779922779922
+        x2_0 = 6.00904977375566*rotor_diameter 
+        loss2_0 = 0.37606177606177627
+        x3_0 = 8.00452488687783*rotor_diameter
+        loss3_0 = 0.2710424710424715
+        x4_0 = 10.000000000000002*rotor_diameter 
+        loss4_0 = 0.20772200772200788
+
+        # test no loss upstream
         @test ff.wake_model([-1E-12, 0.0, hub_height], deflection, model, turbine) == 0.0
 
-        # test max loss at turbine (data from Jensen 1983)
-        # @test ff.wake_model([0.0, 0.0, hub_height], deflection, model, turbine) == (2. * aI)
+        deflection = [0.0, 0.0]
+        # test loss at x1 with no yaw
+        @test ff.wake_model([x1_0, 0.0, hub_height], deflection, model, turbine) == loss1_0
 
         # # test centerline loss 40 meters downstream (data from Jensen 1983)
         # @test ff.wake_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40
