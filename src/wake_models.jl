@@ -102,7 +102,7 @@ function wake_model(loc, deflection, model::Multizone, turbine::Turbine)
     "Wind plant power optimization through yaw control using a parametric model
     for wake effects—a CFD simulation study" by Gebraad et al. (2014)"""
 
-    Dt = turbine.rotor_diameter
+    dt = turbine.rotor_diameter
     # extract model parameters
     ke = model.ke
     me = model.me
@@ -128,20 +128,20 @@ function wake_model(loc, deflection, model::Multizone, turbine::Turbine)
         # calculate the diameter of the wake in each of the three zones (at the specified dx)
         Dw = zeros(3)
         for i = 1:3
-            Dw[i] = max(Dt+2*ke*me[i]*dx,0) # equation (13) from the paper
+            Dw[i] = max(dt+2*ke*me[i]*dx,0) # equation (13) from the paper
         end
         Rw = Dw./2 # radius of the wake zones
         # calculate the coefficient c of the appropriate wake zone:
         # equations (15, 16, and 17) from the paper
         if del < Rw[1]
             mU = MU[1]/(cos(aU+bU*turbine.yaw))
-            c = (Dt/(Dt+2.0*ke*mU*dx))^2
+            c = (dt/(dt+2.0*ke*mU*dx))^2
         elseif del < Rw[2]
             mU = MU[2]/(cos(aU+bU*turbine.yaw))
-            c = (Dt/(Dt+2.0*ke*mU*dx))^2
+            c = (dt/(dt+2.0*ke*mU*dx))^2
         elseif del < Rw[3]
             mU = MU[3]/(cos(aU+bU*turbine.yaw))
-            c = (Dt/(Dt+2.0*ke*mU*dx))^2
+            c = (dt/(dt+2.0*ke*mU*dx))^2
         else
             c = 0.0
         end
@@ -161,17 +161,17 @@ function wake_model(loc, deflection, model::GaussOriginal, turbine::Turbine)
     dz = loc[3]-(turbine.coord.z+turbine.hub_height+deflection_z)
 
     # extract turbine properties
-    Dt = turbine.rotor_diameter
+    dt = turbine.rotor_diameter
     yaw = turbine.yaw
     ct = turbine.ct
 
     as = model.alpha_star
     bs = model.beta_star
-    TI = model.turbulence_intensity
+    ti = model.turbulence_intensity
 
     # extract model parameters
     ks = model.k_star       # wake spread rate (k* in 2014 paper)
-    TI = model.turbulence_intensity
+    ti = model.turbulence_intensity
     ky = model.horizontal_spread_rate
     kz = model.vertical_spread_rate
     as = model.alpha_star
@@ -184,16 +184,33 @@ function wake_model(loc, deflection, model::GaussOriginal, turbine::Turbine)
     beta = 0.5*(1.0+sqrt(1.0-ct))/sqrt(1.0-ct)
 
     # calculate the length of the potential core (2016 paper eq: 7.3)
-    x0 = ((1.0+sqrt(1.0+ct)))/(sqrt(2.0)*as*TI+bs*(1.0-sqrt(1.0-ct)))
+    x0 = ((1.0+sqrt(1.0+ct)))/(sqrt(2.0)*as*ti+bs*(1.0-sqrt(1.0-ct)))
 
     # calculate loss (paper eq: 23)
-    enum =((dz/Dt)^2+(dy/Dt)^2)
+    enum =((dz/dt)^2+(dy/dt)^2)
     if dx > x0
-    denom = (ks*dx/Dt+0.2*sqrt(beta))^2
+    denom = (ks*dx/dt+0.2*sqrt(beta))^2
     else
-    denom = (ks*x0/Dt+0.2*sqrt(beta))^2
+    denom = (ks*x0/dt+0.2*sqrt(beta))^2
     end
     loss = (1.0 - sqrt(1.0-ct/(8.0*denom)))*exp(-enum/(2.0*denom))
+
+end
+
+function _gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
+    # from Bastankhah and Porte-Agel 2016 eqn 7.3
+
+    x0 = dt*(cos(yaw)*(1.0+sqrt(1.0-ct)))/(sqrt(2.0)*(as*ti+bs*(1.0-sqrt(1.0-ct))))
+
+    return x0
+end
+
+function _gauss_yaw_spread(dt, k, dx, x0, yaw)
+    # from Bastankhah and Porte-Agel 2016 eqn 7.2
+
+    sigma = dt*(k*(dx-x0)/dt+cos(yaw)/sqrt(8.0))
+
+    return sigma
 
 end
 
@@ -207,13 +224,13 @@ function wake_model(loc, deflection, model::GaussYaw, turbine::Turbine)
     dz = loc[3]-(turbine.coord.z+turbine.hub_height+deflection_z)
 
     # extract turbine properties
-    Dt = turbine.rotor_diameter
+    dt = turbine.rotor_diameter
     yaw = turbine.yaw
     ct = turbine.ct
 
     # extract model parameters
     # ks = model.k_star       # wake spread rate (k* in 2014 paper)
-    TI = model.turbulence_intensity
+    ti = model.turbulence_intensity
     ky = model.horizontal_spread_rate
     kz = model.vertical_spread_rate
     as = model.alpha_star
@@ -226,35 +243,34 @@ function wake_model(loc, deflection, model::GaussYaw, turbine::Turbine)
     if dx > 0.0 # loss in the wake
 
         # calculate the length of the potential core (paper eq: 7.3)
-        x0 = Dt*(cos(yaw)*(1.0+sqrt(1.0-ct)))/(sqrt(2.0)*(as*TI+bs*(1.0-sqrt(1.0-ct))))
+        x0 = _gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
 
         # calculate wake spread
         if dx > x0
             # calculate horizontal wake spread (paper eq: 7.2)
-            sigma_y = Dt*(ky*(dx-x0)/Dt+cos(yaw)/sqrt(8.0))
+            sigma_y = _gauss_yaw_spread(dt, ky, dx, x0, yaw)
 
             # calculate vertical wake spread (paper eq: 7.2)
-            sigma_z = Dt*(kz*(dx-x0)/Dt+1.0/sqrt(8.0))
+            sigma_z = _gauss_yaw_spread(dt, kz, dx, x0, 0.0)
 
         else # linear interpolation in the near wakes
             # calculate horizontal wake spread
-            sigma_y = Dt*(ky*(x0-x0)/Dt+cos(yaw)/sqrt(8.0))
+            sigma_y = _gauss_yaw_spread(dt, ky, x0, x0, yaw)
 
             # calculate vertical wake spread
-            sigma_z = Dt*(kz*(x0-x0)/Dt+1.0/sqrt(8.0))
+            sigma_z = _gauss_yaw_spread(dt, kz, x0, x0, 0.0)
         end 
 
         # calculate velocity deficit
         ey = exp(-0.5*(dy/sigma_y)^2.0)
         ez = exp(-0.5*(dz/sigma_z)^2.0)
 
-        loss = (1.0-sqrt(1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/Dt^2.0))))*ey*ez
+        loss = (1.0-sqrt(1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2.0))))*ey*ez
 
     else # loss upstream of turbine
         loss = 0.0
 
     end
-
 
 end
 
