@@ -15,34 +15,34 @@ using Test
 
     @testset "Gauss Yaw Deflection" begin
 
-    coord = ff.Coord(0.000022, 0.0, 0.0) #[1] p. 509
-    rotor_diameter = 0.15 #[1] p. 509
-    hub_height = 0.125 #[1] p. 509
-    yaw_20 = 20.0*pi/180.0
-    ct = 0.82 # [1] fig. 2
-    aI = 1.0/3.0
+        coord = ff.Coord(0.000022, 0.0, 0.0) #[1] p. 509
+        rotor_diameter = 0.15 #[1] p. 509
+        hub_height = 0.125 #[1] p. 509
+        yaw_20 = 20.0*pi/180.0
+        ct = 0.82 # [1] fig. 2
+        aI = 1.0/3.0
 
-    k_star = 0.022 # [1]  p. 525
-    turbulence_intensity = 0.1 #0.0875 #[1] p. 508 - this value is only specified to be less than 0.1
-    horizontal_spread_rate = k_star
-    vertical_spread_rate = k_star
-    alpha_star = 2.32 #[1] p. 534
-    beta_star = 0.154 #[1] p. 534
+        k_star = 0.022 # [1]  p. 525
+        turbulence_intensity = 0.1 #0.0875 #[1] p. 508 - this value is only specified to be less than 0.1
+        horizontal_spread_rate = k_star
+        vertical_spread_rate = k_star
+        alpha_star = 2.32 #[1] p. 534
+        beta_star = 0.154 #[1] p. 534
 
-    turbine = ff.Turbine(coord, rotor_diameter, hub_height, aI, yaw_20, ct)
-    model = ff.GaussYawDeflection(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+        turbine = ff.Turbine(coord, rotor_diameter, hub_height, aI, yaw_20, ct)
+        model = ff.GaussYawDeflection(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
 
-    dx4d = 4.0*rotor_diameter
-    dy4d_20 = 0.2684659090909065*rotor_diameter # from [1] figure 21
+        dx4d = 4.0*rotor_diameter
+        dy4d_20 = 0.2684659090909065*rotor_diameter # from [1] figure 21
 
-    dx8d = 8.0*rotor_diameter
-    dy8d_20 = 0.34090909090908905*rotor_diameter # from [1] figure 21
-    
-    # test deflection at 4D
-    @test round(ff.deflection_model([dx4d, dy4d_20, hub_height], model, turbine), digits=2) == round(dy4d_20, digits=2)
+        dx8d = 8.0*rotor_diameter
+        dy8d_20 = 0.34090909090908905*rotor_diameter # from [1] figure 21
+        
+        # test deflection at 4D with yaw 20 deg
+        @test round(ff.deflection_model([dx4d, dy4d_20, hub_height], model, turbine), digits=2) == round(dy4d_20, digits=2)
 
-    # test deflection at 8D
-    @test round(ff.deflection_model([dx8d, dy8d_20, hub_height], model, turbine), digits=2) == round(dy8d_20, digits=2)
+        # test deflection at 8D with yaw 20 deg
+        @test round(ff.deflection_model([dx8d, dy8d_20, hub_height], model, turbine), digits=2) == round(dy8d_20, digits=2)
 
     end
 
@@ -56,7 +56,7 @@ end
         hub_height = 90.0
         aI = 1.0/3.0
         yaw = 0.0
-        ct = 0.7 #TODO handle ct and axial induction appropriately
+        ct = 0.7 
 
         alpha = 0.1
         
@@ -101,7 +101,7 @@ end
         hub_height = 90.0
         aI = 1.0/3.0
         yaw = 0.0
-        ct = 0.7 #TODO handle ct and axial induction appropriately
+        ct = 0.7 
 
         alpha = 0.1
         beta = 20.0*pi/180.0

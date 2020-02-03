@@ -1,4 +1,3 @@
-include("combination_models.jl")
 include("turbines.jl")
 
 abstract type AbstractWakeModel end
@@ -20,16 +19,16 @@ struct Multizone{ATF, TF} <: AbstractWakeModel
     bU::TF
 end
 
-struct GaussOriginal <: AbstractWakeModel
-    k_star
+struct GaussOriginal{TF} <: AbstractWakeModel
+    k_star::TF
 end
 
-struct GaussYaw <: AbstractWakeModel
-    turbulence_intensity
-    horizontal_spread_rate
-    vertical_spread_rate
-    alpha_star
-    beta_star
+struct GaussYaw{TF} <: AbstractWakeModel
+    turbulence_intensity::TF
+    horizontal_spread_rate::TF
+    vertical_spread_rate::TF
+    alpha_star::TF
+    beta_star::TF
 end
 
 function wake_model(loc, deflection, model::JensenTopHat, turbine::Turbine)
