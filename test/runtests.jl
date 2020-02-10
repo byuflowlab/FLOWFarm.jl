@@ -46,9 +46,68 @@ end
 
 @testset "Wake Deflection Models" begin
 
+    @testset "Jiminez Yaw Deflection" begin
+
+        # [1] Jiminez 2010
+
+        # The following are data results, not model results, so testing is a little sketchy.
+        # data for ct=0.8, x/d = 2.5
+        # z/d                   u/u0
+        # 0.005141388174807027, 0.5123919308357348 # yaw = 0
+        # -0.15938303341902316, 0.5089337175792507 # yaw = 10
+        # -0.23136246786632375, 0.5677233429394812 # yaw = 20
+        # -0.30334190231362435, 0.6576368876080692 # yaw = 30
+
+        # data for ct=0.8, x/d = 5.5
+        # z/d                   u/u0
+        # 0.0051413881748061385, 0.7542028985507248 # yaw = 0
+        # -0.2107969151670961, 0.7460869565217392 # yaw = 10
+        # -0.40616966580976843, 0.7657971014492755 # yaw = 20
+        # -0.4267352185089983, 0.8191304347826089 # yaw = 30
+
+        # data for ct=0.8, x/d = 8.0
+        # z/d                   u/u0
+        # 0.010309278350515427, 0.8462457541266909 # yaw = 0
+        # -0.2680412371134011, 0.8519456528216436 # yaw = 10
+        # -0.5257731958762868, 0.8588075800011918 # yaw = 20
+        # -0.5670103092783503, 0.8923216733210179 # yaw = 30
+
+        coord = ff.Coord(0.0, 0.0, 0.000022) #[1] p. 509
+        rotor_diameter = 0.15 # [1] p. 509
+        hub_height = 0.125 # [1] p. 509
+        yaw_20 = 20.0*pi/180.0
+        ct = 0.8 # [1] fig. 2
+        aI = 1.0/3.0
+
+        k_star = 0.06 # [1]  p. 525
+        horizontal_spread_rate = k_star
+
+        turbine = ff.Turbine(coord, rotor_diameter, hub_height, aI, yaw_20, ct)
+        model = ff.JiminezYawDeflection(horizontal_spread_rate)
+
+        dx2p5d = 2.5*rotor_diameter
+        dy2p5d_y20 = 0.23136246786632375*rotor_diameter # from [1] figure 21
+
+        dx5p5d = 5.5*rotor_diameter
+        dy5p5d_y20 = 0.40616966580976843*rotor_diameter # from [1] figure 21
+
+        dx8d = 8.0*rotor_diameter
+        dy8d_20 = 0.5257731958762868*rotor_diameter # from [1] figure 21
+
+        # test deflection at 2.5D with yaw 20 deg
+        @test round(ff.wake_deflection_model([dx2p5d, 0.0, hub_height], model, turbine), digits=2) == round(dy2p5d_y20, digits=2)
+
+        # test deflection at 5.5D with yaw 20 deg
+        @test round(ff.wake_deflection_model([dx5p5d, 0.0, hub_height], model, turbine), digits=2) == round(dy5p5d_y20, digits=2)
+
+        # test deflection at 8D with yaw 20 deg
+        # @test round(ff.wake_deflection_model([dx8d, 0.0, hub_height], model, turbine), digits=2) == round(dy8d_20, digits=2)
+
+    end
+
     @testset "Gauss Yaw Deflection" begin
 
-        coord = ff.Coord(0.000022, 0.0, 0.0) #[1] p. 509
+        coord = ff.Coord(0.0, 0.0, 0.000022) #[1] p. 509
         rotor_diameter = 0.15 #[1] p. 509
         hub_height = 0.125 #[1] p. 509
         yaw_20 = 20.0*pi/180.0
@@ -72,10 +131,10 @@ end
         dy8d_20 = 0.34090909090908905*rotor_diameter # from [1] figure 21
         
         # test deflection at 4D with yaw 20 deg
-        @test round(ff.deflection_model([dx4d, dy4d_20, hub_height], model, turbine), digits=2) == round(dy4d_20, digits=2)
+        @test round(ff.wake_deflection_model([dx4d, dy4d_20, hub_height], model, turbine), digits=2) == round(dy4d_20, digits=2)
 
         # test deflection at 8D with yaw 20 deg
-        @test round(ff.deflection_model([dx8d, dy8d_20, hub_height], model, turbine), digits=2) == round(dy8d_20, digits=2)
+        @test round(ff.wake_deflection_model([dx8d, dy8d_20, hub_height], model, turbine), digits=2) == round(dy8d_20, digits=2)
 
     end
 
