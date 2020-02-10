@@ -1,6 +1,6 @@
 abstract type AbstractCombinationModel end
 
-struct FreestreamLinearSuperposition <: AbstractCombinationModel
+struct LinearFreestreamSuperposition <: AbstractCombinationModel
     # Lissaman 1979
     # new_deficit_sum = old_deficit_sum + wind_speed*deltav
 
@@ -24,7 +24,7 @@ struct LinearLocalVelocitySuperposition <: AbstractCombinationModel
 
 end
 
-function combination_model(deltav, wind_speed, old_deficit_sum, model::FreestreamLinearSuperposition)
+function wake_combination_model(deltav, wind_speed, old_deficit_sum, model::LinearFreestreamSuperposition)
     # Lissaman 1979
     
     new_deficit_sum = old_deficit_sum + wind_speed*deltav
@@ -33,7 +33,7 @@ function combination_model(deltav, wind_speed, old_deficit_sum, model::Freestrea
 
 end
 
-function combination_model(deltav, wind_speed, old_deficit_sum, model::SumOfSquaresFreestreamSuperposition)
+function wake_combination_model(deltav, wind_speed, old_deficit_sum, model::SumOfSquaresFreestreamSuperposition)
     # Katic et al. 1986
 
     new_deficit_sum = sqrt((old_deficit_sum^2 + (wind_speed*deltav)^2))
@@ -42,7 +42,7 @@ function combination_model(deltav, wind_speed, old_deficit_sum, model::SumOfSqua
 
 end
 
-function combination_model(deltav, turb_inflow, old_deficit_sum, model::SumOfSquaresLocalVelocitySuperposition)
+function wake_combination_model(deltav, turb_inflow, old_deficit_sum, model::SumOfSquaresLocalVelocitySuperposition)
     # Voutsinas 1990
 
     new_deficit_sum = sqrt(old_deficit_sum^2 + (turb_inflow*deltav)^2)
@@ -51,7 +51,7 @@ function combination_model(deltav, turb_inflow, old_deficit_sum, model::SumOfSqu
 
 end
 
-function combination_model(deltav, turb_inflow, old_deficit_sum, model::LinearLocalVelocitySuperposition)
+function wake_combination_model(deltav, turb_inflow, old_deficit_sum, model::LinearLocalVelocitySuperposition)
     # Niayifar and Porte Agel 2015, 2016
 
     new_deficit_sum = old_deficit_sum + turb_inflow*deltav

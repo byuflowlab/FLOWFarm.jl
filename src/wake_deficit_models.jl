@@ -31,7 +31,7 @@ struct GaussYaw{TF} <: AbstractWakeModel
     beta_star::TF
 end
 
-function wake_model(loc, deflection, model::JensenTopHat, turbine::Turbine)
+function wake_deficit_model(loc, deflection, model::JensenTopHat, turbine::Turbine)
     """the original Jensen top hat wake model, from the paper: "A Note on Wind
     Generator Interaction" by N.O. Jensen (1983)"""
     # pull out the deflection distances in y (cross stream) and z (up and down)
@@ -61,7 +61,7 @@ function wake_model(loc, deflection, model::JensenTopHat, turbine::Turbine)
     return loss
 end
 
-function wake_model(loc, deflection, model::JensenCosine, turbine::Turbine)
+function wake_deficit_model(loc, deflection, model::JensenCosine, turbine::Turbine)
     """the original Jensen cosine wake model, from the paper: "A Note on Wind
     Generator Interaction" by N.O. Jensen (1983)"""
     # pull out the deflection distances in y (cross stream) and z (up and down)
@@ -96,7 +96,7 @@ function wake_model(loc, deflection, model::JensenCosine, turbine::Turbine)
 end
 
 
-function wake_model(loc, deflection, model::Multizone, turbine::Turbine)
+function wake_deficit_model(loc, deflection, model::Multizone, turbine::Turbine)
     """The original multizone "FLORIS" wake model, from the paper:
     "Wind plant power optimization through yaw control using a parametric model
     for wake effects—a CFD simulation study" by Gebraad et al. (2014)"""
@@ -150,7 +150,7 @@ function wake_model(loc, deflection, model::Multizone, turbine::Turbine)
 end
 
 
-function wake_model(loc, deflection, model::GaussOriginal, turbine::Turbine)
+function wake_deficit_model(loc, deflection, model::GaussOriginal, turbine::Turbine)
 
     deflection_y = deflection[1]
     deflection_z = deflection[2]
@@ -213,7 +213,7 @@ function _gauss_yaw_spread(dt, k, dx, x0, yaw)
 
 end
 
-function wake_model(loc, deflection, model::GaussYaw, turbine::Turbine)
+function wake_deficit_model(loc, deflection, model::GaussYaw, turbine::Turbine)
 
     deflection_y = deflection[1]
     deflection_z = deflection[2]

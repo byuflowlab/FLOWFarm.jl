@@ -9,7 +9,7 @@ struct GaussYawDeflection <: AbstractDeflectionModel
 end
 
 function deflection_model(loc, model::GaussYawDeflection, turbine::Turbine)
-    # from on Bastankhah and Porte-Agel 2016 [1]
+    # [1] Bastankhah and Porte-Agel 2016
 
     dx = loc[1]-turbine.coord.x
     yaw = turbine.yaw

@@ -11,7 +11,40 @@ using Test
 #     ff.nrel5mw(coord, rotor_diameter, hub_height, aI, yaw, ct) = ff.Turbine(coord, rotor_diameter, hub_height, aI, yaw, ct)
 # end
 
-@testset "Deflection Models" begin
+@testset "Wake Combination Models" begin
+
+    old_deficit_sum = 0.3
+    wind_speed = 8.0 
+    deltav = 0.2
+    turb_inflow = 7.5
+
+    @testset "Linear Freestream Superposition" begin
+        model = ff.LinearFreestreamSuperposition()
+        result = old_deficit_sum + wind_speed*deltav
+        @test ff.wake_combination_model(deltav, wind_speed, old_deficit_sum, model) == result
+    end
+
+    @testset "Sum of Squares Freestream Superposition" begin
+        model = ff.SumOfSquaresFreestreamSuperposition()
+        result = sqrt(old_deficit_sum^2 + (wind_speed*deltav)^2)
+        @test ff.wake_combination_model(deltav, wind_speed, old_deficit_sum, model) == result
+    end
+
+    @testset "Sum of Squares Local Velocity Superposition" begin
+        model = ff.SumOfSquaresLocalVelocitySuperposition()
+        result = sqrt(old_deficit_sum^2 + (turb_inflow*deltav)^2)
+        @test ff.wake_combination_model(deltav, turb_inflow, old_deficit_sum, model) == result
+    end 
+
+    @testset "Linear Local Velocity Superposition" begin 
+    model = ff.LinearLocalVelocitySuperposition()
+    result = old_deficit_sum + turb_inflow*deltav
+    @test ff.wake_combination_model(deltav, turb_inflow, old_deficit_sum, model) == result
+    end
+
+end
+
+@testset "Wake Deflection Models" begin
 
     @testset "Gauss Yaw Deflection" begin
 
@@ -48,7 +81,7 @@ using Test
 
 end
 
-@testset "Wake Models" begin
+@testset "Wake Deficit Models" begin
     
     @testset "Jensen Top Hat Model" begin
         coord = ff.Coord(0.0,0.0,0.0)
@@ -70,28 +103,28 @@ end
         centerloss100 = 1. - 5.7/8.1
 
         # test no loss upstream (data from Jensen 1983)
-        @test ff.wake_model([-1E-12, 0.0, hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([-1E-12, 0.0, hub_height], deflection, model, turbine) == 0.0
 
         # test max loss at turbine (data from Jensen 1983)
-        @test ff.wake_model([0.0, 0.0, hub_height], deflection, model, turbine) == (2. * aI)
+        @test ff.wake_deficit_model([0.0, 0.0, hub_height], deflection, model, turbine) == (2. * aI)
 
         # test centerline loss 40 meters downstream (data from Jensen 1983)
-        @test ff.wake_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40
+        @test ff.wake_deficit_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40
 
         # test centerline loss 100 meters downstream (data from Jensen 1983)
-        @test ff.wake_model([100., 0.0, hub_height], deflection, model, turbine) == centerloss100
+        @test ff.wake_deficit_model([100., 0.0, hub_height], deflection, model, turbine) == centerloss100
 
         # test wake diameter 40 meters downstream (data from Jensen 1983)
-        @test ff.wake_model([40., (alpha*40 + rotor_diameter/2.), hub_height], deflection, model, turbine) == centerloss40
-        @test ff.wake_model([40., (alpha*40 + rotor_diameter/2. + 1E-12), hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_model([40., -(alpha*40 + rotor_diameter/2.), hub_height], deflection, model, turbine) == centerloss40
-        @test ff.wake_model([40., -(alpha*40 + rotor_diameter/2. + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([40., (alpha*40 + rotor_diameter/2.), hub_height], deflection, model, turbine) == centerloss40
+        @test ff.wake_deficit_model([40., (alpha*40 + rotor_diameter/2. + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([40., -(alpha*40 + rotor_diameter/2.), hub_height], deflection, model, turbine) == centerloss40
+        @test ff.wake_deficit_model([40., -(alpha*40 + rotor_diameter/2. + 1E-12), hub_height], deflection, model, turbine) == 0.0
 
         # test wake diameter 100 meters downstream (data from Jensen 1983)
-        @test ff.wake_model([100., (alpha*100. + rotor_diameter/2.), hub_height], deflection, model, turbine) == centerloss100
-        @test ff.wake_model([100., (alpha*100. + rotor_diameter/2. + 1E-12), hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_model([100., -(alpha*100. + rotor_diameter/2.), hub_height], deflection, model, turbine) == centerloss100
-        @test ff.wake_model([100., -(alpha*100. + rotor_diameter/2. + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([100., (alpha*100. + rotor_diameter/2.), hub_height], deflection, model, turbine) == centerloss100
+        @test ff.wake_deficit_model([100., (alpha*100. + rotor_diameter/2. + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([100., -(alpha*100. + rotor_diameter/2.), hub_height], deflection, model, turbine) == centerloss100
+        @test ff.wake_deficit_model([100., -(alpha*100. + rotor_diameter/2. + 1E-12), hub_height], deflection, model, turbine) == 0.0
     end
 
     @testset "Jensen Cosine Model" begin
@@ -128,35 +161,35 @@ end
         loss40attheta = (2.0*aI)*((ftheta*rotor_diameter*0.5)/(rotor_diameter*0.5+alpha*dx))^2
 
         # test no loss upstream (data from Jensen 1983)
-        @test ff.wake_model([-1E-12, 0.0, hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([-1E-12, 0.0, hub_height], deflection, model, turbine) == 0.0
 
         # test max loss at turbine (data from Jensen 1983)
-        @test ff.wake_model([0.0, 0.0, hub_height], deflection, model, turbine) == (2. * aI)
+        @test ff.wake_deficit_model([0.0, 0.0, hub_height], deflection, model, turbine) == (2. * aI)
 
         # test centerline loss 40 meters downstream (data from Jensen 1983)
-        @test ff.wake_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40
+        @test ff.wake_deficit_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40
 
         # test centerline loss 100 meters downstream (data from Jensen 1983)
-        @test ff.wake_model([100., 0.0, hub_height], deflection, model, turbine) == centerloss100
+        @test ff.wake_deficit_model([100., 0.0, hub_height], deflection, model, turbine) == centerloss100
 
         # test wake diameter 40 meters downstream (data from Jensen 1983)
-        @test ff.wake_model([40., dy40, hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_model([40., (dy40 + 1E-12), hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_model([40., (dy40 - 1E1), hub_height], deflection, model, turbine) >= 0.0
-        @test ff.wake_model([40., -(dy40), hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_model([40., -(dy40 + 1E-12), hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_model([40., -(dy40 - 1E1), hub_height], deflection, model, turbine) >= 0.0
+        @test ff.wake_deficit_model([40., dy40, hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([40., (dy40 + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([40., (dy40 - 1E1), hub_height], deflection, model, turbine) >= 0.0
+        @test ff.wake_deficit_model([40., -(dy40), hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([40., -(dy40 + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([40., -(dy40 - 1E1), hub_height], deflection, model, turbine) >= 0.0
 
         # test wake diameter 100 meters downstream (data from Jensen 1983)
-        @test ff.wake_model([100., dy100, hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_model([100., (dy100 + 1E-12), hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_model([100., (dy100 - 1E1), hub_height], deflection, model, turbine) >= 0.0
-        @test ff.wake_model([100., -(dy100), hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_model([100., -(dy100 + 1E-12), hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_model([100., -(dy100 - 1E1), hub_height], deflection, model, turbine) >= 0.0
+        @test ff.wake_deficit_model([100., dy100, hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([100., (dy100 + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([100., (dy100 - 1E1), hub_height], deflection, model, turbine) >= 0.0
+        @test ff.wake_deficit_model([100., -(dy100), hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([100., -(dy100 + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([100., -(dy100 - 1E1), hub_height], deflection, model, turbine) >= 0.0
 
         # test value at point in wake 40 m downstream and with theta=15 degrees
-        @test ff.wake_model([40., dy, hub_height], deflection, model, turbine) == loss40attheta
+        @test ff.wake_deficit_model([40., dy, hub_height], deflection, model, turbine) == loss40attheta
 
     end
     
@@ -209,45 +242,45 @@ end
         loss4_0 = 0.20772200772200788
 
         # test no loss upstream
-        @test ff.wake_model([-1E-12, 0.0, hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([-1E-12, 0.0, hub_height], deflection, model, turbine) == 0.0
 
         # test loss at x1 with no yaw
-        @test round(ff.wake_model([x1_0, 0.0, hub_height], deflection, model, turbine), digits=1) == round(loss1_0, digits=1)
+        @test round(ff.wake_deficit_model([x1_0, 0.0, hub_height], deflection, model, turbine), digits=1) == round(loss1_0, digits=1)
 
         deflection = [0.0, 0.0]
         # test loss at x2 with no yaw
-        @test round(ff.wake_model([x2_0, 0.0, hub_height], deflection, model, turbine), digits=1) == round(loss2_0, digits=1)
+        @test round(ff.wake_deficit_model([x2_0, 0.0, hub_height], deflection, model, turbine), digits=1) == round(loss2_0, digits=1)
 
         # test loss at x3 with no yaw
-        @test round(ff.wake_model([x3_0, 0.0, hub_height], deflection, model, turbine), digits=1) == round(loss3_0, digits=1)
+        @test round(ff.wake_deficit_model([x3_0, 0.0, hub_height], deflection, model, turbine), digits=1) == round(loss3_0, digits=1)
 
         # test loss at x4 with no yaw
-        @test round(ff.wake_model([x4_0, 0.0, hub_height], deflection, model, turbine), digits=1) == round(loss4_0, digits=1)
+        @test round(ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, model, turbine), digits=1) == round(loss4_0, digits=1)
         
         # # test centerline loss 40 meters downstream (data from Jensen 1983)
-        # @test ff.wake_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40
+        # @test ff.wake_deficit_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40
 
         # # test centerline loss 100 meters downstream (data from Jensen 1983)
-        # @test ff.wake_model([100., 0.0, hub_height], deflection, model, turbine) == centerloss100
+        # @test ff.wake_deficit_model([100., 0.0, hub_height], deflection, model, turbine) == centerloss100
 
         # # test wake diameter 40 meters downstream (data from Jensen 1983)
-        # @test ff.wake_model([40., dy40, hub_height], deflection, model, turbine) == 0.0
-        # @test ff.wake_model([40., (dy40 + 1E-12), hub_height], deflection, model, turbine) == 0.0
-        # @test ff.wake_model([40., (dy40 - 1E1), hub_height], deflection, model, turbine) >= 0.0
-        # @test ff.wake_model([40., -(dy40), hub_height], deflection, model, turbine) == 0.0
-        # @test ff.wake_model([40., -(dy40 + 1E-12), hub_height], deflection, model, turbine) == 0.0
-        # @test ff.wake_model([40., -(dy40 - 1E1), hub_height], deflection, model, turbine) >= 0.0
+        # @test ff.wake_deficit_model([40., dy40, hub_height], deflection, model, turbine) == 0.0
+        # @test ff.wake_deficit_model([40., (dy40 + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        # @test ff.wake_deficit_model([40., (dy40 - 1E1), hub_height], deflection, model, turbine) >= 0.0
+        # @test ff.wake_deficit_model([40., -(dy40), hub_height], deflection, model, turbine) == 0.0
+        # @test ff.wake_deficit_model([40., -(dy40 + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        # @test ff.wake_deficit_model([40., -(dy40 - 1E1), hub_height], deflection, model, turbine) >= 0.0
 
         # # test wake diameter 100 meters downstream (data from Jensen 1983)
-        # @test ff.wake_model([100., dy100, hub_height], deflection, model, turbine) == 0.0
-        # @test ff.wake_model([100., (dy100 + 1E-12), hub_height], deflection, model, turbine) == 0.0
-        # @test ff.wake_model([100., (dy100 - 1E1), hub_height], deflection, model, turbine) >= 0.0
-        # @test ff.wake_model([100., -(dy100), hub_height], deflection, model, turbine) == 0.0
-        # @test ff.wake_model([100., -(dy100 + 1E-12), hub_height], deflection, model, turbine) == 0.0
-        # @test ff.wake_model([100., -(dy100 - 1E1), hub_height], deflection, model, turbine) >= 0.0
+        # @test ff.wake_deficit_model([100., dy100, hub_height], deflection, model, turbine) == 0.0
+        # @test ff.wake_deficit_model([100., (dy100 + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        # @test ff.wake_deficit_model([100., (dy100 - 1E1), hub_height], deflection, model, turbine) >= 0.0
+        # @test ff.wake_deficit_model([100., -(dy100), hub_height], deflection, model, turbine) == 0.0
+        # @test ff.wake_deficit_model([100., -(dy100 + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        # @test ff.wake_deficit_model([100., -(dy100 - 1E1), hub_height], deflection, model, turbine) >= 0.0
 
         # # test value at point in wake 40 m downstream and with theta=15 degrees
-        # @test ff.wake_model([40., dy, hub_height], deflection, model, turbine) == loss40attheta
+        # @test ff.wake_deficit_model([40., dy, hub_height], deflection, model, turbine) == loss40attheta
 
     end
 end
