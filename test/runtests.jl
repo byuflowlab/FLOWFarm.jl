@@ -13,6 +13,8 @@ using Test
 @testset "General Models" begin
 
     @testset "Wind shear" begin
+        # TODO base this tests on something more concrete
+
         point_velocity_no_shear = 8.0
         reference_height = 80.0
         ground_height = 0.0
@@ -32,11 +34,13 @@ using Test
 
         # test at 40 meters
         loc =[0.0, 0.0, 40.0]
-        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, shear_exp) == 7.2100037008866416
+        u = point_velocity_no_shear*((loc[3] - ground_height)/(reference_height-ground_height))^shear_exp
+        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, shear_exp) == u
 
         # test at 10 meters
         loc =[0.0, 0.0, 10.0]
-        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, shear_exp) == 5.856342783782502
+        u = point_velocity_no_shear*((loc[3] - ground_height)/(reference_height-ground_height))^shear_exp
+        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, shear_exp) == u
     
     end
 
