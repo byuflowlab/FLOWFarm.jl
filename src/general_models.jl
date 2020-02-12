@@ -1,124 +1,144 @@
-# include("wake_models.jl")
-# include("deflection_models.jl")
+include("wake_deficit_models.jl")
+include("wake_deflection_models.jl")
 
-# abstract type AbstractWindFarmModel end
-# abstract type AbstractWindResourceModel end
+abstract type AbstractWindFarmModel end
+abstract type AbstractWindResourceModel end
 
-# struct WindFarm{AF} <: AbstractWindFarmModel
+struct WindFarm{AF,AS} <: AbstractWindFarmModel
     
-#     turbinex::AF
-#     turbiney::AF
-#     turbinez::AF
-#     hub_height::AF
+    # farm design properties
+    turbinex::AF
+    turbiney::AF
+    turbinez::AF
+    turbine_definitions::AS
 
-# end
+end
 
-# struct DiscretizedWindResource{AF} <: AbstractWindResourceModel
+struct SingleWindFarmState{TF, AF, AI} <: AbstractWindFarmModel
+
+    # farm properties in rotated frame
+    turbinexw::AF
+    turbineyw::AF
+    sortedturbineindex::AI
+    turbine_inflow_velcity::AF
+
+end
+
+struct DiscretizedWindResource{AF, TF} <: AbstractWindResourceModel
     
-#     winddirections::AF
-#     windspeeds::AF
-#     windpropabilities::AF
+    winddirections::AF
+    windspeeds::AF
+    windpropabilities::AF
+    measurementheight::AF
+    shearexponent::TF
 
-# end
+end
 
-# function _wind_frame(xlocs, ylocs, wind_direction)
+function rotate_to_wind_direction(xlocs, ylocs, wind_direction)
 
-#     nTurbines = length(xlocs)
-#     wd = -pi*(270. - wind_direction)/180. #shift to traditional wind direction coords and to radians
-#     xw = xlocs.*cos(wd)-ylocs.*sin(wd)
-#     yw = xlocs.*sin(wd)+ylocs.*cos(wd)
-#     return xw, yw
+    nTurbines = length(xlocs)
+    wd = -pi*(270. - wind_direction)/180. #shift to traditional wind direction coords and to radians
+    xw = xlocs.*cos(wd)-ylocs.*sin(wd)
+    yw = xlocs.*sin(wd)+ylocs.*cos(wd)
+    return xw, yw
 
-# end
+end
 
-# function _point_velocity(loc, turb, turbI, sortedturbinexindex, wakemodel::AbstractWakeModel, windfarm::WindFarm, deflectionmodel::AbstractDeflectionModel)
+function adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, shear_exp)
 
-#     # extract turbine locations
-#     turbinex = windfarm.turbinex
-#     turbineY = windfarm.turbiney
+    # initialize adjusted wind speed to zero
+    adjusted_wind_speed = 0.0
 
-#     # get number of turbines
-#     nturbines = length(turbinex)
+    # check that the point of interest is above ground level
+    if loc[3] >= ground_height
+        # adjusted wind speed for wind shear if point is above ground
+        adjusted_wind_speed = point_velocity_no_shear*((loc[3]-ground_height)/(reference_height-ground_height))^shear_exp
+    else 
+        # if the point of interest is below ground, set the wind speed to 0.0
+        adjusted_wind_speed = 0.0
+    end
 
-#     # get hub height and vertical location
-#     hub_height = windfarm.hub_height
-#     turbinez = windfarm.turbinez
+    return adjusted_wind_speed
+end
 
-#     # extract turbine types
-#     turbines = windfarm.turbines
+function point_velocity(loc, turbine_id, direction_id,
+    windfarm::WindFarm,
+    windfarmstate::SingleWindFarmState,
+    windresource::AbstractWindResourceModel,
+    wakedeficitmodel::AbstractWakeDeficitModel, 
+    wakedeflectionmodel::AbstractWakeDeflectionModel, 
+    wakecombinationmodel::AbstractWakeCombinationModel)
 
-#     # initialize deficit summation term to zero
-#     deficitsum = 0.0
+    # extract turbine locations in rotated reference frame
+    turbinexw = windfarmstate.turbinexw
+    turbineyw = windfarmstate.turbineyw
+    turbinez = windfarm.turbinez
+
+    # extract turbine definitions
+    turbines = windfarm.turbine_definitions
+
+    # get sorted wind turbine index in currect direction
+    sortedturbinexindex = windfarmstate.sortedturbineindex
+
+    # get current inflow velocities at each turbine
+    wtvelocities = windfarmstate.turbine_inflow_velcities
+
+    # extract flow information
+    wind_speed = windresource.wind_speed[direction_id]
+    reference_height = windresource.measurementheight[direction_id]
+    shear_exponent = windresource.shearexponent
+
+    # get number of turbines
+    nturbines = length(turbinexw)
+
+    # initialize deficit summation term to zero
+    deficit_sum = 0.0
+
+    # initialize point velocity with shear to zero
+    point_velocity_with_shear = 0.0
     
-#     # loop through all turbines
-#     for u=1:nTurbines 
+    # loop through all turbines
+    for u=1:nturbines 
         
-#         # get index of upstream turbine
-#         turb = sortedturbinexindex[u] + 1.0
+        # get index of upstream turbine
+        turb = sortedturbinexindex[u]
         
-#         # skip this loop if turb = turbI (turbines impact on itself)
-#         if turb==turbI; continue; end
+        # skip this loop if it would include a turbine's impact on itself)
+        if turb==turbine_id; continue; end
+
+        # get turbine definition
+        turbine = turbines[turb]
+        
+        # downstream distance between upstream turbine and point
+        x = loc[1] - turbinexw[turb]
     
-#         # downstream distance between upstream turbine and point
-#         x = loc[1] - turbinexw[turb]
-    
-#         # set this iterations velocity deficit to 0
-#         deltav = 0.0
+        # set this iterations velocity deficit to 0
+        deltav = 0.0
         
-#         # check turbine relative locations
-#         if x > 0.0
+        # check turbine relative locations
+        if x > 0.0
         
-#             # calculate wake deflection of the current wake at the point of interest
-#             horizontal_deflection = deflection_model(loc, wake_model, turbines[turb])
+            # calculate wake deflection of the current wake at the point of interest
+            horizontal_deflection = deflection_model(loc, wakedeficitmodel, turbine)
+            vertical_deflection = 0.0
             
-#             # cross wind distance from point location to upstream turbine wake center
-#             deltay = pointY - (turbineyw[turb] + horizontal_deflection)
-
-#             # vertical distance from upstream hub height to height of point of interest
-#             deltaz = pointZ - (turbinez + hub_height)
-
-#             #TODO left off here
-
-
-#     #         if (x > x0) then
-#     #             ! velocity difference in the wake
-#     #             call deltav_func(deltay, deltaz, Ct_local(turb), yaw(turb), &
-#     #                             & sigmay, sigmaz, rotorDiameter(turb), & 
-#     #                             & wake_model_version, kz_local(turb), x, &
-#     #                             & wec_factor, sigmay_spread, sigmaz_spread, deltav)
-                                
-#     #         else
-#     #             ! velocity deficit in the nearwake (linear model)
-#     #             call deltav_near_wake_lin_func(deltay, deltaz, &
-#     #                              & Ct_local(turb), yaw(turb), sigmay_0, sigmaz_0, x0, & 
-#     #                              & rotorDiameter(turb), x, discontinuity_point, & 
-#     #                              & sigmay_d, sigmaz_d, wake_model_version, &
-#     #                              & kz_local(turb), x0, sigmay_spread, &
-#     #                              & sigmaz_spread, sigmay_0_spread, &
-#     #                              & sigmaz_0_spread, wec_factor, WECH, deltav)
-                                 
-#     #         end if
-
-#     #         ! save deficit sum in holder for AD purposes
-#     #         old_deficit_sum = deficit_sum
+            # velocity difference in the wake
+            deltav = wake_deficit_model(loc, [horizontal_deflection, vertical_deflection], wakedeficitmodel, turbine)
             
-#     #         ! combine deficits according to selected wake combination method
-#     #         call wake_combination_func(wind_speed, wtVelocity(turb), deltav,         &
-#     #                                    wake_combination_method, old_deficit_sum, deficit_sum)
+            # combine deficits according to selected wake combination method 
+            turb_inflow = wtvelocities[turb]
+            deficit_sum += wake_combination_model(deltav, wind_speed, turb_inflow, deficit_sum, wakecombinationmodel)
+
+        end
         
-#     #     end if
-    
-#     # end do
-    
-#     # ! find velocity at point without shear
-#     # point_velocity = wind_speed - deficit_sum
-    
-#     # ! adjust sample point velocity for shear
-#     # call wind_shear_func(pointZ, point_velocity, z_ref, z_0, shear_exp, point_velocity_with_shear)
-#     # 
-#     end
-# # end subroutine point_velocity_with_shear_func
+        # find velocity at point without shear
+        point_velocity_without_shear = wind_speed - deficit_sum
+        
+        # adjust sample point velocity for shear
+        point_velocity_with_shear = adjust_for_wind_shear(loc[3], point_velocity_without_shear, reference_height, turbinez[turb], shear_exponent)
+        
+    end
 
+    return point_velocity_with_shear
 
-
-# end
+end

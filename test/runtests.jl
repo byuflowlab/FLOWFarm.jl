@@ -10,6 +10,37 @@ using Test
 #     ct = 0.7 
 #     ff.nrel5mw(coord, rotor_diameter, hub_height, aI, yaw, ct) = ff.Turbine(coord, rotor_diameter, hub_height, aI, yaw, ct)
 # end
+@testset "General Models" begin
+
+    @testset "Wind shear" begin
+        point_velocity_no_shear = 8.0
+        reference_height = 80.0
+        ground_height = 0.0
+        shear_exp = 0.15
+
+        # test at reference height
+        loc =[0.0, 0.0, 80.0]
+        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, shear_exp) == point_velocity_no_shear
+    
+        # test at ground height
+        loc =[0.0, 0.0, 0.0]
+        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, shear_exp) == 0.0
+    
+        # test below ground height
+        loc =[0.0, 0.0, -10.0]
+        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, shear_exp) == 0.0
+
+        # test at 40 meters
+        loc =[0.0, 0.0, 40.0]
+        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, shear_exp) == 7.2100037008866416
+
+        # test at 10 meters
+        loc =[0.0, 0.0, 10.0]
+        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, shear_exp) == 5.856342783782502
+    
+    end
+
+end
 
 @testset "Wake Combination Models" begin
 
@@ -21,25 +52,25 @@ using Test
     @testset "Linear Freestream Superposition" begin
         model = ff.LinearFreestreamSuperposition()
         result = old_deficit_sum + wind_speed*deltav
-        @test ff.wake_combination_model(deltav, wind_speed, old_deficit_sum, model) == result
+        @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
     end
 
     @testset "Sum of Squares Freestream Superposition" begin
         model = ff.SumOfSquaresFreestreamSuperposition()
         result = sqrt(old_deficit_sum^2 + (wind_speed*deltav)^2)
-        @test ff.wake_combination_model(deltav, wind_speed, old_deficit_sum, model) == result
+        @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
     end
 
     @testset "Sum of Squares Local Velocity Superposition" begin
         model = ff.SumOfSquaresLocalVelocitySuperposition()
         result = sqrt(old_deficit_sum^2 + (turb_inflow*deltav)^2)
-        @test ff.wake_combination_model(deltav, turb_inflow, old_deficit_sum, model) == result
+        @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
     end 
 
     @testset "Linear Local Velocity Superposition" begin 
     model = ff.LinearLocalVelocitySuperposition()
     result = old_deficit_sum + turb_inflow*deltav
-    @test ff.wake_combination_model(deltav, turb_inflow, old_deficit_sum, model) == result
+    @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
     end
 
 end
@@ -51,7 +82,7 @@ end
         # [1] Jiminez 2010
 
         # The following are data results, not model results, so testing is a little sketchy.
-        # data for ct=0.8, x/d = 2.5
+        # data for ct=0.8, x/d = 2.5 from [1] fig. 8
         # z/d                   u/u0
         # 0.005141388174807027, 0.5123919308357348 # yaw = 0
         # -0.15938303341902316, 0.5089337175792507 # yaw = 10
@@ -72,14 +103,14 @@ end
         # -0.5257731958762868, 0.8588075800011918 # yaw = 20
         # -0.5670103092783503, 0.8923216733210179 # yaw = 30
 
-        coord = ff.Coord(0.0, 0.0, 0.000022) #[1] p. 509
-        rotor_diameter = 0.15 # [1] p. 509
-        hub_height = 0.125 # [1] p. 509
+        coord = ff.Coord(0.0, 0.0, 0.0)
+        rotor_diameter = 0.15 
+        hub_height = 0.125 
         yaw_20 = 20.0*pi/180.0
-        ct = 0.8 # [1] fig. 2
+        ct = 0.8 # [1] fig. 8
         aI = 1.0/3.0
 
-        k_star = 0.06 # [1]  p. 525
+        k_star = 0.07 # adjusted to match experimental data. #TODO improve tests with model results
         horizontal_spread_rate = k_star
 
         turbine = ff.Turbine(coord, rotor_diameter, hub_height, aI, yaw_20, ct)

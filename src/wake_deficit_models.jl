@@ -1,17 +1,17 @@
 include("turbines.jl")
 
-abstract type AbstractWakeModel end
+abstract type AbstractWakeDeficitModel end
 
-struct JensenTopHat{TF} <: AbstractWakeModel
+struct JensenTopHat{TF} <: AbstractWakeDeficitModel
     alpha::TF
 end
 
-struct JensenCosine{TF} <: AbstractWakeModel
+struct JensenCosine{TF} <: AbstractWakeDeficitModel
     alpha::TF
     beta::TF
 end
 
-struct Multizone{ATF, TF} <: AbstractWakeModel
+struct Multizone{ATF, TF} <: AbstractWakeDeficitModel
     me::ATF
     ke::TF
     MU::ATF
@@ -19,11 +19,11 @@ struct Multizone{ATF, TF} <: AbstractWakeModel
     bU::TF
 end
 
-struct GaussOriginal{TF} <: AbstractWakeModel
+struct GaussOriginal{TF} <: AbstractWakeDeficitModel
     k_star::TF
 end
 
-struct GaussYaw{TF} <: AbstractWakeModel
+struct GaussYaw{TF} <: AbstractWakeDeficitModel
     turbulence_intensity::TF
     horizontal_spread_rate::TF
     vertical_spread_rate::TF

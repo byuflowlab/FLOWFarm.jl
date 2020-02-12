@@ -1,8 +1,8 @@
-abstract type AbstractDeflectionModel end
+abstract type AbstractWakeDeflectionModel end
 
 #TODO add Jiminez deflection
 
-struct GaussYawDeflection{TF} <: AbstractDeflectionModel
+struct GaussYawDeflection{TF} <: AbstractWakeDeflectionModel
     turbulence_intensity::TF
     horizontal_spread_rate::TF
     vertical_spread_rate::TF
@@ -10,7 +10,7 @@ struct GaussYawDeflection{TF} <: AbstractDeflectionModel
     beta_star::TF
 end
 
-struct JiminezYawDeflection{TF} <: AbstractDeflectionModel
+struct JiminezYawDeflection{TF} <: AbstractWakeDeflectionModel
     horizontal_spread_rate::TF
 end
 
