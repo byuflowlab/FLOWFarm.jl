@@ -20,29 +20,53 @@ using Test
         ground_height = 0.0
         shear_exp = 0.15
 
+        model = ff.PowerLawWindShear(shear_exp)
         # test at reference height
         loc =[0.0, 0.0, 80.0]
-        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, shear_exp) == point_velocity_no_shear
+        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, model) == point_velocity_no_shear
     
         # test at ground height
         loc =[0.0, 0.0, 0.0]
-        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, shear_exp) == 0.0
+        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, model) == 0.0
     
         # test below ground height
         loc =[0.0, 0.0, -10.0]
-        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, shear_exp) == 0.0
+        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, model) == 0.0
 
         # test at 40 meters
         loc =[0.0, 0.0, 40.0]
         u = point_velocity_no_shear*((loc[3] - ground_height)/(reference_height-ground_height))^shear_exp
-        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, shear_exp) == u
+        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, model) == u
 
         # test at 10 meters
         loc =[0.0, 0.0, 10.0]
         u = point_velocity_no_shear*((loc[3] - ground_height)/(reference_height-ground_height))^shear_exp
-        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, shear_exp) == u
+        @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, model) == u
     
     end
+
+    # @testset "Point velocity" begin
+
+    #     rotor_diameter = 80.0
+    #     loc = [0.0, 2.0*rotor_diameter, 10*rotor_diameter]
+    #     turbinex = [0.0, 3*rotor_diameter, 6*rotor_diameter]
+    #     turbiney = [0.0, 0.0, 0.0]
+    #     turbinez = [0.0, 0.0, 0.0]
+    #     coord1 = []
+    #     turbine1 = ff.Turbine()
+    #     turbine_definitions
+
+    #     windfarm = ff.WindFarm()
+
+    #     @test ff.point_velocity(loc, turbine_id, direction_id,
+    #     windfarm::WindFarm,
+    #     windfarmstate::SingleWindFarmState,
+    #     windresource::AbstractWindResourceModel,
+    #     wakedeficitmodel::AbstractWakeDeficitModel, 
+    #     wakedeflectionmodel::AbstractWakeDeflectionModel, 
+    #     wakecombinationmodel::AbstractWakeCombinationModel)
+
+    # end
 
 end
 
@@ -85,7 +109,7 @@ end
 
         # [1] Jiminez 2010
 
-        # The following are data results, not model results, so testing is a little sketchy.
+        # The following are CFD results, not model results, so testing is a little sketchy.
         # data for ct=0.8, x/d = 2.5 from [1] fig. 8
         # z/d                   u/u0
         # 0.005141388174807027, 0.5123919308357348 # yaw = 0
@@ -107,17 +131,28 @@ end
         # -0.5257731958762868, 0.8588075800011918 # yaw = 20
         # -0.5670103092783503, 0.8923216733210179 # yaw = 30
 
-        coord = ff.Coord(0.0, 0.0, 0.0)
         rotor_diameter = 0.15 
         hub_height = 0.125 
         yaw_20 = 20.0*pi/180.0
         ct = 0.8 # [1] fig. 8
-        aI = 1.0/3.0
+
+        wind_farm_state_id = 0
+        turbine_x = [0.0]
+        turbine_y = [0.0]
+        turbine_z = [0.0]
+        turbine_yaw = [yaw_20]
+        turbine_ct = [ct]
+        turbine_ai = [1.0/3.0]
+        sorted_turbine_index = [1]
+        turbine_inflow_velcity = [8.0]
+        turbine_id = 1
+
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity)       
 
         k_star = 0.07 # adjusted to match experimental data. #TODO improve tests with model results
         horizontal_spread_rate = k_star
 
-        turbine = ff.Turbine(coord, rotor_diameter, hub_height, aI, yaw_20, ct)
+        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height)
         model = ff.JiminezYawDeflection(horizontal_spread_rate)
 
         dx2p5d = 2.5*rotor_diameter
@@ -130,10 +165,10 @@ end
         dy8d_20 = 0.5257731958762868*rotor_diameter # from [1] figure 21
 
         # test deflection at 2.5D with yaw 20 deg
-        @test round(ff.wake_deflection_model([dx2p5d, 0.0, hub_height], model, turbine), digits=2) == round(dy2p5d_y20, digits=2)
+        @test round(ff.wake_deflection_model([dx2p5d, 0.0, hub_height], model, turbine, windfarmstate), digits=2) == round(dy2p5d_y20, digits=2)
 
         # test deflection at 5.5D with yaw 20 deg
-        @test round(ff.wake_deflection_model([dx5p5d, 0.0, hub_height], model, turbine), digits=2) == round(dy5p5d_y20, digits=2)
+        @test round(ff.wake_deflection_model([dx5p5d, 0.0, hub_height], model, turbine, windfarmstate), digits=2) == round(dy5p5d_y20, digits=2)
 
         # test deflection at 8D with yaw 20 deg
         # @test round(ff.wake_deflection_model([dx8d, 0.0, hub_height], model, turbine), digits=2) == round(dy8d_20, digits=2)
@@ -142,12 +177,24 @@ end
 
     @testset "Gauss Yaw Deflection" begin
 
-        coord = ff.Coord(0.0, 0.0, 0.000022) #[1] p. 509
         rotor_diameter = 0.15 #[1] p. 509
         hub_height = 0.125 #[1] p. 509
         yaw_20 = 20.0*pi/180.0
-        ct = 0.82 # [1] fig. 2
-        aI = 1.0/3.0
+        ct = 0.82 # [1] fig. 8
+
+        wind_farm_state_id = 0
+        turbine_x = [0.0]
+        turbine_y = [0.0]
+        turbine_z = [0.000022] #[1] p. 509
+        turbine_yaw = [yaw_20]
+        turbine_ct = [ct]
+        turbine_ai = [1.0/3.0]
+        sorted_turbine_index = [1]
+        turbine_inflow_velcity = [8.0]
+        turbine_id = 1
+
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity)       
+        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height)
 
         k_star = 0.022 # [1]  p. 525
         turbulence_intensity = 0.1 #0.0875 #[1] p. 508 - this value is only specified to be less than 0.1
@@ -156,7 +203,6 @@ end
         alpha_star = 2.32 #[1] p. 534
         beta_star = 0.154 #[1] p. 534
 
-        turbine = ff.Turbine(coord, rotor_diameter, hub_height, aI, yaw_20, ct)
         model = ff.GaussYawDeflection(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
 
         dx4d = 4.0*rotor_diameter
@@ -166,10 +212,10 @@ end
         dy8d_20 = 0.34090909090908905*rotor_diameter # from [1] figure 21
         
         # test deflection at 4D with yaw 20 deg
-        @test round(ff.wake_deflection_model([dx4d, dy4d_20, hub_height], model, turbine), digits=2) == round(dy4d_20, digits=2)
+        @test round(ff.wake_deflection_model([dx4d, dy4d_20, hub_height], model, turbine, windfarmstate), digits=2) == round(dy4d_20, digits=2)
 
         # test deflection at 8D with yaw 20 deg
-        @test round(ff.wake_deflection_model([dx8d, dy8d_20, hub_height], model, turbine), digits=2) == round(dy8d_20, digits=2)
+        @test round(ff.wake_deflection_model([dx8d, dy8d_20, hub_height], model, turbine, windfarmstate), digits=2) == round(dy8d_20, digits=2)
 
     end
 
@@ -178,16 +224,28 @@ end
 @testset "Wake Deficit Models" begin
     
     @testset "Jensen Top Hat Model" begin
-        coord = ff.Coord(0.0,0.0,0.0)
+
         rotor_diameter = 40.0
         hub_height = 90.0
-        aI = 1.0/3.0
         yaw = 0.0
-        ct = 0.7 
+        ct = 0.7 # [1] fig. 8
+        ai = 1.0/3.0
+
+        wind_farm_state_id = 0
+        turbine_x = [0.0]
+        turbine_y = [0.0]
+        turbine_z = [0.000022] #[1] p. 509
+        turbine_yaw = [yaw]
+        turbine_ct = [ct]
+        turbine_ai = [1.0/3.0]
+        sorted_turbine_index = [1]
+        turbine_inflow_velcity = [8.0]
+        turbine_id = 1
+
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity)       
+        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height)
 
         alpha = 0.1
-        
-        turbine = ff.Turbine(coord, rotor_diameter, hub_height, aI, yaw, ct)
         
         deflection = [0.0, 0.0]
 
@@ -197,16 +255,16 @@ end
         centerloss100 = 1. - 5.7/8.1
 
         # test no loss upstream (data from Jensen 1983)
-        @test ff.wake_deficit_model([-1E-12, 0.0, hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([-1E-12, 0.0, hub_height], deflection, model, turbine, windfarmstate) == 0.0
 
         # test max loss at turbine (data from Jensen 1983)
-        @test ff.wake_deficit_model([0.0, 0.0, hub_height], deflection, model, turbine) == (2. * aI)
+        @test ff.wake_deficit_model([0.0, 0.0, hub_height], deflection, model, turbine, windfarmstate) == (2. * 1/3.0)
 
         # test centerline loss 40 meters downstream (data from Jensen 1983)
-        @test ff.wake_deficit_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40
+        @test ff.wake_deficit_model([40., 0.0, hub_height], deflection, model, turbine, windfarmstate) == centerloss40
 
         # test centerline loss 100 meters downstream (data from Jensen 1983)
-        @test ff.wake_deficit_model([100., 0.0, hub_height], deflection, model, turbine) == centerloss100
+        @test ff.wake_deficit_model([100., 0.0, hub_height], deflection, model, turbine, windfarmstate) == centerloss100
 
         # test wake diameter 40 meters downstream (data from Jensen 1983)
         @test ff.wake_deficit_model([40., (alpha*40 + rotor_diameter/2.), hub_height], deflection, model, turbine) == centerloss40
@@ -255,35 +313,35 @@ end
         loss40attheta = (2.0*aI)*((ftheta*rotor_diameter*0.5)/(rotor_diameter*0.5+alpha*dx))^2
 
         # test no loss upstream (data from Jensen 1983)
-        @test ff.wake_deficit_model([-1E-12, 0.0, hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([-1E-12, 0.0, hub_height], deflection, model, turbine, windfarmstate) == 0.0
 
         # test max loss at turbine (data from Jensen 1983)
-        @test ff.wake_deficit_model([0.0, 0.0, hub_height], deflection, model, turbine) == (2. * aI)
+        @test ff.wake_deficit_model([0.0, 0.0, hub_height], deflection, model, turbine, windfarmstate) == (2. * aI)
 
         # test centerline loss 40 meters downstream (data from Jensen 1983)
-        @test ff.wake_deficit_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40
+        @test ff.wake_deficit_model([40., 0.0, hub_height], deflection, model, turbine, windfarmstate) == centerloss40
 
         # test centerline loss 100 meters downstream (data from Jensen 1983)
-        @test ff.wake_deficit_model([100., 0.0, hub_height], deflection, model, turbine) == centerloss100
+        @test ff.wake_deficit_model([100., 0.0, hub_height], deflection, model, turbine, windfarmstate) == centerloss100
 
         # test wake diameter 40 meters downstream (data from Jensen 1983)
-        @test ff.wake_deficit_model([40., dy40, hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_deficit_model([40., (dy40 + 1E-12), hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_deficit_model([40., (dy40 - 1E1), hub_height], deflection, model, turbine) >= 0.0
-        @test ff.wake_deficit_model([40., -(dy40), hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_deficit_model([40., -(dy40 + 1E-12), hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_deficit_model([40., -(dy40 - 1E1), hub_height], deflection, model, turbine) >= 0.0
+        @test ff.wake_deficit_model([40., dy40, hub_height], deflection, model, turbine, windfarmstate) == 0.0
+        @test ff.wake_deficit_model([40., (dy40 + 1E-12), hub_height], deflection, model, turbine, windfarmstate) == 0.0
+        @test ff.wake_deficit_model([40., (dy40 - 1E1), hub_height], deflection, model, turbine, windfarmstate) >= 0.0
+        @test ff.wake_deficit_model([40., -(dy40), hub_height], deflection, model, turbine, windfarmstate) == 0.0
+        @test ff.wake_deficit_model([40., -(dy40 + 1E-12), hub_height], deflection, model, turbine, windfarmstate) == 0.0
+        @test ff.wake_deficit_model([40., -(dy40 - 1E1), hub_height], deflection, model, turbine, windfarmstate) >= 0.0
 
         # test wake diameter 100 meters downstream (data from Jensen 1983)
-        @test ff.wake_deficit_model([100., dy100, hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_deficit_model([100., (dy100 + 1E-12), hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_deficit_model([100., (dy100 - 1E1), hub_height], deflection, model, turbine) >= 0.0
-        @test ff.wake_deficit_model([100., -(dy100), hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_deficit_model([100., -(dy100 + 1E-12), hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_deficit_model([100., -(dy100 - 1E1), hub_height], deflection, model, turbine) >= 0.0
+        @test ff.wake_deficit_model([100., dy100, hub_height], deflection, model, turbine, windfarmstate) == 0.0
+        @test ff.wake_deficit_model([100., (dy100 + 1E-12), hub_height], deflection, model, turbine, windfarmstate) == 0.0
+        @test ff.wake_deficit_model([100., (dy100 - 1E1), hub_height], deflection, model, turbine, windfarmstate) >= 0.0
+        @test ff.wake_deficit_model([100., -(dy100), hub_height], deflection, model, turbine, windfarmstate) == 0.0
+        @test ff.wake_deficit_model([100., -(dy100 + 1E-12), hub_height], deflection, model, turbine, windfarmstate) == 0.0
+        @test ff.wake_deficit_model([100., -(dy100 - 1E1), hub_height], deflection, model, turbine, windfarmstate) >= 0.0
 
         # test value at point in wake 40 m downstream and with theta=15 degrees
-        @test ff.wake_deficit_model([40., dy, hub_height], deflection, model, turbine) == loss40attheta
+        @test ff.wake_deficit_model([40., dy, hub_height], deflection, model, turbine, windfarmstate) == loss40attheta
 
     end
     
@@ -336,20 +394,20 @@ end
         loss4_0 = 0.20772200772200788
 
         # test no loss upstream
-        @test ff.wake_deficit_model([-1E-12, 0.0, hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([-1E-12, 0.0, hub_height], deflection, model, turbine, windfarmstate) == 0.0
 
         # test loss at x1 with no yaw
-        @test round(ff.wake_deficit_model([x1_0, 0.0, hub_height], deflection, model, turbine), digits=1) == round(loss1_0, digits=1)
+        @test round(ff.wake_deficit_model([x1_0, 0.0, hub_height], deflection, model, turbine, windfarmstate), digits=1) == round(loss1_0, digits=1)
 
         deflection = [0.0, 0.0]
         # test loss at x2 with no yaw
-        @test round(ff.wake_deficit_model([x2_0, 0.0, hub_height], deflection, model, turbine), digits=1) == round(loss2_0, digits=1)
+        @test round(ff.wake_deficit_model([x2_0, 0.0, hub_height], deflection, model, turbine, windfarmstate), digits=1) == round(loss2_0, digits=1)
 
         # test loss at x3 with no yaw
-        @test round(ff.wake_deficit_model([x3_0, 0.0, hub_height], deflection, model, turbine), digits=1) == round(loss3_0, digits=1)
+        @test round(ff.wake_deficit_model([x3_0, 0.0, hub_height], deflection, model, turbine, windfarmstate), digits=1) == round(loss3_0, digits=1)
 
         # test loss at x4 with no yaw
-        @test round(ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, model, turbine), digits=1) == round(loss4_0, digits=1)
+        @test round(ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, model, turbine, windfarmstate), digits=1) == round(loss4_0, digits=1)
         
         # # test centerline loss 40 meters downstream (data from Jensen 1983)
         # @test ff.wake_deficit_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40

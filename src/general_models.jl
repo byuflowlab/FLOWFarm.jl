@@ -1,38 +1,4 @@
-include("wake_deficit_models.jl")
 include("wake_deflection_models.jl")
-
-abstract type AbstractWindFarmModel end
-abstract type AbstractWindResourceModel end
-
-struct WindFarm{AF,AS} <: AbstractWindFarmModel
-    
-    # farm design properties
-    turbinex::AF
-    turbiney::AF
-    turbinez::AF
-    turbine_definitions::AS
-
-end
-
-struct SingleWindFarmState{TF, AF, AI} <: AbstractWindFarmModel
-
-    # farm properties in rotated frame
-    turbinexw::AF
-    turbineyw::AF
-    sortedturbineindex::AI
-    turbine_inflow_velcity::AF
-
-end
-
-struct DiscretizedWindResource{AF, TF} <: AbstractWindResourceModel
-    
-    winddirections::AF
-    windspeeds::AF
-    windpropabilities::AF
-    measurementheight::AF
-    shearexponent::TF
-
-end
 
 function rotate_to_wind_direction(xlocs, ylocs, wind_direction)
 
@@ -44,34 +10,21 @@ function rotate_to_wind_direction(xlocs, ylocs, wind_direction)
 
 end
 
-function adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, shear_exp)
-
-    # initialize adjusted wind speed to zero
-    adjusted_wind_speed = 0.0
-
-    # check that the point of interest is above ground level
-    if loc[3] >= ground_height
-        # adjusted wind speed for wind shear if point is above ground
-        adjusted_wind_speed = point_velocity_no_shear*((loc[3]-ground_height)/(reference_height-ground_height))^shear_exp
-    else 
-        # if the point of interest is below ground, set the wind speed to 0.0
-        adjusted_wind_speed = 0.0
-    end
-
-    return adjusted_wind_speed
-end
-
-function point_velocity(loc, turbine_id, direction_id,
+function point_velocity(loc,
     windfarm::WindFarm,
     windfarmstate::SingleWindFarmState,
     windresource::AbstractWindResourceModel,
     wakedeficitmodel::AbstractWakeDeficitModel, 
     wakedeflectionmodel::AbstractWakeDeflectionModel, 
-    wakecombinationmodel::AbstractWakeCombinationModel)
+    wakecombinationmodel::AbstractWakeCombinationModel,
+    turbine_id=0)
+
+    # get state id
+    direction_id = windfarmstate.id
 
     # extract turbine locations in rotated reference frame
-    turbinexw = windfarmstate.turbinexw
-    turbineyw = windfarmstate.turbineyw
+    turbinex = windfarmstate.turbinex
+    turbiney = windfarmstate.turbiney
     turbinez = windfarm.turbinez
 
     # extract turbine definitions
@@ -89,7 +42,7 @@ function point_velocity(loc, turbine_id, direction_id,
     shear_exponent = windresource.shearexponent
 
     # get number of turbines
-    nturbines = length(turbinexw)
+    nturbines = length(turbinex)
 
     # initialize deficit summation term to zero
     deficit_sum = 0.0
@@ -110,7 +63,7 @@ function point_velocity(loc, turbine_id, direction_id,
         turbine = turbines[turb]
         
         # downstream distance between upstream turbine and point
-        x = loc[1] - turbinexw[turb]
+        x = loc[1] - turbinex[turb]
     
         # set this iterations velocity deficit to 0
         deltav = 0.0
@@ -119,11 +72,11 @@ function point_velocity(loc, turbine_id, direction_id,
         if x > 0.0
         
             # calculate wake deflection of the current wake at the point of interest
-            horizontal_deflection = deflection_model(loc, wakedeficitmodel, turbine)
+            horizontal_deflection = wake_deflection_model(loc, wakedeficitmodel, turbine, windfarmstate)
             vertical_deflection = 0.0
             
             # velocity difference in the wake
-            deltav = wake_deficit_model(loc, [horizontal_deflection, vertical_deflection], wakedeficitmodel, turbine)
+            deltav = wake_deficit_model(loc, [horizontal_deflection, vertical_deflection], wakedeficitmodel, turbine, windfarmstate)
             
             # combine deficits according to selected wake combination method 
             turb_inflow = wtvelocities[turb]
