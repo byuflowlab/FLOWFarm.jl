@@ -10,6 +10,7 @@ struct Turbine{Coord,TF} <: AbstractTurbine
     ct::TF
 end
 
+
 struct Coord{TF}
     x::TF
     y::TF

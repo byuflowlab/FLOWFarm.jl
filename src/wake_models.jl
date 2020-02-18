@@ -27,6 +27,37 @@ struct Gauss <: AbstractWakeModel
     beta_star
 end
 
+
+function multi_wake_model(loc, deflection, model::AbstractWakeModel, turbine::AbstractVector{<:AbstractTurbine})
+    """wakes from multiple turbines"""
+    # pull out the deflection distances in y (cross stream) and z (up and down)
+    deflection_y = deflection[1]
+    deflection_z = deflection[2]
+
+    # find delta x, y, and z. dx is the downstream distance from the turbine to
+    # the point of interest. dy and dz are the distances from the point of interest
+    # and the wake center (in y and z)
+    dx = loc[1]-turbine.coord.x
+    dy = loc[2]-(turbine.coord.y+deflection_y)
+    dz = loc[3]-(turbine.coord.z+turbine.hub_height+deflection_z)
+
+    r0 = turbine.rotor_diameter/2.0 #turbine rotor radius
+    del = sqrt(dy^2+dz^2) #distance from wake center to the point of interest
+    r = model.alpha*dx + r0 #figure (1) from the paper
+
+    if dx < 0.
+        loss = 0.0
+    else
+        if del > r #if you're outside the wake
+            loss = 0.0
+        else # if you're inside the wake
+            loss = 2.0*turbine.aI*(r0/(r0+model.alpha*dx))^2 #equation (2) from the paper
+        end
+    end
+    return loss
+end
+
+
 function wake_model(loc, deflection, model::Jensen, turbine::Turbine)
     """the original jensen wake model, from the paper: "A Note on Wind
     Generator Interaction" by N.O. Jensen (1983)"""
@@ -146,7 +177,7 @@ function wake_model(loc, deflection, model::Gauss, turbine::Turbine)
       beta = 0.5*(1.0+sqrt(1.0-ct))/sqrt(1.0-ct)
 
       # calculate the length of the potential core (2016 paper eq: 7.3)
-      x0 = ((1.0+sqrt(1.0+ct)))/(sqrt(2.0)*as*TI+bs*(1.0-sqrt(1.0-ct)))
+      x0 = ((1.0+sqrt(1.0+ct)))/(sqrt(2.0)*(as*TI+bs*(1.0-sqrt(1.0-ct))))
 
       # calculate loss (paper eq: 23)
       enum =((dz/Dt)^2+(dy/Dt)^2)
