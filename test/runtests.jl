@@ -136,7 +136,7 @@ end
         yaw_20 = 20.0*pi/180.0
         ct = 0.8 # [1] fig. 8
 
-        wind_farm_state_id = 0
+        wind_farm_state_id = 1
         turbine_x = [0.0]
         turbine_y = [0.0]
         turbine_z = [0.0]
@@ -182,7 +182,7 @@ end
         yaw_20 = 20.0*pi/180.0
         ct = 0.82 # [1] fig. 8
 
-        wind_farm_state_id = 0
+        wind_farm_state_id = 1
         turbine_x = [0.0]
         turbine_y = [0.0]
         turbine_z = [0.000022] #[1] p. 509
@@ -228,18 +228,18 @@ end
         rotor_diameter = 40.0
         hub_height = 90.0
         yaw = 0.0
-        ct = 0.7 # [1] fig. 8
+        ct = 0.7 
         ai = 1.0/3.0
 
-        wind_farm_state_id = 0
+        wind_farm_state_id = 1
         turbine_x = [0.0]
         turbine_y = [0.0]
-        turbine_z = [0.000022] #[1] p. 509
+        turbine_z = [0.0] 
         turbine_yaw = [yaw]
         turbine_ct = [ct]
         turbine_ai = [1.0/3.0]
         sorted_turbine_index = [1]
-        turbine_inflow_velcity = [8.0]
+        turbine_inflow_velcity = [8.1]
         turbine_id = 1
 
         windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity)       
@@ -267,33 +267,45 @@ end
         @test ff.wake_deficit_model([100., 0.0, hub_height], deflection, model, turbine, windfarmstate) == centerloss100
 
         # test wake diameter 40 meters downstream (data from Jensen 1983)
-        @test ff.wake_deficit_model([40., (alpha*40 + rotor_diameter/2.), hub_height], deflection, model, turbine) == centerloss40
-        @test ff.wake_deficit_model([40., (alpha*40 + rotor_diameter/2. + 1E-12), hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_deficit_model([40., -(alpha*40 + rotor_diameter/2.), hub_height], deflection, model, turbine) == centerloss40
-        @test ff.wake_deficit_model([40., -(alpha*40 + rotor_diameter/2. + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([40., (alpha*40 + rotor_diameter/2.), hub_height], deflection, model, turbine, windfarmstate) == centerloss40
+        @test ff.wake_deficit_model([40., (alpha*40 + rotor_diameter/2. + 1E-12), hub_height], deflection, model, turbine, windfarmstate) == 0.0
+        @test ff.wake_deficit_model([40., -(alpha*40 + rotor_diameter/2.), hub_height], deflection, model, turbine, windfarmstate) == centerloss40
+        @test ff.wake_deficit_model([40., -(alpha*40 + rotor_diameter/2. + 1E-12), hub_height], deflection, model, turbine, windfarmstate) == 0.0
 
         # test wake diameter 100 meters downstream (data from Jensen 1983)
-        @test ff.wake_deficit_model([100., (alpha*100. + rotor_diameter/2.), hub_height], deflection, model, turbine) == centerloss100
-        @test ff.wake_deficit_model([100., (alpha*100. + rotor_diameter/2. + 1E-12), hub_height], deflection, model, turbine) == 0.0
-        @test ff.wake_deficit_model([100., -(alpha*100. + rotor_diameter/2.), hub_height], deflection, model, turbine) == centerloss100
-        @test ff.wake_deficit_model([100., -(alpha*100. + rotor_diameter/2. + 1E-12), hub_height], deflection, model, turbine) == 0.0
+        @test ff.wake_deficit_model([100., (alpha*100. + rotor_diameter/2.), hub_height], deflection, model, turbine, windfarmstate) == centerloss100
+        @test ff.wake_deficit_model([100., (alpha*100. + rotor_diameter/2. + 1E-12), hub_height], deflection, model, turbine, windfarmstate) == 0.0
+        @test ff.wake_deficit_model([100., -(alpha*100. + rotor_diameter/2.), hub_height], deflection, model, turbine, windfarmstate) == centerloss100
+        @test ff.wake_deficit_model([100., -(alpha*100. + rotor_diameter/2. + 1E-12), hub_height], deflection, model, turbine, windfarmstate) == 0.0
     end
 
     @testset "Jensen Cosine Model" begin
 
-        coord = ff.Coord(0.0, 0.0, 0.0)
         rotor_diameter = 40.0
         hub_height = 90.0
         aI = 1.0/3.0
         yaw = 0.0
         ct = 0.7 
 
+        wind_farm_state_id = 1
+        turbine_x = [0.0]
+        turbine_y = [0.0]
+        turbine_z = [0.0] 
+        turbine_yaw = [yaw]
+        turbine_ct = [ct]
+        turbine_ai = [1.0/3.0]
+        sorted_turbine_index = [1]
+        turbine_inflow_velcity = [8.0]
+        turbine_id = 1
+
         alpha = 0.1
         beta = 20.0*pi/180.0
-        
-        turbine = ff.Turbine(coord, rotor_diameter, hub_height, aI, yaw, ct)
-        
+
+
         deflection = [0.0, 0.0]
+        
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity)       
+        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height)
 
         model = ff.JensenCosine(alpha, beta)
 
@@ -348,7 +360,9 @@ end
     @testset "Gauss Yaw Model" begin
         # [1] based on data from Bastankhah and Porte-Agel 2016
 
-        coord = ff.Coord(0.000022, 0.0, 0.0) #[1] p. 509
+        turbine_x = [0.0]
+        turbine_y = [0.0]
+        turbine_z = [0.000022] #[1] p. 509
         rotor_diameter = 0.15 #[1] p. 509
         hub_height = 0.125 #[1] p. 509
         yaw = 0.0
@@ -360,10 +374,20 @@ end
         vertical_spread_rate = k_star
         alpha_star = 2.32 #[1] p. 534
         beta_star = 0.154 #[1] p. 534
+
+        wind_farm_state_id = 1
         
-        turbine = ff.Turbine(coord, rotor_diameter, hub_height, 1.0/3.0, yaw, ct)
-        
+        turbine_yaw = [yaw]
+        turbine_ct = [ct]
+        turbine_ai = [1.0/3.0]
+        sorted_turbine_index = [1]
+        turbine_inflow_velcity = [8.0]
+        turbine_id = 1
+
         deflection = [0.0, 0.0]
+        
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity)       
+        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height)
 
         model = ff.GaussYaw(turbulence_intensity, horizontal_spread_rate , vertical_spread_rate, alpha_star, beta_star)
 
