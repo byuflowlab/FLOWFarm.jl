@@ -1,6 +1,6 @@
 abstract type AbstractWindShearModel end
 
-struct PowerLawWindShear{TF} <: AbstractWindFarmModel
+struct PowerLawWindShear{TF} <: AbstractWindShearModel
     
     # model parameter
     shear_exponent::TF

@@ -22,7 +22,7 @@ struct SingleWindFarmState{TI,AF,AI} <: AbstractWindFarmModel
     turbine_ct::AF
     turbine_ai::AF
     sorted_turbine_index::AI
-    turbine_inflow_velcity::AF
+    turbine_inflow_velcities::AF
     # turbine_generator_power::AF
 
 end

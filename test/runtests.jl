@@ -45,28 +45,44 @@ using Test
     
     end
 
-    # @testset "Point velocity" begin
+    @testset "Point velocity" begin
 
-    #     rotor_diameter = 80.0
-    #     loc = [0.0, 2.0*rotor_diameter, 10*rotor_diameter]
-    #     turbinex = [0.0, 3*rotor_diameter, 6*rotor_diameter]
-    #     turbiney = [0.0, 0.0, 0.0]
-    #     turbinez = [0.0, 0.0, 0.0]
-    #     coord1 = []
-    #     turbine1 = ff.Turbine()
-    #     turbine_definitions
+        rotor_diameter = 80.0
+        hub_height = 80.0
+        ct = 0.7
+        ai = 1.0/3.0
+        wind_speed = 8.0
+        turbine_x = [0.0]
+        turbine_y = [0.0]
+        turbine_z = [0.0]
+        turbine_yaw = [0.0]
+        turbine_ct = [ct]
+        turbine_ai = [ai]
+        winddirections = [270.0*pi/180.0]
+        windspeeds = [wind_speed]
+        windprobabilities = [1.0]
+        measurementheight = [hub_height]
+        shearexponent = [0.15]
+        turbine_inflow_velcities = [wind_speed]
 
-    #     windfarm = ff.WindFarm()
+        turbine1 = ff.Turbine(1, rotor_diameter, hub_height)
+        turbine_definitions = [turbine1]
+        sorted_turbine_index = [1]
 
-    #     @test ff.point_velocity(loc, turbine_id, direction_id,
-    #     windfarm::WindFarm,
-    #     windfarmstate::SingleWindFarmState,
-    #     windresource::AbstractWindResourceModel,
-    #     wakedeficitmodel::AbstractWakeDeficitModel, 
-    #     wakedeflectionmodel::AbstractWakeDeflectionModel, 
-    #     wakecombinationmodel::AbstractWakeCombinationModel)
+        windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definitions)
+        windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities)
+        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, shearexponent)
+        windshearmodel = ff.PowerLawWindShear(shearexponent)
 
-    # end
+        loc = [7.0*rotor_diameter, 0.0, 0.0]
+        alpha = 0.1
+        wakedeficitmodel = ff.JensenTopHat(alpha)
+        horizontal_spread_rate = alpha
+        wakedeflectionmodel = ff.JiminezYawDeflection(horizontal_spread_rate)
+        wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
+        @test ff.point_velocity(loc, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, windshearmodel, 0) == 0.9
+
+    end
 
 end
 

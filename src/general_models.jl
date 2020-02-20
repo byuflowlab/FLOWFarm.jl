@@ -17,29 +17,30 @@ function point_velocity(loc,
     wakedeficitmodel::AbstractWakeDeficitModel, 
     wakedeflectionmodel::AbstractWakeDeflectionModel, 
     wakecombinationmodel::AbstractWakeCombinationModel,
+    windshearmodel::AbstractWindShearModel,
     turbine_id=0)
 
     # get state id
     direction_id = windfarmstate.id
 
     # extract turbine locations in rotated reference frame
-    turbinex = windfarmstate.turbinex
-    turbiney = windfarmstate.turbiney
-    turbinez = windfarm.turbinez
+    turbinex = windfarmstate.turbine_x
+    turbiney = windfarmstate.turbine_y
+    turbinez = windfarm.turbine_z
 
     # extract turbine definitions
     turbines = windfarm.turbine_definitions
 
     # get sorted wind turbine index in currect direction
-    sortedturbinexindex = windfarmstate.sortedturbineindex
+    sortedturbinexindex = windfarmstate.sorted_turbine_index
 
     # get current inflow velocities at each turbine
     wtvelocities = windfarmstate.turbine_inflow_velcities
 
     # extract flow information
-    wind_speed = windresource.wind_speed[direction_id]
-    reference_height = windresource.measurementheight[direction_id]
-    shear_exponent = windresource.shearexponent
+    wind_speed = windresource.wind_speeds[direction_id]
+    reference_height = windresource.measurement_heights[direction_id]
+    shear_exponent = windresource.shear_exponent
 
     # get number of turbines
     nturbines = length(turbinex)
@@ -72,7 +73,7 @@ function point_velocity(loc,
         if x > 0.0
         
             # calculate wake deflection of the current wake at the point of interest
-            horizontal_deflection = wake_deflection_model(loc, wakedeficitmodel, turbine, windfarmstate)
+            horizontal_deflection = wake_deflection_model(loc, wakedeflectionmodel, turbine, windfarmstate)
             vertical_deflection = 0.0
             
             # velocity difference in the wake
@@ -88,7 +89,7 @@ function point_velocity(loc,
         point_velocity_without_shear = wind_speed - deficit_sum
         
         # adjust sample point velocity for shear
-        point_velocity_with_shear = adjust_for_wind_shear(loc[3], point_velocity_without_shear, reference_height, turbinez[turb], shear_exponent)
+        point_velocity_with_shear = adjust_for_wind_shear(loc[3], point_velocity_without_shear, reference_height, turbinez[turb], windshearmodel)
         
     end
 
