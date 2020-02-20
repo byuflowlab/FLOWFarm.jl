@@ -24,15 +24,15 @@ function point_velocity(loc,
     direction_id = windfarmstate.id
 
     # extract turbine locations in rotated reference frame
-    turbinex = windfarmstate.turbine_x
-    turbiney = windfarmstate.turbine_y
-    turbinez = windfarm.turbine_z
+    turbine_x = windfarmstate.turbine_x
+    turbine_y = windfarmstate.turbine_y
+    turbine_z = windfarm.turbine_z
 
     # extract turbine definitions
     turbines = windfarm.turbine_definitions
 
     # get sorted wind turbine index in currect direction
-    sortedturbinexindex = windfarmstate.sorted_turbine_index
+    sorted_turbine_index = windfarmstate.sorted_turbine_index
 
     # get current inflow velocities at each turbine
     wtvelocities = windfarmstate.turbine_inflow_velcities
@@ -43,7 +43,7 @@ function point_velocity(loc,
     shear_exponent = windresource.shear_exponent
 
     # get number of turbines
-    nturbines = length(turbinex)
+    nturbines = length(turbine_x)
 
     # initialize deficit summation term to zero
     deficit_sum = 0.0
@@ -55,7 +55,7 @@ function point_velocity(loc,
     for u=1:nturbines 
         
         # get index of upstream turbine
-        turb = sortedturbinexindex[u]
+        turb = sorted_turbine_index[u]
         
         # skip this loop if it would include a turbine's impact on itself)
         if turb==turbine_id; continue; end
@@ -64,7 +64,7 @@ function point_velocity(loc,
         turbine = turbines[turb]
         
         # downstream distance between upstream turbine and point
-        x = loc[1] - turbinex[turb]
+        x = loc[1] - turbine_x[turb]
     
         # set this iterations velocity deficit to 0
         deltav = 0.0
@@ -89,8 +89,8 @@ function point_velocity(loc,
         point_velocity_without_shear = wind_speed - deficit_sum
         
         # adjust sample point velocity for shear
-        point_velocity_with_shear = adjust_for_wind_shear(loc[3], point_velocity_without_shear, reference_height, turbinez[turb], windshearmodel)
-        
+        point_velocity_with_shear = adjust_for_wind_shear(loc, point_velocity_without_shear, reference_height, turbine_z[turb], windshearmodel)
+
     end
 
     return point_velocity_with_shear
