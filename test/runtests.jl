@@ -155,6 +155,8 @@ end
 
     @testset "Gauss Yaw Deflection" begin
 
+        atol = 0.005
+
         rotor_diameter = 0.15 #[1] p. 509
         hub_height = 0.125 #[1] p. 509
         yaw_20 = 20.0*pi/180.0
@@ -190,10 +192,10 @@ end
         dy8d_20 = 0.34090909090908905*rotor_diameter # from [1] figure 21
         
         # test deflection at 4D with yaw 20 deg
-        @test round(ff.wake_deflection_model([dx4d, dy4d_20, hub_height], model, turbine, windfarmstate), digits=2) == round(dy4d_20, digits=2)
+        @test ff.wake_deflection_model([dx4d, dy4d_20, hub_height], model, turbine, windfarmstate) ≈ dy4d_20 atol=atol
 
         # test deflection at 8D with yaw 20 deg
-        @test round(ff.wake_deflection_model([dx8d, dy8d_20, hub_height], model, turbine, windfarmstate), digits=2) == round(dy8d_20, digits=2)
+        @test ff.wake_deflection_model([dx8d, dy8d_20, hub_height], model, turbine, windfarmstate) ≈ dy8d_20 atol=atol
 
     end
 
