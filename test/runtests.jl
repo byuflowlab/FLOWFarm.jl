@@ -1,15 +1,18 @@
 import FlowFarm; const ff = FlowFarm
 using Test
 
-# @testset "Turbines" begin
-#     coord = ff.Coord(0.0,0.0,0.0)
-#     rotor_diameter = 126.4
-#     hub_height = 90.0
-#     aI = 1.0/3.0
-#     yaw = 0.0
-#     ct = 0.7 
-#     ff.nrel5mw(coord, rotor_diameter, hub_height, aI, yaw, ct) = ff.Turbine(coord, rotor_diameter, hub_height, aI, yaw, ct)
-# end
+@testset "Thrust Coefficient Models" begin
+
+    @testset "Constant Thrust Coefficent Model" begin
+
+        ct = 0.7
+        ct_model = ff.ConstantCt(ct)
+
+        @test ff.calculate_ct(ct_model) == ct
+
+    end
+
+end
 
 @testset "Wind Shear Models" begin
 
@@ -130,7 +133,8 @@ end
         k_star = 0.07 # adjusted to match experimental data. #TODO improve tests with model results
         horizontal_spread_rate = k_star
 
-        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height)
+        ct_model = ff.ConstantCt(ct)
+        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height, ct_model)
         model = ff.JiminezYawDeflection(horizontal_spread_rate)
 
         dx2p5d = 2.5*rotor_diameter
@@ -174,7 +178,8 @@ end
         turbine_id = 1
 
         windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity)       
-        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height)
+        ct_model = ff.ConstantCt(ct)
+        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height, ct_model)
 
         k_star = 0.022 # [1]  p. 525
         turbulence_intensity = 0.1 #0.0875 #[1] p. 508 - this value is only specified to be less than 0.1
@@ -223,7 +228,8 @@ end
         turbine_id = 1
 
         windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity)       
-        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height)
+        ct_model = ff.ConstantCt(ct)
+        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height, ct_model)
 
         alpha = 0.1
         
@@ -285,7 +291,8 @@ end
         deflection = [0.0, 0.0]
         
         windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity)       
-        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height)
+        ct_model = ff.ConstantCt(ct)
+        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height, ct_model)
 
         model = ff.JensenCosine(alpha, beta)
 
@@ -368,7 +375,8 @@ end
         deflection = [0.0, 0.0]
         
         windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity)       
-        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height)
+        ct_model = ff.ConstantCt(ct)
+        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height, ct_model)
 
         model = ff.GaussYaw(turbulence_intensity, horizontal_spread_rate , vertical_spread_rate, alpha_star, beta_star)
 
@@ -467,7 +475,8 @@ end
         shearexponent = 0.15
         turbine_inflow_velcities = [wind_speed]
 
-        turbine1 = ff.Turbine(1, rotor_diameter, hub_height)
+        ct_model = ff.ConstantCt(ct)
+        turbine1 = ff.Turbine(1, rotor_diameter, hub_height, ct_model)
         turbine_definitions = [turbine1]
         sorted_turbine_index = [1]
 
