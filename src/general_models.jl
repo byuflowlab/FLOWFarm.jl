@@ -123,8 +123,8 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
         
             loc = [0.0 0.0 0.0]
             # scale rotor sample point coordinate by rotor diameter (in rotor hub ref. frame)
-            local_rotor_sample_point_y = rotor_sample_points_y[p]*0.5*downstream_turbine.rotor_dimeter
-            local_rotor_sample_point_z = rotor_sample_points_z[p]*0.5*downstream_turbine.rotor_dimeter
+            local_rotor_sample_point_y = rotor_sample_points_y[p]*0.5*downstream_turbine.rotor_diameter
+            local_rotor_sample_point_z = rotor_sample_points_z[p]*0.5*downstream_turbine.rotor_diameter
             
             # move sample points to correct height and yaw location in wind farm state reference frame
             loc[1] = windfarmstate.turbine_x[downstream_turb_index] + local_rotor_sample_point_y*sin(windfarmstate.turbine_yaw[downstream_turb_index]) 
