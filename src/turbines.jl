@@ -1,8 +1,8 @@
 abstract type AbstractTurbine end
 
-struct Turbine{TI,TF,TM} <: AbstractTurbine
-    id::TI
-    rotor_diameter::TF
-    hub_height::TF
-    ct_model::TM
+struct Turbine{AI,AF,AM} <: AbstractTurbine
+    id::AI
+    rotor_diameter::AF
+    hub_height::AF
+    ct_model::AM
 end

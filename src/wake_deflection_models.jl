@@ -19,11 +19,11 @@ function wake_deflection_model(loc, model::JiminezYawDeflection, turbine::Turbin
     # this version ignores the corrections made to the yaw model for rotor rotation as described in [2] and 
     # [3] Thomas 2017 "Improving the FLORIS wind plant model for compatibility with gradient-based optimization"
 
-    turbine_id = turbine.id
+    turbine_id = turbine.id[1]
     dx = loc[1]-windfarmstate.turbine_x[turbine_id]
     yaw = -windfarmstate.turbine_yaw[turbine_id] # Jiminez used opposite rotation convention, hence (-) sign
     ct = windfarmstate.turbine_ct[turbine_id]
-    diam = turbine.rotor_diameter
+    diam = turbine.rotor_diameter[1]
 
     kd = model.horizontal_spread_rate
 
@@ -44,11 +44,11 @@ end
 function wake_deflection_model(loc, model::GaussYawDeflection, turbine::Turbine, windfarmstate::SingleWindFarmState)
     # [1] Bastankhah and Porte-Agel 2016
 
-    turbine_id = turbine.id
+    turbine_id = turbine.id[1]
     dx = loc[1]-windfarmstate.turbine_x[turbine_id]
     yaw = windfarmstate.turbine_yaw[turbine_id]
     ct = windfarmstate.turbine_ct[turbine_id]
-    diam = turbine.rotor_diameter
+    diam = turbine.rotor_diameter[1]
 
     as = model.alpha_star
     bs = model.beta_star

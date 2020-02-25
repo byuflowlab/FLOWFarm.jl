@@ -1,5 +1,5 @@
 function rotate_to_wind_direction(xlocs, ylocs, wind_direction)
-
+    # TODO fix this
     nTurbines = length(xlocs)
     wd = -pi*(270. - wind_direction)/180. #shift to traditional wind direction coords and to radians
     xw = xlocs.*cos(wd)-ylocs.*sin(wd)
@@ -84,8 +84,8 @@ function point_velocity(loc,
         end
         
         # find velocity at point without shear
-        point_velocity_without_shear = wind_speed - deficit_sum
-        
+        point_velocity_without_shear = wind_speed - deepcopy(deficit_sum)
+        println("turb, pvnoshear", turb, " ", point_velocity_without_shear)
         # adjust sample point velocity for shear
         point_velocity_with_shear = adjust_for_wind_shear(loc, point_velocity_without_shear, reference_height, turbine_z[turb], windshearmodel)
 
@@ -112,7 +112,8 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
     
         # get index of downstream turbine
         downstream_turb_index = windfarmstate.sorted_turbine_index[d]
-
+        println(windfarmstate.sorted_turbine_index)
+        println(windfarmstate.turbine_x)
         # get turbine definition of downstream turbine
         downstream_turbine = windfarm.turbine_definitions[downstream_turb_index]
 
@@ -121,16 +122,16 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
 
         for p=1:n_rotor_sample_points
         
-            loc = [0.0 0.0 0.0]
+            loc = zeros(3)
             # scale rotor sample point coordinate by rotor diameter (in rotor hub ref. frame)
-            local_rotor_sample_point_y = rotor_sample_points_y[p]*0.5*downstream_turbine.rotor_diameter
-            local_rotor_sample_point_z = rotor_sample_points_z[p]*0.5*downstream_turbine.rotor_diameter
+            local_rotor_sample_point_y = rotor_sample_points_y[p]*0.5*downstream_turbine.rotor_diameter[1]
+            local_rotor_sample_point_z = rotor_sample_points_z[p]*0.5*downstream_turbine.rotor_diameter[1]
             
             # move sample points to correct height and yaw location in wind farm state reference frame
             loc[1] = windfarmstate.turbine_x[downstream_turb_index] + local_rotor_sample_point_y*sin(windfarmstate.turbine_yaw[downstream_turb_index]) 
             loc[2] = windfarmstate.turbine_y[downstream_turb_index] + local_rotor_sample_point_y*cos(windfarmstate.turbine_yaw[downstream_turb_index]) 
-            loc[3] = windfarmstate.turbine_z[downstream_turb_index] + downstream_turbine.hub_height + local_rotor_sample_point_z
-            
+            loc[3] = windfarmstate.turbine_z[downstream_turb_index] + downstream_turbine.hub_height[1] + local_rotor_sample_point_z
+            println(loc)
             # calculate the velocity at given point
             point_velocity_with_shear = point_velocity(loc,
                 windfarm::WindFarm,
@@ -146,15 +147,15 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
             wind_turbine_velocity += point_velocity_with_shear
         
         end
-    
+        println(wind_turbine_velocity, " ", downstream_turb_index)
         # final velocity calculation for downstream turbine (average equally across all points)
         wind_turbine_velocity /= n_rotor_sample_points
 
         # update wind farm state with new velocity for downstream turbine
-        windfarmstate.turbine_inflow_velcities[downstream_turb_index] = wind_turbine_velocity
+        windfarmstate.turbine_inflow_velcities[downstream_turb_index] = deepcopy(wind_turbine_velocity)
         
         # update thrust coefficient for downstream turbine
-        windfarmstate.turbine_ct[downstream_turb_index] = calculate_ct(downstream_turbine.ct_model)
+        windfarmstate.turbine_ct[downstream_turb_index] = calculate_ct(downstream_turbine.ct_model[1])
 
         # TODO add local turbulence intensity calculations
 

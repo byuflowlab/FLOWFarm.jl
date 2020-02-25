@@ -1,0 +1,14 @@
+# An Aero-acoustic Noise Distribution Prediction Methodology for Offshore Wind Farms
+# by Jiufa Cao, Weijun Zhu, Xinbo Wu, Tongguang Wang, and Haoran Xu
+# normalized velocity of row of 10 vestas V80 turbines spaced at 7D
+# turbine number,  u/u_inf
+1, 1.0
+2, 0.8165429801322637
+3, 0.7826511805119569
+4, 0.7691176870805754
+5, 0.7596558548869787
+6, 0.7577944570039141
+7, 0.7562047378136385
+8, 0.7548862280956119
+9, 0.7541106065426233
+10, 0.7533349849896347
