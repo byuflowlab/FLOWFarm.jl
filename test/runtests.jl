@@ -53,38 +53,38 @@ end
 
 end
 
-@testset "Wake Combination Models" begin
+# @testset "Wake Combination Models" begin
 
-    old_deficit_sum = 0.3
-    wind_speed = 8.0 
-    deltav = 0.2
-    turb_inflow = 7.5
+#     old_deficit_sum = 0.3
+#     wind_speed = 8.0 
+#     deltav = 0.2
+#     turb_inflow = 7.5
 
-    @testset "Linear Freestream Superposition" begin
-        model = ff.LinearFreestreamSuperposition()
-        result = old_deficit_sum + wind_speed*deltav
-        @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
-    end
+#     @testset "Linear Freestream Superposition" begin
+#         model = ff.LinearFreestreamSuperposition()
+#         result = old_deficit_sum + wind_speed*deltav
+#         @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
+#     end
 
-    @testset "Sum of Squares Freestream Superposition" begin
-        model = ff.SumOfSquaresFreestreamSuperposition()
-        result = sqrt(old_deficit_sum^2 + (wind_speed*deltav)^2)
-        @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
-    end
+#     @testset "Sum of Squares Freestream Superposition" begin
+#         model = ff.SumOfSquaresFreestreamSuperposition()
+#         result = sqrt(old_deficit_sum^2 + (wind_speed*deltav)^2)
+#         @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
+#     end
 
-    @testset "Sum of Squares Local Velocity Superposition" begin
-        model = ff.SumOfSquaresLocalVelocitySuperposition()
-        result = sqrt(old_deficit_sum^2 + (turb_inflow*deltav)^2)
-        @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
-    end 
+#     @testset "Sum of Squares Local Velocity Superposition" begin
+#         model = ff.SumOfSquaresLocalVelocitySuperposition()
+#         result = sqrt(old_deficit_sum^2 + (turb_inflow*deltav)^2)
+#         @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
+#     end 
 
-    @testset "Linear Local Velocity Superposition" begin 
-    model = ff.LinearLocalVelocitySuperposition()
-    result = old_deficit_sum + turb_inflow*deltav
-    @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
-    end
+#     @testset "Linear Local Velocity Superposition" begin 
+#     model = ff.LinearLocalVelocitySuperposition()
+#     result = old_deficit_sum + turb_inflow*deltav
+#     @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
+#     end
 
-end
+# end
 
 @testset "Wake Deflection Models" begin
 
@@ -523,8 +523,6 @@ end
         rtol = 1E-6
 
         data = readdlm("inputfiles/velocity_def_row_of_10_turbs.txt",  ',', skipstart=4,)
-        println(data[:, 1])
-        println(data[:, 2])
 
         rtol = 1E-6
 
@@ -534,20 +532,19 @@ end
         ct = 0.689 
         ai = 1.0/3.0
         wind_speed = 12.0
-        println(data)
         turbine_x = data[:, 1].*7.0*rotor_diameter #[0.0, 7.0*rotor_diameter, 6.0*rotor_diameter]
-        println(turbine_x)
-        turbine_y = zeros(length(turbine_x))
-        turbine_z = zeros(length(turbine_x))
-        turbine_yaw = zeros(length(turbine_x))
-        turbine_ct = zeros(length(turbine_x)) .+ ct
-        turbine_ai = zeros(length(turbine_x)) .+ ai
+        nturbines = length(turbine_x)
+        turbine_y = zeros(nturbines)
+        turbine_z = zeros(nturbines)
+        turbine_yaw = zeros(nturbines)
+        turbine_ct = zeros(nturbines) .+ ct
+        turbine_ai = zeros(nturbines) .+ ai
         winddirections = [270.0*pi/180.0]
         windspeeds = [wind_speed]
         windprobabilities = [1.0]
         measurementheight = [hub_height]
         shearexponent = 0.15
-        turbine_inflow_velcities = zeros(length(turbine_x)) .+ wind_speed
+        turbine_inflow_velcities = zeros(nturbines) .+ wind_speed
 
         # rotor sample points 
         rotor_points_y = [0.0]
@@ -558,13 +555,13 @@ end
         # turbine_definitions = Array{ff.AbstractTurbine, length(turbine_x)}
         turbine_definitions = [] # or `Vector{Coords}(undef, x)`
         turbine = ff.Turbine([1], [rotor_diameter], [hub_height], [ct_model])
-        turbine_definitions = [turbine for i in 1:length(turbine_x)]
-        sorted_turbine_index = zeros(Int64, length(turbine_x))
-        for i in 1:length(turbine_x)
-            turbine_definitions[i].id[1] = Int(i)
-            sorted_turbine_index[i] = Int(i)
+        turbine_definitions = [turbine for i in 1:nturbines]
+        sorted_turbine_index = zeros(Int64, nturbines)
+        for i in 1:nturbines
+            turbine = ff.Turbine([i], [rotor_diameter], [hub_height], [ct_model])
+            turbine_definitions[i] = turbine
+            sorted_turbine_index[i] = Int64(i)
         end 
-        println(sorted_turbine_index)
 
         windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definitions)
         windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities)

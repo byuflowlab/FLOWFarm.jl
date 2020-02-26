@@ -46,6 +46,7 @@ function wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum
     # Voutsinas 1990
 
     new_deficit_sum = sqrt(old_deficit_sum^2 + (turb_inflow*deltav)^2)
+    # new_deficit_sum = sqrt(old_deficit_sum^2 + deltav^2)
     
     return new_deficit_sum
 
