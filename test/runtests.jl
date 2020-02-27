@@ -118,6 +118,8 @@ end
         hub_height = 0.125 
         yaw_20 = 20.0*pi/180.0
         ct = 0.8 # [1] fig. 8
+        cp = 0.8
+        generator_efficiency = 0.944
 
         wind_farm_state_id = 1
         turbine_x = [0.0]
@@ -130,13 +132,15 @@ end
         turbine_inflow_velcity = [8.0]
         turbine_id = 1
 
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity)       
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])       
 
         k_star = 0.07 # adjusted to match experimental data. #TODO improve tests with model results
         horizontal_spread_rate = k_star
 
         ct_model = ff.ConstantCt(ct)
-        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height, ct_model)
+        power_model = ff.ConstantCp([cp], [generator_efficiency])
+
+        turbine = ff.Turbine([turbine_id], [rotor_diameter], [hub_height], [ct_model], [power_model])
         model = ff.JiminezYawDeflection(horizontal_spread_rate)
 
         dx2p5d = 2.5*rotor_diameter
@@ -167,6 +171,8 @@ end
         hub_height = 0.125 #[1] p. 509
         yaw_20 = 20.0*pi/180.0
         ct = 0.82 # [1] fig. 8
+        cp = 0.8
+        generator_efficiency = 0.944
 
         wind_farm_state_id = 1
         turbine_x = [0.0]
@@ -179,9 +185,11 @@ end
         turbine_inflow_velcity = [8.0]
         turbine_id = 1
 
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity)       
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])       
         ct_model = ff.ConstantCt(ct)
-        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height, ct_model)
+        power_model = ff.ConstantCp([cp], [generator_efficiency])
+
+        turbine = ff.Turbine([turbine_id], [rotor_diameter], [hub_height], [ct_model], [power_model])
 
         k_star = 0.022 # [1]  p. 525
         turbulence_intensity = 0.1 #0.0875 #[1] p. 508 - this value is only specified to be less than 0.1
@@ -217,6 +225,8 @@ end
         yaw = 0.0
         ct = 0.7 
         ai = 1.0/3.0
+        cp = 0.8
+        generator_efficiency = 0.944
 
         wind_farm_state_id = 1
         turbine_x = [0.0]
@@ -229,9 +239,11 @@ end
         turbine_inflow_velcity = [8.1]
         turbine_id = 1
 
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity)       
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])       
         ct_model = ff.ConstantCt(ct)
-        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height, ct_model)
+        power_model = ff.ConstantCp([cp], [generator_efficiency])
+
+        turbine = ff.Turbine([turbine_id], [rotor_diameter], [hub_height], [ct_model], [power_model])
 
         alpha = 0.1
         
@@ -274,6 +286,8 @@ end
         aI = 1.0/3.0
         yaw = 0.0
         ct = 0.7 
+        cp = 0.8
+        generator_efficiency = 0.944
 
         wind_farm_state_id = 1
         turbine_x = [0.0]
@@ -292,9 +306,11 @@ end
 
         deflection = [0.0, 0.0]
         
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity)       
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])       
         ct_model = ff.ConstantCt(ct)
-        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height, ct_model)
+        power_model = ff.ConstantCp([cp], [generator_efficiency])
+
+        turbine = ff.Turbine([turbine_id], [rotor_diameter], [hub_height], [ct_model], [power_model])
 
         model = ff.JensenCosine(alpha, beta)
 
@@ -357,6 +373,8 @@ end
         hub_height = 0.125 #[1] p. 509
         yaw = 0.0
         ct = 0.82 # [1] fig. 2
+        cp = 0.8
+        generator_efficiency = 0.944
 
         k_star = 0.022 # [1]  p. 525
         turbulence_intensity = 0.1 #0.0875 #[1] p. 508 - this value is only specified to be less than 0.1
@@ -376,9 +394,11 @@ end
 
         deflection = [0.0, 0.0]
         
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity)       
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])       
         ct_model = ff.ConstantCt(ct)
-        turbine = ff.Turbine(turbine_id, rotor_diameter, hub_height, ct_model)
+        power_model = ff.ConstantCp([cp], [generator_efficiency])
+
+        turbine = ff.Turbine([turbine_id], [rotor_diameter], [hub_height], [ct_model], [power_model])
 
         model = ff.GaussYaw(turbulence_intensity, horizontal_spread_rate , vertical_spread_rate, alpha_star, beta_star)
 
@@ -462,8 +482,11 @@ end
         hub_height = 90.0
         yaw = 0.0
         ct = 0.7 
+        cp = 0.8
+        generator_efficiency = 0.944
         ai = 1.0/3.0
         wind_speed = 8.1
+        air_density = 1.1716  # kg/m^3
         turbine_x = [0.0]
         turbine_y = [0.0]
         turbine_z = [0.0]
@@ -478,13 +501,15 @@ end
         turbine_inflow_velcities = [wind_speed]
 
         ct_model = ff.ConstantCt(ct)
-        turbine1 = ff.Turbine(1, rotor_diameter, hub_height, ct_model)
+        power_model = ff.ConstantCp([cp], [generator_efficiency])
+
+        turbine1 = ff.Turbine(1, [rotor_diameter], [hub_height], [ct_model], [power_model])
         turbine_definitions = [turbine1]
         sorted_turbine_index = [1]
 
         windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definitions)
-        windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities)
-        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, shearexponent)
+        windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, [0.0])
+        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, shearexponent, air_density)
         windshearmodel = ff.PowerLawWindShear(shearexponent)
 
         loc = [7.0*rotor_diameter, 0.0, hub_height]
@@ -522,7 +547,7 @@ end
 
         rtol = 1E-6
 
-        data = readdlm("inputfiles/velocity_def_row_of_10_turbs.txt",  ',', skipstart=4,)
+        data = readdlm("inputfiles/velocity_def_row_of_10_turbs.txt",  ',', skipstart=4)
 
         rtol = 1E-6
 
@@ -530,8 +555,11 @@ end
         hub_height = 70.0
         yaw = 0.0
         ct = 0.689 
+        cp = 0.8
+        generator_efficiency = 0.944
         ai = 1.0/3.0
         wind_speed = 12.0
+        air_density = 1.1716  # kg/m^3
         turbine_x = data[:, 1].*7.0*rotor_diameter #[0.0, 7.0*rotor_diameter, 6.0*rotor_diameter]
         nturbines = length(turbine_x)
         turbine_y = zeros(nturbines)
@@ -551,21 +579,22 @@ end
         rotor_points_z = [0.0]
 
         ct_model = ff.ConstantCt(ct)
+        power_model = ff.ConstantCp([cp], [generator_efficiency])
 
         # turbine_definitions = Array{ff.AbstractTurbine, length(turbine_x)}
         turbine_definitions = [] # or `Vector{Coords}(undef, x)`
-        turbine = ff.Turbine([1], [rotor_diameter], [hub_height], [ct_model])
+        turbine = ff.Turbine(1, [rotor_diameter], [hub_height], [ct_model], [power_model])
         turbine_definitions = [turbine for i in 1:nturbines]
         sorted_turbine_index = zeros(Int64, nturbines)
         for i in 1:nturbines
-            turbine = ff.Turbine([i], [rotor_diameter], [hub_height], [ct_model])
+            turbine = ff.Turbine(i, [rotor_diameter], [hub_height], [ct_model], [power_model])
             turbine_definitions[i] = turbine
             sorted_turbine_index[i] = Int64(i)
         end 
 
         windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definitions)
-        windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities)
-        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, shearexponent)
+        windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, [0.0])
+        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, shearexponent, air_density)
         windshearmodel = ff.PowerLawWindShear(shearexponent)
 
         alpha = 0.1
@@ -580,6 +609,77 @@ end
         ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, windshearmodel, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
         
         @test windfarmstate.turbine_inflow_velcities ≈ expected_velocity rtol=rtol 
+
+    end
+
+    @testset "Turbine powers one direction" begin
+        # test based on:
+        # [1] An Aero-acoustic Noise Distribution Prediction Methodology for Offshore Wind Farms
+        # by Jiufa Cao, Weijun Zhu, Xinbo Wu, Tongguang Wang, and Haoran Xu
+
+        rtol = 1E-6
+
+        data = readdlm("inputfiles/velocity_def_row_of_10_turbs.txt",  ',', skipstart=4)
+
+        rtol = 1E-6
+
+        rotor_diameter = 80.0
+        hub_height = 70.0
+        yaw = 0.0
+        ct = 0.689 
+        cp = 0.8
+        generator_efficiency = 0.944
+        ai = 1.0/3.0
+        wind_speed = 12.0
+        air_density = 1.1716  # kg/m^3
+        turbine_x = data[:, 1].*7.0*rotor_diameter #[0.0, 7.0*rotor_diameter, 6.0*rotor_diameter]
+        nturbines = length(turbine_x)
+        turbine_y = zeros(nturbines)
+        turbine_z = zeros(nturbines)
+        turbine_yaw = zeros(nturbines)
+        turbine_ct = zeros(nturbines) .+ ct
+        turbine_ai = zeros(nturbines) .+ ai
+        winddirections = [270.0*pi/180.0]
+        windspeeds = [wind_speed]
+        windprobabilities = [1.0]
+        measurementheight = [hub_height]
+        shearexponent = 0.15
+        turbine_inflow_velcities = wind_speed*data[:, 2]
+        println("vel t: ", turbine_inflow_velcities)
+        # rotor sample points 
+        rotor_points_y = [0.0]
+        rotor_points_z = [0.0]
+
+        ct_model = ff.ConstantCt(ct)
+        power_model = ff.ConstantCp([cp], [generator_efficiency])
+
+        # turbine_definitions = Array{ff.AbstractTurbine, length(turbine_x)}
+        turbine_definitions = [] # or `Vector{Coords}(undef, x)`
+        turbine = ff.Turbine(1, [rotor_diameter], [hub_height], [ct_model], [power_model])
+        turbine_definitions = [turbine for i in 1:nturbines]
+        sorted_turbine_index = zeros(Int64, nturbines)
+        for i in 1:nturbines
+            turbine = ff.Turbine(i, [rotor_diameter], [hub_height], [ct_model], [power_model])
+            turbine_definitions[i] = turbine
+            sorted_turbine_index[i] = Int64(i)
+        end 
+
+        turbine_generators_powers = zeros(nturbines)
+
+        windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definitions)
+        windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, turbine_generators_powers)
+        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, shearexponent, air_density)
+        windshearmodel = ff.PowerLawWindShear(shearexponent)
+
+        alpha = 0.1
+        wakedeficitmodel = ff.JensenTopHat(alpha)
+        horizontal_spread_rate = alpha
+        wakedeflectionmodel = ff.JiminezYawDeflection(horizontal_spread_rate)
+        wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
+
+        ff.turbine_powers_one_direction!(rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, windshearmodel, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
+        
+        @test windfarmstate.turbine_generators_powers ≈ wind_speed*data[:, 2] rtol=rtol 
 
     end
 

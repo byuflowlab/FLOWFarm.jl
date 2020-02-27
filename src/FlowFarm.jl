@@ -9,6 +9,7 @@ include("wake_deficit_models.jl")
 include("wake_deflection_models.jl")
 include("thrust_coefficient_models.jl")
 include("local_turbulence_intensity_models.jl")
+include("power_models.jl")
 include("general_models.jl")
 include("user_functions.jl")
 

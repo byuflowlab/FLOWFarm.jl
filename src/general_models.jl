@@ -1,3 +1,5 @@
+include("power_models.jl")
+
 function rotate_to_wind_direction(xlocs, ylocs, wind_direction)
     # TODO fix this
     nTurbines = length(xlocs)
@@ -158,6 +160,27 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
 
         # TODO add local turbulence intensity calculations
 
+    end
+
+end
+
+function turbine_powers_one_direction!(rotor_sample_points_y, rotor_sample_points_z, 
+    windfarm::AbstractWindFarmModel, 
+    farmstate::SingleWindFarmState,
+    wind_model::AbstractWindResourceModel, 
+    windshearmodel::AbstractWindShearModel, 
+    wakedeficitmodel::AbstractWakeDeficitModel, 
+    wakedeflectionmodel::AbstractWakeDeflectionModel, 
+    wakecombinationmodel::AbstractWakeCombinationModel)
+
+    # get number of turbines and rotor sample point
+    n_turbines = length(farmstate.turbine_x)
+    
+    for d=1:n_turbines
+        turbine = windfarm.turbine_definitions[d]
+        wt_power = calculate_turbine_power(turbine, farmstate, wind_model, turbine.power_model[1])
+    
+        farmstate.turbine_generators_powers[turbine.id] = wt_power
     end
 
 end

@@ -230,7 +230,7 @@ function wake_deficit_model(loc, deflection, model::GaussYaw, turbine::Turbine, 
     dz = loc[3]-(windfarmstate.turbine_z[turbine_id]+turbine.hub_height[1]+deflection_z)
 
     # extract turbine properties
-    dt = turbine.rotor_diameter
+    dt = turbine.rotor_diameter[1]
     yaw = windfarmstate.turbine_yaw[turbine_id]
     ct = windfarmstate.turbine_ct[turbine_id]
 

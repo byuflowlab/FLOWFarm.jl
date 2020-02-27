@@ -7,5 +7,6 @@ struct DiscretizedWindResource{AF, TF} <: AbstractWindResourceModel
     wind_probabilities::AF
     measurement_heights::AF
     shear_exponent::TF
+    air_density::TF
 
 end
