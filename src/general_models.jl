@@ -1,13 +1,23 @@
 include("power_models.jl")
 
-function rotate_to_wind_direction(xlocs, ylocs, wind_direction)
-    # TODO fix this
-    nTurbines = length(xlocs)
-    wd = -pi*(270. - wind_direction)/180. #shift to traditional wind direction coords and to radians
-    xw = xlocs.*cos(wd)-ylocs.*sin(wd)
-    yw = xlocs.*sin(wd)+ylocs.*cos(wd)
-    return xw, yw
+function rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
+    # use radians
 
+    # convert from meteorological polar system (CW, 0 rad.=N) to standard polar system (CCW, 0 rad.=E)
+    wind_direction_cart = (3*pi/2 - wind_direction_met)
+
+    if wind_direction_cart < 0.0
+        wind_direction_cart += 2*pi
+    end 
+
+    cos_wdr = cos(-wind_direction_cart)
+    sin_wdr = sin(-wind_direction_cart)
+
+    # convert to cartesian coordinates with wind to positive x
+    x_cart = xlocs*cos_wdr - ylocs*sin_wdr
+    y_cart = xlocs*sin_wdr + ylocs*cos_wdr
+
+    return x_cart, y_cart
 end
 
 function point_velocity(loc,
@@ -181,6 +191,44 @@ function turbine_powers_one_direction!(rotor_sample_points_y, rotor_sample_point
         wt_power = calculate_turbine_power(turbine, farmstate, wind_model, turbine.power_model[1])
     
         farmstate.turbine_generators_powers[turbine.id] = wt_power
+    end
+
+end
+
+function calculate_flow_field(direction_id, xrange, yrange, zrange, rotor_sample_points_y, rotor_sample_points_z, 
+    windfarm::AbstractWindFarmModel, 
+    farmstate::SingleWindFarmState,
+    wind_model::DiscretizedWindResource, 
+    windshearmodel::AbstractWindShearModel, 
+    wakedeficitmodel::AbstractWakeDeficitModel, 
+    wakedeflectionmodel::AbstractWakeDeflectionModel, 
+    wakecombinationmodel::AbstractWakeCombinationModel)
+
+    xlen = length(xrange)
+    ylen = length(yrange)
+    zlen = length(zrange)
+    npoints = xlen*ylen*zlen
+    point_velocities = zeros(npoints)
+    point_velocities = reshape(point_velocities, (zlen, ylen, xlen))
+
+    for zi in 1:zlen
+        for yi in 1:ylen
+            for xi in 1:xlen
+                loc = [xrange[xi], yrange[yi], zrange[zi]]
+                loc[1], loc[2] = rotate_to_wind_direction(loc[1], loc[2], wind_model.wind_directions[direction_id])
+
+                point_velocities[zi, yi, xi] = point_velocity(loc, windfarm, farmstate, wind_model, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, windshearmodel, 0)
+    
+            end
+        end
+    end
+
+    if zlen == 1
+        return point_velocities[1,1:ylen,1:xlen]
+    elseif ylen == 1
+        return point_velocities[1:zlen,1,1:xlen]
+    elseif xlen == 1
+        return point_velocities[1:zlen,1:ylen,1]
     end
 
 end

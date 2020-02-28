@@ -24,7 +24,6 @@ function calculate_turbine_power(turbine::AbstractTurbine, farmstate::SingleWind
     rotor_diameter = turbine.rotor_diameter[1]
     rotor_area = pi*(rotor_diameter^2)/4.0
     wt_velocity = farmstate.turbine_inflow_velcities[turbine.id[1]]
-    println("vel: ", farmstate.turbine_inflow_velcities)
 
     wt_power = generator_efficiency*(0.5*air_density*rotor_area*cp*wt_velocity^3)
 
