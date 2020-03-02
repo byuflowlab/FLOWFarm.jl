@@ -30,3 +30,7 @@ function calculate_turbine_power(turbine::AbstractTurbine, farmstate::SingleWind
     return wt_power
 
 end
+
+function calculate_aep(windfarm::AbstractWindFarmModel)
+
+end
