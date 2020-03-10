@@ -54,38 +54,38 @@ end
 
 end
 
-# @testset "Wake Combination Models" begin
+@testset "Wake Combination Models" begin
 
-#     old_deficit_sum = 0.3
-#     wind_speed = 8.0 
-#     deltav = 0.2
-#     turb_inflow = 7.5
+    old_deficit_sum = 0.3
+    wind_speed = 8.0 
+    deltav = 0.2
+    turb_inflow = 7.5
 
-#     @testset "Linear Freestream Superposition" begin
-#         model = ff.LinearFreestreamSuperposition()
-#         result = old_deficit_sum + wind_speed*deltav
-#         @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
-#     end
+    @testset "Linear Freestream Superposition" begin
+        model = ff.LinearFreestreamSuperposition()
+        result = old_deficit_sum + wind_speed*deltav
+        @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
+    end
 
-#     @testset "Sum of Squares Freestream Superposition" begin
-#         model = ff.SumOfSquaresFreestreamSuperposition()
-#         result = sqrt(old_deficit_sum^2 + (wind_speed*deltav)^2)
-#         @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
-#     end
+    @testset "Sum of Squares Freestream Superposition" begin
+        model = ff.SumOfSquaresFreestreamSuperposition()
+        result = sqrt(old_deficit_sum^2 + (wind_speed*deltav)^2)
+        @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
+    end
 
-#     @testset "Sum of Squares Local Velocity Superposition" begin
-#         model = ff.SumOfSquaresLocalVelocitySuperposition()
-#         result = sqrt(old_deficit_sum^2 + (turb_inflow*deltav)^2)
-#         @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
-#     end 
+    @testset "Sum of Squares Local Velocity Superposition" begin
+        model = ff.SumOfSquaresLocalVelocitySuperposition()
+        result = sqrt(old_deficit_sum^2 + (turb_inflow*deltav)^2)
+        @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
+    end 
 
-#     @testset "Linear Local Velocity Superposition" begin 
-#     model = ff.LinearLocalVelocitySuperposition()
-#     result = old_deficit_sum + turb_inflow*deltav
-#     @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
-#     end
+    @testset "Linear Local Velocity Superposition" begin 
+    model = ff.LinearLocalVelocitySuperposition()
+    result = old_deficit_sum + turb_inflow*deltav
+    @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
+    end
 
-# end
+end
 
 @testset "Wake Deflection Models" begin
 
