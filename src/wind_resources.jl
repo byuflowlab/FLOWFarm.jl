@@ -13,13 +13,13 @@ abstract type AbstractWindResourceModel end
 - `air_density::Array{Float}(1): length 1 array containing the air density
 - `wind_shear_model::Array{AbstractWindShearModel}(1)`: contains a struct defining the desired turbulence intensity model
 """
-struct DiscretizedWindResource{AF, ASM} <: AbstractWindResourceModel
+struct DiscretizedWindResource{AF, TF, ASM} <: AbstractWindResourceModel
     
     wind_directions::AF
     wind_speeds::AF
     wind_probabilities::AF
     measurement_heights::AF
-    air_density::AF
+    air_density::TF
     wind_shear_model::ASM
 
 end

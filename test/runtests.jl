@@ -25,7 +25,7 @@ end
         point_velocity_no_shear = 8.0
         reference_height = 80.0
         ground_height = 0.0
-        shear_exp = [0.15]
+        shear_exp = 0.15
 
         model = ff.PowerLawWindShear(shear_exp)
         # test at reference height
@@ -514,8 +514,8 @@ end
         winddirections = [270.0*pi/180.0]
         windspeeds = [wind_speed]
         windprobabilities = [1.0]
-        measurementheight = [hub_height]
-        shearexponent = [0.15]
+        measurementheights = [hub_height]
+        shearexponent = 0.15
         turbine_inflow_velcities = [wind_speed]
 
         ct_model = ff.ConstantCt(ct)
@@ -528,7 +528,7 @@ end
 
         windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definitions)
         windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, [0.0])
-        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, wind_shear_model)
+        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheights, air_density, wind_shear_model)
 
         loc = [7.0*rotor_diameter, 0.0, hub_height]
         alpha = 0.1
@@ -589,7 +589,7 @@ end
         windspeeds = [wind_speed]
         windprobabilities = [1.0]
         measurementheight = [hub_height]
-        shearexponent = [0.15]
+        shearexponent = 0.15
         turbine_inflow_velcities = zeros(nturbines) .+ wind_speed
 
         # rotor sample points 
@@ -613,7 +613,7 @@ end
 
         windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definitions)
         windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, [0.0])
-        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, shearexponent, air_density, [wind_shear_model])
+        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, [wind_shear_model])
 
         alpha = 0.1
         wakedeficitmodel = ff.JensenTopHat(alpha)
@@ -730,7 +730,7 @@ end
         windspeeds = [wind_speed]
         windprobabilities = [1.0]
         measurementheight = [hub_height]
-        shearexponent = [0.15]
+        shearexponent = 0.15
         turbine_inflow_velcities = wind_speed*data[:, 2]
         # rotor sample points 
         rotor_points_y = [0.0]
