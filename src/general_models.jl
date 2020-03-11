@@ -9,14 +9,14 @@ abstract type AbstractModelSet end
 Container for objects defining a wind farm problem
 
 # Arguments
-- `wind_farm::Array{WindFarm}(1)`: contains windturbine coordinates and definitions
-- `wind_resource::Array{AbstracWindResource}(1)`: wind resource description
+- `wind_farm::AbstractWindFarm`: contains windturbine coordinates and definitions
+- `wind_resource::AbstracWindResource`: wind resource description
 - `wind_farm_states::Array{SingleWindFarmState}(Nstates)`: contains turbine coordinates operational states
 """
-struct WindFarmProblemDescription{AFM,AWR,AFS} <: AbstractWindFarmProblem
+struct WindFarmProblemDescription{FM,WR,AFS} <: AbstractWindFarmProblem
 
-    wind_farm::AFM
-    wind_resource::AWR
+    wind_farm::FM
+    wind_resource::WR
     wind_farm_states::AFS
 
 end
@@ -33,12 +33,12 @@ Container for objects defining models to use in wind farm calculations
 - `wake_combination_model::Array{AbstractWakeCombinationModel}(1)`: contains a struct defining the desired wake combination model
 - `ti_model::Array{AbstractTurbulenceIntensityModel}(1)`: contains a struct defining the desired turbulence intensity model
 """
-struct WindFarmModelSet{ADTM,ADNM,ACM,ATIM} <: AbstractModelSet
+struct WindFarmModelSet{ADTM,ADNM,ACM} <: AbstractModelSet
 
     wake_deficit_model::ADTM
     wake_deflection_model::ADNM
     wake_combination_model::ACM
-    local_turbulence_intensity_model::ATIM
+    # local_turbulence_intensity_model::ATIM
 
 end
 
