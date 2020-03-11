@@ -3,16 +3,16 @@ include("wind_resources.jl")
 
 abstract type AbstractPowerModel end
 
-struct ConstantCp{AF} <: AbstractPowerModel
-    cp::AF
-    generator_efficiency::AF
+struct ConstantCp{TF} <: AbstractPowerModel
+    cp::TF
+    generator_efficiency::TF
 end
 
-struct PowerCurveCubic{AF} <: AbstractPowerModel
-    cut_in_speed::AF
-    cut_out_speed::AF
-    rated_speed::AF
-    rated_power::AF
+struct PowerCurveCubic{TF} <: AbstractPowerModel
+    cut_in_speed::TF
+    cut_out_speed::TF
+    rated_speed::TF
+    rated_power::TF
 end
 
 function calculate_turbine_power(turbine::AbstractTurbine, farmstate::SingleWindFarmState, wind_model::AbstractWindResourceModel, power_model::ConstantCp)
@@ -30,7 +30,6 @@ function calculate_turbine_power(turbine::AbstractTurbine, farmstate::SingleWind
     return wt_power
 
 end
-
 
 # function calculate_turbine_power(turbine::AbstractTurbine, farmstate::SingleWindFarmState, wind_model::AbstractWindResourceModel, power_model::PowerCurveCubic)
 #
@@ -51,3 +50,7 @@ end
 #     return wt_power
 #
 # end
+
+function calculate_aep(windfarm::AbstractWindFarmModel)
+
+end

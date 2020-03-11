@@ -26,3 +26,4 @@ struct SingleWindFarmState{TI,AF,AI} <: AbstractWindFarmModel
     turbine_generators_powers::AF
 
 end
+

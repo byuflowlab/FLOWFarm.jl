@@ -1,5 +1,47 @@
 include("power_models.jl")
 
+abstract type AbstractWindFarmProblem end
+abstract type AbstractModelSet end
+
+"""
+    WindFarmProblemDescription(windfarm, windresource, windfarmstates)
+
+Container for objects defining a wind farm problem
+
+# Arguments
+- `wind_farm::Array{WindFarm}(1)`: contains windturbine coordinates and definitions
+- `wind_resource::Array{AbstracWindResource}(1)`: wind resource description
+- `wind_farm_states::Array{SingleWindFarmState}(Nstates)`: contains turbine coordinates operational states
+"""
+struct WindFarmProblemDescription{AFM,AWR,AFS} <: AbstractWindFarmProblem
+
+    wind_farm::AFM
+    wind_resource::AWR
+    wind_farm_states::AFS
+
+end
+
+
+"""
+    WindFarmModelSet(wakedeficitmodel, wake_deflection_model, wake_combination_model, ti_model, wind_shear_model)
+
+Container for objects defining models to use in wind farm calculations
+
+# Arguments
+- `wake_defiict_model::Array{AbstractWakeDeficitModel}(1)`: contains a struct defining the desired wake deficit model
+- `wake_deflection_model::Array{AbstractWakeDeflectionModel}(1)`: contains a struct defining the desired wake deflection model
+- `wake_combination_model::Array{AbstractWakeCombinationModel}(1)`: contains a struct defining the desired wake combination model
+- `ti_model::Array{AbstractTurbulenceIntensityModel}(1)`: contains a struct defining the desired turbulence intensity model
+"""
+struct WindFarmModelSet{ADTM,ADNM,ACM,ATIM} <: AbstractModelSet
+
+    wake_deficit_model::ADTM
+    wake_deflection_model::ADNM
+    wake_combination_model::ACM
+    local_turbulence_intensity_model::ATIM
+
+end
+
 function rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
     # use radians
 
@@ -27,7 +69,6 @@ function point_velocity(loc,
     wakedeficitmodel::AbstractWakeDeficitModel,
     wakedeflectionmodel::AbstractWakeDeflectionModel,
     wakecombinationmodel::AbstractWakeCombinationModel,
-    windshearmodel::AbstractWindShearModel,
     downwind_turbine_id=0)
 
     # get state id
@@ -50,7 +91,8 @@ function point_velocity(loc,
     # extract flow information
     wind_speed = windresource.wind_speeds[direction_id]
     reference_height = windresource.measurement_heights[direction_id]
-    shear_exponent = windresource.shear_exponent
+    wind_shear_model = windresource.wind_shear_model[1]
+    shear_exponent = wind_shear_model.shear_exponent
 
     # get number of turbines
     nturbines = length(turbine_x)
@@ -99,7 +141,7 @@ function point_velocity(loc,
         point_velocity_without_shear = wind_speed - deficit_sum
 
         # adjust sample point velocity for shear
-        point_velocity_with_shear = adjust_for_wind_shear(loc, point_velocity_without_shear, reference_height, turbine_z[upstream_turb_id], windshearmodel)
+        point_velocity_with_shear = adjust_for_wind_shear(loc, point_velocity_without_shear, reference_height, turbine_z[upstream_turb_id], wind_shear_model)
 
     end
 
@@ -111,7 +153,6 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
     windfarm::AbstractWindFarmModel,
     windfarmstate::SingleWindFarmState,
     windresource::AbstractWindResourceModel,
-    windshearmodel::AbstractWindShearModel,
     wakedeficitmodel::AbstractWakeDeficitModel,
     wakedeflectionmodel::AbstractWakeDeflectionModel,
     wakecombinationmodel::AbstractWakeCombinationModel)
@@ -151,7 +192,6 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
                 wakedeficitmodel::AbstractWakeDeficitModel,
                 wakedeflectionmodel::AbstractWakeDeflectionModel,
                 wakecombinationmodel::AbstractWakeCombinationModel,
-                windshearmodel::AbstractWindShearModel,
                 downstream_turb_index)
 
             # add sample point velocity to turbine velocity to be averaged later
@@ -178,7 +218,6 @@ function turbine_powers_one_direction!(rotor_sample_points_y, rotor_sample_point
     windfarm::AbstractWindFarmModel,
     farmstate::SingleWindFarmState,
     wind_model::AbstractWindResourceModel,
-    windshearmodel::AbstractWindShearModel,
     wakedeficitmodel::AbstractWakeDeficitModel,
     wakedeflectionmodel::AbstractWakeDeflectionModel,
     wakecombinationmodel::AbstractWakeCombinationModel)
@@ -199,7 +238,6 @@ function calculate_flow_field(direction_id, xrange, yrange, zrange, rotor_sample
     windfarm::AbstractWindFarmModel,
     farmstate::SingleWindFarmState,
     wind_model::DiscretizedWindResource,
-    windshearmodel::AbstractWindShearModel,
     wakedeficitmodel::AbstractWakeDeficitModel,
     wakedeflectionmodel::AbstractWakeDeflectionModel,
     wakecombinationmodel::AbstractWakeCombinationModel)
@@ -217,7 +255,7 @@ function calculate_flow_field(direction_id, xrange, yrange, zrange, rotor_sample
                 loc = [xrange[xi], yrange[yi], zrange[zi]]
                 loc[1], loc[2] = rotate_to_wind_direction(loc[1], loc[2], wind_model.wind_directions[direction_id])
 
-                point_velocities[zi, yi, xi] = point_velocity(loc, windfarm, farmstate, wind_model, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, windshearmodel, 0)
+                point_velocities[zi, yi, xi] = point_velocity(loc, windfarm, farmstate, wind_model, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, 0)
 
             end
         end

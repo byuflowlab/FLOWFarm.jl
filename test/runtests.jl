@@ -19,7 +19,7 @@ end
 
 @testset "Wind Shear Models" begin
 
-    @testset "Power Law WInd Shear" begin
+    @testset "Power Law Wind Shear" begin
         # TODO base this tests on something more concrete
 
         point_velocity_no_shear = 8.0
@@ -54,38 +54,38 @@ end
 
 end
 
-# @testset "Wake Combination Models" begin
+@testset "Wake Combination Models" begin
 
-#     old_deficit_sum = 0.3
-#     wind_speed = 8.0 
-#     deltav = 0.2
-#     turb_inflow = 7.5
+    old_deficit_sum = 0.3
+    wind_speed = 8.0 
+    deltav = 0.2
+    turb_inflow = 7.5
 
-#     @testset "Linear Freestream Superposition" begin
-#         model = ff.LinearFreestreamSuperposition()
-#         result = old_deficit_sum + wind_speed*deltav
-#         @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
-#     end
+    @testset "Linear Freestream Superposition" begin
+        model = ff.LinearFreestreamSuperposition()
+        result = old_deficit_sum + wind_speed*deltav
+        @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
+    end
 
-#     @testset "Sum of Squares Freestream Superposition" begin
-#         model = ff.SumOfSquaresFreestreamSuperposition()
-#         result = sqrt(old_deficit_sum^2 + (wind_speed*deltav)^2)
-#         @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
-#     end
+    @testset "Sum of Squares Freestream Superposition" begin
+        model = ff.SumOfSquaresFreestreamSuperposition()
+        result = sqrt(old_deficit_sum^2 + (wind_speed*deltav)^2)
+        @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
+    end
 
-#     @testset "Sum of Squares Local Velocity Superposition" begin
-#         model = ff.SumOfSquaresLocalVelocitySuperposition()
-#         result = sqrt(old_deficit_sum^2 + (turb_inflow*deltav)^2)
-#         @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
-#     end 
+    @testset "Sum of Squares Local Velocity Superposition" begin
+        model = ff.SumOfSquaresLocalVelocitySuperposition()
+        result = sqrt(old_deficit_sum^2 + (turb_inflow*deltav)^2)
+        @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
+    end 
 
-#     @testset "Linear Local Velocity Superposition" begin 
-#     model = ff.LinearLocalVelocitySuperposition()
-#     result = old_deficit_sum + turb_inflow*deltav
-#     @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
-#     end
+    @testset "Linear Local Velocity Superposition" begin 
+    model = ff.LinearLocalVelocitySuperposition()
+    result = old_deficit_sum + turb_inflow*deltav
+    @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
+    end
 
-# end
+end
 
 @testset "Wake Deflection Models" begin
 
@@ -514,12 +514,13 @@ end
         winddirections = [270.0*pi/180.0]
         windspeeds = [wind_speed]
         windprobabilities = [1.0]
-        measurementheight = [hub_height]
+        measurementheights = [hub_height]
         shearexponent = 0.15
         turbine_inflow_velcities = [wind_speed]
 
         ct_model = ff.ConstantCt(ct)
         power_model = ff.ConstantCp([cp], [generator_efficiency])
+        wind_shear_model = [ff.PowerLawWindShear(shearexponent)]
 
         turbine1 = ff.Turbine(1, [rotor_diameter], [hub_height], [ct_model], [power_model])
         turbine_definitions = [turbine1]
@@ -527,8 +528,7 @@ end
 
         windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definitions)
         windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, [0.0])
-        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, shearexponent, air_density)
-        windshearmodel = ff.PowerLawWindShear(shearexponent)
+        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheights, air_density, wind_shear_model)
 
         loc = [7.0*rotor_diameter, 0.0, hub_height]
         alpha = 0.1
@@ -540,22 +540,22 @@ end
         # test no loss upstream (data from Jensen 1983)
         expected_velocity = wind_speed
         loc = [-0.1, 0.0, hub_height]
-        @test ff.point_velocity(loc, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, windshearmodel, 0) == expected_velocity
+        @test ff.point_velocity(loc, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, 0) == expected_velocity
 
         # test max loss at turbine (data from Jensen 1983)
         expected_velocity = wind_speed*(1.0 - (2. * 1/3.0))
         loc = [1E-6, 0.0, hub_height]
-        @test ff.point_velocity(loc, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, windshearmodel, 0) ≈ expected_velocity rtol=rtol 
+        @test ff.point_velocity(loc, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, 0) ≈ expected_velocity rtol=rtol 
 
         # test centerline loss 40 meters downstream (data from Jensen 1983)
         expected_velocity = wind_speed*(4.35/8.1)
         loc = [40.0, 0.0, hub_height]
-        @test ff.point_velocity(loc, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, windshearmodel, 0) ≈ expected_velocity rtol=rtol 
+        @test ff.point_velocity(loc, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, 0) ≈ expected_velocity rtol=rtol 
 
         # test centerline loss 100 meters downstream (data from Jensen 1983)
         expected_velocity = wind_speed*(5.7/8.1)
         loc = [100.0, 0.0, hub_height]
-        @test ff.point_velocity(loc, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, windshearmodel, 0) ≈ expected_velocity  rtol=rtol 
+        @test ff.point_velocity(loc, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, 0) ≈ expected_velocity  rtol=rtol 
     end
 
     @testset "Turbine Inflow Velocities one direction" begin
@@ -598,6 +598,7 @@ end
 
         ct_model = ff.ConstantCt(ct)
         power_model = ff.ConstantCp([cp], [generator_efficiency])
+        wind_shear_model = ff.PowerLawWindShear(shearexponent)
 
         # turbine_definitions = Array{ff.AbstractTurbine, length(turbine_x)}
         turbine_definitions = [] # or `Vector{Coords}(undef, x)`
@@ -612,8 +613,7 @@ end
 
         windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definitions)
         windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, [0.0])
-        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, shearexponent, air_density)
-        windshearmodel = ff.PowerLawWindShear(shearexponent)
+        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, [wind_shear_model])
 
         alpha = 0.1
         wakedeficitmodel = ff.JensenTopHat(alpha)
@@ -624,7 +624,7 @@ end
         # test no loss upstream (data from Jensen 1983)
         expected_velocity = wind_speed*data[:, 2]
 
-        ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, windshearmodel, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
+        ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
         
         @test windfarmstate.turbine_inflow_velcities ≈ expected_velocity rtol=rtol 
 
@@ -661,7 +661,7 @@ end
         windspeeds = [wind_speed]
         windprobabilities = [1.0]
         measurementheight = [hub_height]
-        shearexponent = 0.15
+        shearexponent = [0.15]
         turbine_inflow_velcities = wind_speed*data[:, 2]
         # rotor sample points 
         rotor_points_y = [0.0]
@@ -669,6 +669,7 @@ end
 
         ct_model = ff.ConstantCt(ct)
         power_model = ff.ConstantCp([cp], [generator_efficiency])
+        wind_shear_model = ff.PowerLawWindShear(shearexponent)
 
         # turbine_definitions = Array{ff.AbstractTurbine, length(turbine_x)}
         turbine_definitions = [] # or `Vector{Coords}(undef, x)`
@@ -685,8 +686,7 @@ end
 
         windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definitions)
         windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, turbine_generators_powers)
-        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, shearexponent, air_density)
-        windshearmodel = ff.PowerLawWindShear(shearexponent)
+        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, [wind_shear_model])
 
         alpha = 0.1
         wakedeficitmodel = ff.JensenTopHat(alpha)
@@ -694,7 +694,7 @@ end
         wakedeflectionmodel = ff.JiminezYawDeflection(horizontal_spread_rate)
         wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
 
-        ff.turbine_powers_one_direction!(rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, windshearmodel, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
+        ff.turbine_powers_one_direction!(rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
         
         @test windfarmstate.turbine_generators_powers ≈ wind_speed*data[:, 2] rtol=rtol 
 
@@ -738,6 +738,7 @@ end
 
         ct_model = ff.ConstantCt(ct)
         power_model = ff.ConstantCp([cp], [generator_efficiency])
+        wind_shear_model = [ff.PowerLawWindShear(shearexponent)]
 
         # turbine_definitions = Array{ff.AbstractTurbine, length(turbine_x)}
         turbine_definitions = [] # or `Vector{Coords}(undef, x)`
@@ -755,8 +756,7 @@ end
         windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definitions)
         turbine_xw, turbine_yw = ff.rotate_to_wind_direction(turbine_x, turbine_y, winddirections[1])
         windfarmstate = ff.SingleWindFarmState(1, turbine_xw, turbine_yw, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, turbine_generators_powers)
-        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, shearexponent, air_density)
-        windshearmodel = ff.PowerLawWindShear(shearexponent)
+        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, wind_shear_model)
 
         alpha = 0.1
         wakedeficitmodel = ff.JensenTopHat(alpha)
@@ -764,8 +764,8 @@ end
         wakedeflectionmodel = ff.JiminezYawDeflection(horizontal_spread_rate)
         wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
 
-        ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, windshearmodel, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
-        ff.turbine_powers_one_direction!(rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, windshearmodel, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
+        ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
+        ff.turbine_powers_one_direction!(rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
         
         stepsize = 10
         xrange = 1:stepsize:10*rotor_diameter*nturbines
@@ -776,7 +776,7 @@ end
         println(points[1][1])
         println(windfarmstate.turbine_inflow_velcities)
 
-        velh = ff.calculate_flow_field(1, xrange, yrange, zrange, rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, windshearmodel, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
+        velh = ff.calculate_flow_field(1, xrange, yrange, zrange, rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
         # yrange = 0:stepsize:0
         # zrange = 0:stepsize:2*hub_height
         # velv = ff.calculate_flow_field(1, xrange, yrange, zrange, rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, windshearmodel, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
@@ -796,9 +796,6 @@ end
         # x = range(-5, stop = 5, length = 40)
         # flowfieldplot = plot(points[:, 1], points[:, 2], vel, show=true, st=:contourf)
         
-        
-
-
     end
 
 end
