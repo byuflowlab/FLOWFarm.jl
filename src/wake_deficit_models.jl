@@ -29,7 +29,7 @@ struct GaussYaw{TF} <: AbstractWakeDeficitModel
     beta_star::TF
 end
 
-function wake_deficit_model(loc, deflection, model::JensenTopHat, turbine::Turbine, windfarmstate::SingleWindFarmState)
+function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::JensenTopHat, windfarmstate::SingleWindFarmState)
     """the original Jensen top hat wake model, from the paper: "A Note on Wind
     Generator Interaction" by N.O. Jensen (1983)"""
     # pull out the deflection distances in y (cross stream) and z (up and down)
@@ -39,12 +39,11 @@ function wake_deficit_model(loc, deflection, model::JensenTopHat, turbine::Turbi
     # find delta x, y, and z. dx is the downstream distance from the turbine to
     # the point of interest. dy and dz are the distances from the point of interest
     # and the wake center (in y and z)
-    turbine_id = turbine.id[1]
     dx = loc[1]-windfarmstate.turbine_x[turbine_id]
     dy = loc[2]-(windfarmstate.turbine_y[turbine_id]+deflection_y)
-    dz = loc[3]-(windfarmstate.turbine_z[turbine_id]+turbine.hub_height[1]+deflection_z)
+    dz = loc[3]-(windfarmstate.turbine_z[turbine_id]+turbine_definition.hub_height[1]+deflection_z)
 
-    r0 = turbine.rotor_diameter[1]/2.0 #turbine rotor radius
+    r0 = turbine_definition.rotor_diameter[1]/2.0 #turbine rotor radius
     del = sqrt(dy^2+dz^2) #distance from wake center to the point of interest
     r = model.alpha*dx + r0 #figure (1) from the paper
 
@@ -57,7 +56,7 @@ function wake_deficit_model(loc, deflection, model::JensenTopHat, turbine::Turbi
     return loss
 end
 
-function wake_deficit_model(loc, deflection, model::JensenCosine, turbine::Turbine, windfarmstate::SingleWindFarmState)
+function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::JensenCosine, windfarmstate::SingleWindFarmState)
     """the original Jensen cosine wake model, from the paper: "A Note on Wind
     Generator Interaction" by N.O. Jensen (1983)"""
     # pull out the deflection distances in y (cross stream) and z (up and down)
@@ -67,12 +66,11 @@ function wake_deficit_model(loc, deflection, model::JensenCosine, turbine::Turbi
     # find delta x, y, and z. dx is the downstream distance from the turbine to
     # the point of interest. dy and dz are the distances from the point of interest
     # and the wake center (in y and z)
-    turbine_id = turbine.id[1]
     dx = loc[1]-windfarmstate.turbine_x[turbine_id]
     dy = loc[2]-(windfarmstate.turbine_y[turbine_id]+deflection_y)
-    dz = loc[3]-(windfarmstate.turbine_z[turbine_id]+turbine.hub_height[1]+deflection_z)
+    dz = loc[3]-(windfarmstate.turbine_z[turbine_id]+turbine_definition.hub_height[1]+deflection_z)
 
-    r0 = turbine.rotor_diameter[1]/2.0 #turbine rotor radius
+    r0 = turbine_definition.rotor_diameter[1]/2.0 #turbine rotor radius
     del = sqrt(dy^2+dz^2) #distance from wake center to the point of interest
     r = model.alpha*dx + r0 #figure (1) from the paper
 
@@ -94,12 +92,12 @@ function wake_deficit_model(loc, deflection, model::JensenCosine, turbine::Turbi
 end
 
 
-function wake_deficit_model(loc, deflection, model::Multizone, turbine::Turbine, windfarmstate::SingleWindFarmState)
+function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::Multizone, windfarmstate::SingleWindFarmState)
     """The original multizone "FLORIS" wake model, from the paper:
     "Wind plant power optimization through yaw control using a parametric model
     for wake effects—a CFD simulation study" by Gebraad et al. (2014)"""
 
-    dt = turbine.rotor_diameter[1]
+    dt = turbine_definition.rotor_diameter[1]
     # extract model parameters
     ke = model.ke
     me = model.me
@@ -113,10 +111,9 @@ function wake_deficit_model(loc, deflection, model::Multizone, turbine::Turbine,
     # find delta x, y, and z. dx is the downstream distance from the turbine to
     # the point of interest. dy and dz are the distances from the point of interest
     # and the wake center (in y and z)
-    turbine_id = turbine.id[1]
     dx = loc[1]-windfarmstate.turbine_x[turbine_id]
     dy = loc[2]-(windfarmstate.turbine_y[turbine_id]+deflection_y)
-    dz = loc[3]-(windfarmstate.turbine_z[turbine_id]+turbine.hub_height[1]+deflection_z)
+    dz = loc[3]-(windfarmstate.turbine_z[turbine_id]+turbine_definition.hub_height[1]+deflection_z)
 
     if dx < 0.
         c = 0.0
@@ -148,24 +145,23 @@ function wake_deficit_model(loc, deflection, model::Multizone, turbine::Turbine,
         
     end
 
-    loss = 2.0*turbine.aI*c # calculate the wake loss. Equation (14) fro mthe paper
+    loss = 2.0*turbine_definition.aI*c # calculate the wake loss. Equation (14) fro mthe paper
     
     return loss
 end
 
 
-function wake_deficit_model(loc, deflection, model::GaussOriginal, turbine::Turbine, windfarmstate::SingleWindFarmState)
+function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::GaussOriginal, windfarmstate::SingleWindFarmState)
 
     deflection_y = deflection[1]
     deflection_z = deflection[2]
 
-    turbine_id = turbine.id[1]
     dx = loc[1]-windfarmstate.turbine_x[turbine_id]
     dy = loc[2]-(windfarmstate.turbine_y[turbine_id]+deflection_y)
-    dz = loc[3]-(windfarmstate.turbine_z[turbine_id]+turbine.hub_height[1]+deflection_z)
+    dz = loc[3]-(windfarmstate.turbine_z[turbine_id]+turbine_definition.hub_height[1]+deflection_z)
 
     # extract turbine properties
-    dt = turbine.rotor_diameter[1]
+    dt = turbine_definition.rotor_diameter[1]
     yaw = windfarmstate.turbine_yaw[turbine_id]
     ct = windfarmstate.turbine_ct[turbine_id]
 
@@ -219,18 +215,17 @@ function _gauss_yaw_spread(dt, k, dx, x0, yaw)
 
 end
 
-function wake_deficit_model(loc, deflection, model::GaussYaw, turbine::Turbine, windfarmstate::SingleWindFarmState)
+function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::GaussYaw, windfarmstate::SingleWindFarmState)
 
     deflection_y = deflection[1]
     deflection_z = deflection[2]
 
-    turbine_id = turbine.id[1]
     dx = loc[1]-windfarmstate.turbine_x[turbine_id]
     dy = loc[2]-(windfarmstate.turbine_y[turbine_id]+deflection_y)
-    dz = loc[3]-(windfarmstate.turbine_z[turbine_id]+turbine.hub_height[1]+deflection_z)
+    dz = loc[3]-(windfarmstate.turbine_z[turbine_id]+turbine_definition.hub_height[1]+deflection_z)
 
     # extract turbine properties
-    dt = turbine.rotor_diameter[1]
+    dt = turbine_definition.rotor_diameter[1]
     yaw = windfarmstate.turbine_yaw[turbine_id]
     ct = windfarmstate.turbine_ct[turbine_id]
 

@@ -21,16 +21,18 @@ windprobabilities = [1.0]
 measurementheights = [hub_height]
 shearexponent = 0.15
 turbine_inflow_velcities = [wind_speed]
+nturbines = 1 
 
 ct_model = ff.ConstantCt(ct)
 power_model = ff.ConstantCp([cp], [generator_efficiency])
 wind_shear_model = [ff.PowerLawWindShear(shearexponent)]
 
-turbine1 = ff.Turbine(1, [rotor_diameter], [hub_height], [ct_model], [power_model])
+turbine1 = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [ct_model], [power_model])
 turbine_definitions = [turbine1]
+turbine_definition_ids = [1]
 sorted_turbine_index = [1]
 
-windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definitions)
+windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definition_ids, turbine_definitions)
 windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, [0.0])
 windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheights, air_density, wind_shear_model)
 

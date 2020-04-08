@@ -1,6 +1,6 @@
-abstract type AbstractTurbine end
+abstract type AbstractTurbineDefinition end
 
-struct Turbine{TI,AF,ACTM, APM} <: AbstractTurbine
+struct TurbineDefinition{TI,AF,ACTM, APM} <: AbstractTurbineDefinition
     id::TI
     rotor_diameter::AF
     hub_height::AF

@@ -77,9 +77,10 @@ function point_velocity(loc, model_set::AbstractModelSet, problem_description::A
     turbine_x = windfarmstate.turbine_x
     turbine_y = windfarmstate.turbine_y
     turbine_z = windfarm.turbine_z
+    turbine_definition_ids = windfarm.turbine_definition_ids
 
     # extract turbine definitions
-    turbines = windfarm.turbine_definitions
+    turbine_definitions = windfarm.turbine_definitions
 
     # get sorted wind turbine index in currect direction
     sorted_turbine_index = windfarmstate.sorted_turbine_index
@@ -106,17 +107,17 @@ function point_velocity(loc, model_set::AbstractModelSet, problem_description::A
     for u=1:nturbines
 
         # get index of upstream turbine
-        upstream_turb_id = sorted_turbine_index[u]
-
+        upwind_turb_id = sorted_turbine_index[u]
+    
         # skip this loop if it would include a turbine's impact on itself)
-        if upstream_turb_id==downwind_turbine_id; continue; end
+        if upwind_turb_id==downwind_turbine_id; continue; end
 
         # get turbine definition
-        upwind_turbine = turbines[upstream_turb_id]
+        upwind_turbine = turbine_definitions[turbine_definition_ids[upwind_turb_id]]
 
         # downstream distance between upstream turbine and point
-        x = loc[1] - turbine_x[upstream_turb_id]
-
+        x = loc[1] - turbine_x[upwind_turb_id]
+        
         # set this iterations velocity deficit to 0
         deltav = 0.0
 
@@ -124,14 +125,14 @@ function point_velocity(loc, model_set::AbstractModelSet, problem_description::A
         if x > 0.0
 
             # calculate wake deflection of the current wake at the point of interest
-            horizontal_deflection = wake_deflection_model(loc, wakedeflectionmodel, upwind_turbine, windfarmstate)
+            horizontal_deflection = wake_deflection_model(loc, upwind_turb_id, upwind_turbine, wakedeflectionmodel, windfarmstate)
             vertical_deflection = 0.0
 
             # velocity difference in the wake
-            deltav = wake_deficit_model(loc, [horizontal_deflection, vertical_deflection], wakedeficitmodel, upwind_turbine, windfarmstate)
+            deltav = wake_deficit_model(loc, [horizontal_deflection, vertical_deflection], upwind_turb_id, upwind_turbine, wakedeficitmodel, windfarmstate)
 
             # combine deficits according to selected wake combination method
-            turb_inflow = wtvelocities[upstream_turb_id]
+            turb_inflow = wtvelocities[upwind_turb_id]
             deficit_sum = wake_combination_model(deltav, wind_speed, turb_inflow, deficit_sum, wakecombinationmodel)
 
         end
@@ -140,7 +141,7 @@ function point_velocity(loc, model_set::AbstractModelSet, problem_description::A
         point_velocity_without_shear = wind_speed - deficit_sum
 
         # adjust sample point velocity for shear
-        point_velocity_with_shear = adjust_for_wind_shear(loc, point_velocity_without_shear, reference_height, turbine_z[upstream_turb_id], wind_shear_model)
+        point_velocity_with_shear = adjust_for_wind_shear(loc, point_velocity_without_shear, reference_height, turbine_z[upwind_turb_id], wind_shear_model)
 
     end
 
@@ -164,8 +165,9 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
         downwind_turbine_id = windfarmstate.sorted_turbine_index[d]
 
         # get turbine definition of downstream turbine
-        downstream_turbine = windfarm.turbine_definitions[downwind_turbine_id]
-
+        turbine_definition_id = windfarm.turbine_definition_ids[downwind_turbine_id]
+        downwind_turbine = windfarm.turbine_definitions[turbine_definition_id]
+        
         # initialize downstream wind turbine velocity to zero
         wind_turbine_velocity = 0.0
 
@@ -173,13 +175,13 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
 
             loc = zeros(3)
             # scale rotor sample point coordinate by rotor diameter (in rotor hub ref. frame)
-            local_rotor_sample_point_y = rotor_sample_points_y[p]*0.5*downstream_turbine.rotor_diameter[1]
-            local_rotor_sample_point_z = rotor_sample_points_z[p]*0.5*downstream_turbine.rotor_diameter[1]
+            local_rotor_sample_point_y = rotor_sample_points_y[p]*0.5*downwind_turbine.rotor_diameter[1]
+            local_rotor_sample_point_z = rotor_sample_points_z[p]*0.5*downwind_turbine.rotor_diameter[1]
 
             # move sample points to correct height and yaw location in wind farm state reference frame
             loc[1] = windfarmstate.turbine_x[downwind_turbine_id] + local_rotor_sample_point_y*sin(windfarmstate.turbine_yaw[downwind_turbine_id])
             loc[2] = windfarmstate.turbine_y[downwind_turbine_id] + local_rotor_sample_point_y*cos(windfarmstate.turbine_yaw[downwind_turbine_id])
-            loc[3] = windfarmstate.turbine_z[downwind_turbine_id] + downstream_turbine.hub_height[1] + local_rotor_sample_point_z
+            loc[3] = windfarmstate.turbine_z[downwind_turbine_id] + downwind_turbine.hub_height[1] + local_rotor_sample_point_z
 
             # calculate the velocity at given point
             point_velocity_with_shear = point_velocity(loc, model_set, problem_description,
@@ -197,7 +199,7 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
         windfarmstate.turbine_inflow_velcities[downwind_turbine_id] = deepcopy(wind_turbine_velocity)
 
         # update thrust coefficient for downstream turbine
-        windfarmstate.turbine_ct[downwind_turbine_id] = calculate_ct(downstream_turbine.ct_model[1])
+        windfarmstate.turbine_ct[downwind_turbine_id] = calculate_ct(downwind_turbine.ct_model[1])
 
         # TODO add local turbulence intensity calculations
 
@@ -216,10 +218,10 @@ function turbine_powers_one_direction!(rotor_sample_points_y, rotor_sample_point
     n_turbines = length(farmstate.turbine_x)
 
     for d=1:n_turbines
-        turbine = windfarm.turbine_definitions[d]
-        wt_power = calculate_turbine_power(turbine, farmstate, wind_model, turbine.power_model[1])
+        turbine = windfarm.turbine_definitions[windfarm.turbine_definition_ids[d]]
+        wt_power = calculate_turbine_power(d, turbine, farmstate, wind_model, turbine.power_model[1])
 
-        farmstate.turbine_generators_powers[turbine.id] = wt_power
+        farmstate.turbine_generators_powers[d] = wt_power
     end
 
 end
