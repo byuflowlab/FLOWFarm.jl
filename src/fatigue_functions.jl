@@ -309,200 +309,211 @@ end
 # end
 
 
-const ff=FlowFarm
-# # #testing during development
-r = [2.8667, 5.6000, 8.3333, 11.7500, 15.8500, 19.9500, 24.0500,
-              28.1500, 32.2500, 36.3500, 40.4500, 44.5500, 48.6500, 52.7500,
-              56.1667, 58.9000, 61.6333]
-chord = [3.542, 3.854, 4.167, 4.557, 4.652, 4.458, 4.249, 4.007, 3.748,
-                  3.502, 3.256, 3.010, 2.764, 2.518, 2.313, 2.086, 1.419]
-theta = pi/180*[13.308, 13.308, 13.308, 13.308, 11.480, 10.162, 9.011, 7.795,
-                  6.544, 5.361, 4.188, 3.125, 2.319, 1.526, 0.863, 0.370, 0.106]
+
+
+
+
+
+
+
+#
+#
+#
+#
+# const ff=FlowFarm
+# # # #testing during development
+# r = [2.8667, 5.6000, 8.3333, 11.7500, 15.8500, 19.9500, 24.0500,
+#               28.1500, 32.2500, 36.3500, 40.4500, 44.5500, 48.6500, 52.7500,
+#               56.1667, 58.9000, 61.6333]
+# chord = [3.542, 3.854, 4.167, 4.557, 4.652, 4.458, 4.249, 4.007, 3.748,
+#                   3.502, 3.256, 3.010, 2.764, 2.518, 2.313, 2.086, 1.419]
+# theta = pi/180*[13.308, 13.308, 13.308, 13.308, 11.480, 10.162, 9.011, 7.795,
+#                   6.544, 5.361, 4.188, 3.125, 2.319, 1.526, 0.863, 0.370, 0.106]
+# # #
 # #
+# #
+# # x_hub = 0.
+# # y_hub = 0.
+# # z_hub = 90.
+# # yaw = pi/8
+# # azimuth = range(0.,stop=8*pi,length=100)
+# # precone = 0.
+# # tilt = 0*pi/6
+# #
+# # fig = figure()
+# # for n = 1:length(azimuth)
+# #
+# #         # x_locs, y_locs, z_locs = find_xyz(x_hub,y_hub,z_hub,r,yaw,azimuth[n],precone,tilt)
+# #         x_locs, y_locs, z_locs = find_xyz_simple(x_hub,y_hub,z_hub,r,yaw,azimuth[n])
+# #         clf()
+# #
+# #         subplot(131)
+# #         plot(x_locs,y_locs)
+# #         # axis("equal")
+# #         xlim(-70.,70.)
+# #         ylim(-70.,70.)
+# #
+# #         subplot(132)
+# #         plot(y_locs,z_locs)
+# #         # axis("equal")
+# #         ylim(20.,160.)
+# #         xlim(-70.,70.)
+# #
+# #         subplot(133)
+# #         plot(x_locs,z_locs)
+# #         # axis("equal")
+# #         ylim(20.,160.)
+# #         xlim(-70.,70.)
+# #
+# #         sleep(0.05)
+# #         display(fig)
+# #
+# # end
+# #
+# #
+# #
+# Rhub = 1.5
+# Rtip = 63.0
+# B = 3
+# # turbine = true
+# pitch = 0.0
+# precone = 2.5*pi/180
+#
+# af_path = "/Users/ningrsrch/Dropbox/Projects/waked-loads/5MW_AFFiles_julia"
+# path1 = af_path*"/Cylinder1.dat"
+# path2 = af_path*"/Cylinder2.dat"
+# path3 = af_path*"/DU40_A17.dat"
+# path4 = af_path*"/DU35_A17.dat"
+# path5 = af_path*"/DU30_A17.dat"
+# path6 = af_path*"/DU25_A17.dat"
+# path7 = af_path*"/DU21_A17.dat"
+# path8 = af_path*"/NACA64_A17.dat"
+#
+# af1 = af_from_files(path1)
+# af2 = af_from_files(path2)
+# af3 = af_from_files(path3)
+# af4 = af_from_files(path4)
+# af5 = af_from_files(path5)
+# af6 = af_from_files(path6)
+# af7 = af_from_files(path7)
+# af8 = af_from_files(path8)
+#
+# af = [af1,af2,af3,af4,af5,af6,af7,af8]
+#
+# af_idx = [1, 1, 2, 3, 4, 4, 5, 6, 6, 7, 7, 8, 8, 8, 8, 8, 8]
+# airfoils = af[af_idx]
+#
+# TSR = 5.
+# pitch = 0.
+# free_speed = 14.
+# Rhub = 1.5
+# hubHt = 90.
+# #
+# # turbineX = [0.,500.]
+# # turbineY = [0.,100.]
 #
 #
-# x_hub = 0.
-# y_hub = 0.
-# z_hub = 90.
-# yaw = pi/8
-# azimuth = range(0.,stop=8*pi,length=100)
-# precone = 0.
-# tilt = 0*pi/6
+# #
+# # #
 #
-# fig = figure()
-# for n = 1:length(azimuth)
 #
-#         # x_locs, y_locs, z_locs = find_xyz(x_hub,y_hub,z_hub,r,yaw,azimuth[n],precone,tilt)
-#         x_locs, y_locs, z_locs = find_xyz_simple(x_hub,y_hub,z_hub,r,yaw,azimuth[n])
-#         clf()
 #
-#         subplot(131)
-#         plot(x_locs,y_locs)
-#         # axis("equal")
-#         xlim(-70.,70.)
-#         ylim(-70.,70.)
+# # # rotor = Rotor(Rhub, Rtip, B, turbine, pitch, precone)
+# # #
+# # # sections = Section.(r,chord,theta,airfoils)
+# # #
+# # # # Vy = zeros(17)
+# # # # Vx = ones(17).*8.
+# # # # rho = 1.225
+# # # # op = CCBlade.OperatingPoint(Vx, Vy, rho)
+# # #
+# # # yaw = 0.0*pi/180
+# # # tilt = 5.0*pi/180
+# # # hubHt = 90.0
+# # # shearExp = 0.2
+# # #
+# # # Vinf = 10.0
+# # # tsr = 7.55
+# # # rotorR = Rtip*cos(precone)
+# # # Omega = Vinf*tsr/rotorR
+# # # azimuth = 90.0*pi/180
+# # # rho = 1.225
+# # # yaw = 0.
+# # # tilt = 0.
+# # #
+# # # # op = windturbine_op.(Vinf, Omega, r, precone, yaw, tilt, azimuth, hubHt, shearExp, rho)
+# # # velocity_dist = ones(17).*Vinf
+# # # op = distributed_velocity_op.(velocity_dist, Omega, r, precone, yaw, tilt, azimuth, rho)
+# # #
+# # # # out = solve.(Ref(rotor), sections, op)
+# # # azimuth = range(0.,stop=pi*2,length=100)
+# # # M = calculate_root_moment.(Ref(r),Ref(velocity_dist),Ref(chord),Ref(theta),Ref(airfoils),Rhub,Rtip,B,rho,precone,hubHt,Omega,pitch,azimuth,yaw,tilt)
+# # # figure()
+# # # plot(azimuth*180/pi, M)
+# # # xlabel("azimuth angle")
+# # # ylabel("root moments (kN-m)")
 #
-#         subplot(132)
-#         plot(y_locs,z_locs)
-#         # axis("equal")
-#         ylim(20.,160.)
-#         xlim(-70.,70.)
 #
-#         subplot(133)
-#         plot(x_locs,z_locs)
-#         # axis("equal")
-#         ylim(20.,160.)
-#         xlim(-70.,70.)
+# rotor_diameter = 126.4
+# hub_height = 90.0
+# ct = 0.689
+# cp = 0.42
+# generator_efficiency = 0.944
+# ai = 1.0/3.0
+# wind_speed = 12.0
+# air_density = 1.1716  # kg/m^3
+# turbine_x = [0.,500.]
+# nturbines = length(turbine_x)
+# turbine_y = [0.,-50.]
+# turbine_z = zeros(nturbines)
+# turbine_yaw = zeros(nturbines)
+# turbine_ct = zeros(nturbines) .+ ct
+# turbine_ai = zeros(nturbines) .+ ai
+# winddirections = [270.0*pi/180.0,0.0*pi/180.0]
+# windspeeds = [wind_speed,wind_speed]
+# windprobabilities = [1.0,1.0]
+# measurementheight = [hub_height,hub_height]
+# shearexponent = 0.15
+# turbine_inflow_velcities = zeros(nturbines) .+ wind_speed
 #
-#         sleep(0.05)
-#         display(fig)
+# # rotor sample points
+# rotor_points_y = [0.0]
+# rotor_points_z = [0.0]
 #
+# ct_model = ff.ConstantCt(ct)
+# power_model = ff.ConstantCp([cp], [generator_efficiency])
+# wind_shear_model = ff.PowerLawWindShear(shearexponent)
+#
+# turbine_definitions = [] # or `Vector{Coords}(undef, x)`
+# turbine = ff.Turbine(1, [rotor_diameter], [hub_height], [ct_model], [power_model])
+# turbine_definitions = [turbine for i in 1:nturbines]
+# sorted_turbine_index = zeros(Int64, nturbines)
+# for i in 1:nturbines
+#     turbine = ff.Turbine(i, [rotor_diameter], [hub_height], [ct_model], [power_model])
+#     turbine_definitions[i] = turbine
+#     sorted_turbine_index[i] = Int64(i)
 # end
 #
+# windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definitions)
+# windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, [0.0])
+# windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, [wind_shear_model])
 #
+# alpha = 0.1
+# k_star = 0.022 # [1]  p. 525
+# turbulence_intensity = 0.1 #0.0875 #[1] p. 508 - this value is only specified to be less than 0.1
+# horizontal_spread_rate = k_star
+# vertical_spread_rate = k_star
+# alpha_star = 2.32 #[1] p. 534
+# beta_star = 0.154 #[1] p. 534
+# # wakedeficitmodel = ff.JensenTopHat(alpha)
+# wakedeficitmodel = ff.GaussYaw(turbulence_intensity, horizontal_spread_rate , vertical_spread_rate, alpha_star, beta_star)
+# horizontal_spread_rate = alpha
+# wakedeflectionmodel = ff.NoYawDeflection()
+# wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
 #
-Rhub = 1.5
-Rtip = 63.0
-B = 3
-# turbine = true
-pitch = 0.0
-precone = 2.5*pi/180
-
-af_path = "/Users/ningrsrch/Dropbox/Projects/waked-loads/5MW_AFFiles_julia"
-path1 = af_path*"/Cylinder1.dat"
-path2 = af_path*"/Cylinder2.dat"
-path3 = af_path*"/DU40_A17.dat"
-path4 = af_path*"/DU35_A17.dat"
-path5 = af_path*"/DU30_A17.dat"
-path6 = af_path*"/DU25_A17.dat"
-path7 = af_path*"/DU21_A17.dat"
-path8 = af_path*"/NACA64_A17.dat"
-
-af1 = af_from_files(path1)
-af2 = af_from_files(path2)
-af3 = af_from_files(path3)
-af4 = af_from_files(path4)
-af5 = af_from_files(path5)
-af6 = af_from_files(path6)
-af7 = af_from_files(path7)
-af8 = af_from_files(path8)
-
-af = [af1,af2,af3,af4,af5,af6,af7,af8]
-
-af_idx = [1, 1, 2, 3, 4, 4, 5, 6, 6, 7, 7, 8, 8, 8, 8, 8, 8]
-airfoils = af[af_idx]
-
-TSR = 5.
-pitch = 0.
-free_speed = 14.
-Rhub = 1.5
-hubHt = 90.
+# # ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
+# # println(windfarmstate.turbine_inflow_velcities)
 #
-# turbineX = [0.,500.]
-# turbineY = [0.,100.]
-
-
+# turb_index = 2
 #
-# #
-
-
-
-# # rotor = Rotor(Rhub, Rtip, B, turbine, pitch, precone)
-# #
-# # sections = Section.(r,chord,theta,airfoils)
-# #
-# # # Vy = zeros(17)
-# # # Vx = ones(17).*8.
-# # # rho = 1.225
-# # # op = CCBlade.OperatingPoint(Vx, Vy, rho)
-# #
-# # yaw = 0.0*pi/180
-# # tilt = 5.0*pi/180
-# # hubHt = 90.0
-# # shearExp = 0.2
-# #
-# # Vinf = 10.0
-# # tsr = 7.55
-# # rotorR = Rtip*cos(precone)
-# # Omega = Vinf*tsr/rotorR
-# # azimuth = 90.0*pi/180
-# # rho = 1.225
-# # yaw = 0.
-# # tilt = 0.
-# #
-# # # op = windturbine_op.(Vinf, Omega, r, precone, yaw, tilt, azimuth, hubHt, shearExp, rho)
-# # velocity_dist = ones(17).*Vinf
-# # op = distributed_velocity_op.(velocity_dist, Omega, r, precone, yaw, tilt, azimuth, rho)
-# #
-# # # out = solve.(Ref(rotor), sections, op)
-# # azimuth = range(0.,stop=pi*2,length=100)
-# # M = calculate_root_moment.(Ref(r),Ref(velocity_dist),Ref(chord),Ref(theta),Ref(airfoils),Rhub,Rtip,B,rho,precone,hubHt,Omega,pitch,azimuth,yaw,tilt)
-# # figure()
-# # plot(azimuth*180/pi, M)
-# # xlabel("azimuth angle")
-# # ylabel("root moments (kN-m)")
-
-
-rotor_diameter = 126.4
-hub_height = 90.0
-ct = 0.689
-cp = 0.42
-generator_efficiency = 0.944
-ai = 1.0/3.0
-wind_speed = 12.0
-air_density = 1.1716  # kg/m^3
-turbine_x = [0.,500.]
-nturbines = length(turbine_x)
-turbine_y = [0.,-50.]
-turbine_z = zeros(nturbines)
-turbine_yaw = zeros(nturbines)
-turbine_ct = zeros(nturbines) .+ ct
-turbine_ai = zeros(nturbines) .+ ai
-winddirections = [270.0*pi/180.0,0.0*pi/180.0]
-windspeeds = [wind_speed,wind_speed]
-windprobabilities = [1.0,1.0]
-measurementheight = [hub_height,hub_height]
-shearexponent = 0.15
-turbine_inflow_velcities = zeros(nturbines) .+ wind_speed
-
-# rotor sample points
-rotor_points_y = [0.0]
-rotor_points_z = [0.0]
-
-ct_model = ff.ConstantCt(ct)
-power_model = ff.ConstantCp([cp], [generator_efficiency])
-wind_shear_model = ff.PowerLawWindShear(shearexponent)
-
-turbine_definitions = [] # or `Vector{Coords}(undef, x)`
-turbine = ff.Turbine(1, [rotor_diameter], [hub_height], [ct_model], [power_model])
-turbine_definitions = [turbine for i in 1:nturbines]
-sorted_turbine_index = zeros(Int64, nturbines)
-for i in 1:nturbines
-    turbine = ff.Turbine(i, [rotor_diameter], [hub_height], [ct_model], [power_model])
-    turbine_definitions[i] = turbine
-    sorted_turbine_index[i] = Int64(i)
-end
-
-windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definitions)
-windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, [0.0])
-windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, [wind_shear_model])
-
-alpha = 0.1
-k_star = 0.022 # [1]  p. 525
-turbulence_intensity = 0.1 #0.0875 #[1] p. 508 - this value is only specified to be less than 0.1
-horizontal_spread_rate = k_star
-vertical_spread_rate = k_star
-alpha_star = 2.32 #[1] p. 534
-beta_star = 0.154 #[1] p. 534
-# wakedeficitmodel = ff.JensenTopHat(alpha)
-wakedeficitmodel = ff.GaussYaw(turbulence_intensity, horizontal_spread_rate , vertical_spread_rate, alpha_star, beta_star)
-horizontal_spread_rate = alpha
-wakedeflectionmodel = ff.NoYawDeflection()
-wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
-
-# ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
-# println(windfarmstate.turbine_inflow_velcities)
-
-turb_index = 2
-
-get_damage(turbine_x,turbine_y,turb_index,TSR,pitch,free_speed,Rhub,Rtip,r,chord,theta,airfoils,hubHt,windfarm,windfarmstate,windresource,wakedeficitmodel,wakedeflectionmodel,wakecombinationmodel)
+# get_damage(turbine_x,turbine_y,turb_index,TSR,pitch,free_speed,Rhub,Rtip,r,chord,theta,airfoils,hubHt,windfarm,windfarmstate,windresource,wakedeficitmodel,wakedeflectionmodel,wakecombinationmodel)
