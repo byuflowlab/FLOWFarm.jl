@@ -3,6 +3,64 @@ using CCBlade
 using PyPlot
 using FLOWMath
 using Statistics
+using Dierckx
+
+function multiple_components_op(U, V, W, Omega, r, precone, yaw, tilt, azimuth, rho, mu=1.81206e-05, asound=1.0)
+
+    sy = sin(yaw)
+    cy = cos(yaw)
+    st = sin(tilt)
+    ct = cos(tilt)
+    sa = sin(azimuth)
+    ca = cos(azimuth)
+    sc = sin(precone)
+    cc = cos(precone)
+
+    magnitude = sqrt.(U.^2 + V.^2 + W.^2)
+    x0 = U./magnitude
+    y0 = V./magnitude
+    z0 = W./magnitude
+
+    #first
+    x1 = x0.*cy + y0.*sy
+    y1 = -x0.*sy + y0.*cy
+    z1 = z0
+
+    #second
+    x2 = -z1.*st + x1.*ct
+    y2 = y1
+    z2 = z1.*ct + x1.*st
+
+    #third
+    x3 = x2
+    y3 = y2.*ca + z2.*sa
+    z3 = -y2.*sa + z2.*ca
+
+    #fourth
+    x4 = z3.*sc + x3.*cc
+    y4 = y3
+    z4 = z3.*cc - x3.*sc
+
+    # transform wind to blade c.s.
+    Vwind_x = magnitude.*x4
+    Vwind_y = magnitude.*y4
+    Vwind_z = magnitude.*z4
+
+    # coordinate in azimuthal coordinate system
+    z_az = r.*cos(precone)
+
+    # wind from rotation to blade c.s.
+    Vrot_x = -Omega*sc
+    Vrot_y = Omega.*z_az
+
+    # total velocity
+    Vx = Vwind_x .+ Vrot_x
+    Vy = Vwind_y + Vrot_y
+
+    # operating point
+    return OperatingPoint(Vx, Vy, rho, mu, asound)
+
+end
 
 
 function distributed_velocity_op(V, Omega, r, precone, yaw, tilt, azimuth, rho, mu=1.81206e-05, asound=1.0)
@@ -40,16 +98,23 @@ function distributed_velocity_op(V, Omega, r, precone, yaw, tilt, azimuth, rho, 
 
 end
 
-function calculate_root_moment(r,velocity,chord,theta,af,Rhub,Rtip,hubHt,Omega,pitch,azimuth,
+function calculate_root_moment(r,velocity,chord,theta,airfoils,Rhub,Rtip,hubHt,Omega,pitch,azimuth; V=0,W=0,
                 B=3,rho=1.225,precone=0.,yaw=0.,tilt=0.,blade_mass=17536.617,blade_cm=20.650,grav=9.81)
 
         rotor = CCBlade.Rotor(Rhub, Rtip, B, true, pitch, precone)
         sections = CCBlade.Section.(r,chord,theta,airfoils)
-        op = distributed_velocity_op.(velocity, Omega, r, precone, yaw, tilt, azimuth, rho)
+        # op = distributed_velocity_op.(velocity, Omega, r, precone, yaw, tilt, azimuth, rho)
+        if V == 0
+            V = ones(length(velocity))*0.0
+            W = ones(length(velocity))*0.0
+        end
+        op = multiple_components_op.(velocity, V, W, Omega, r, precone, yaw, tilt, azimuth, rho)
         out = CCBlade.solve.(Ref(rotor), sections, op)
 
         loads_flap = out.Np/1000.
         loads_edge = out.Tp/1000.
+        # println("u: ", out.u)
+        # println("v: ", out.v)
         # println("flap: ", loads_flap)
         # println("edge: ", loads_edge)
 
@@ -124,52 +189,152 @@ function calc_moment_stress(mx,my,dx,dy,Rcyl=1.771,tcyl=0.06)
 end
 
 
-function get_speeds(turbineX,turbineY,turb_index,hubHt,r,yaw,azimuth,windfarm,windfarmstate,windresource,wakedeficitmodel,wakedeflectionmodel,wakecombinationmodel)
+# function get_speeds(turbineX,turbineY,turb_index,hubHt,r,yaw,azimuth,windfarm,windfarmstate,windresource,wakedeficitmodel,wakedeflectionmodel,wakecombinationmodel)
+#         x_locs, y_locs, z_locs = find_xyz_simple(turbineX[turb_index],turbineY[turb_index],hubHt,r,yaw,azimuth)
+function get_speeds(turbineX,turbineY,turb_index,hubHt,r,yaw,azimuth,model_set,problem_description)
         x_locs, y_locs, z_locs = find_xyz_simple(turbineX[turb_index],turbineY[turb_index],hubHt,r,yaw,azimuth)
         npts = length(x_locs)
         point_velocities = zeros(npts)
             for i in 1:npts
                 loc = [x_locs[i], y_locs[i], z_locs[i]]
-                point_velocities[i] = FlowFarm.point_velocity(loc, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, 0)
+                # point_velocities[i] = FlowFarm.point_velocity(loc, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, 0)
+                point_velocities[i] = FlowFarm.point_velocity(loc, model_set, problem_description)
             end
         return point_velocities
 end
 
 
-function get_damage(turbineX,turbineY,turb_index,TSR,pitch,free_speed,Rhub,Rtip,r,chord,theta,af,hubHt,
-                        windfarm,windfarmstate,windresource,wakedeficitmodel,wakedeflectionmodel,wakecombinationmodel,
-                        rho=1.225,mu=1.81206e-05,B=3,precone=0,yaw=0,TI=0.11,Nlocs=10,fos=1.25,shearExp=0.15,root_rad=3.542/2.)
+# function get_damage(turbineX,turbineY,turb_index,TSR,pitch,free_speed,Rhub,Rtip,r,chord,theta,af,hubHt,
+#                         windfarm,windfarmstate,windresource,wakedeficitmodel,wakedeflectionmodel,wakecombinationmodel,
+#                         rho=1.225,mu=1.81206e-05,B=3,precone=0,yaw=0,TI=0.11,Nlocs=10,fos=1.25,shearExp=0.15,root_rad=3.542/2.)
+function get_damage(turbineX,turbineY,turb_index,speeds,omegas,pitches,free_speed,Rhub,Rtip,r,chord,theta,airfoils,hubHt,
+                    model_set,problem_description,freestream; mult=1.0,
+                    rho=1.225,mu=1.81206e-05,B=3,precone=2.5*pi/180,tilt=5*pi/180,yaw=0,Nlocs=20,fos=1.15,shearExp=0.12,root_rad=3.542/2.,m2=2.0)
 
-        """get the TSR"""
+
+        points_x = [0.69,0,-0.69,0]
+        points_y = [0,0.69,0,-0.69]
+        FlowFarm.turbine_velocities_one_direction!(points_x, points_y, model_set, problem_description)
+        turbine_inflow_velcities = problem_description.wind_farm_states[1].turbine_inflow_velcities
+
+        omega_func = Akima(speeds, omegas)
+        Omega_rpm = omega_func(turbine_inflow_velcities[turb_index]) #in rpm
+        Omega = Omega_rpm*0.10471975512 #convert to rad/s
+
+        pitch_func = Akima(speeds, pitches)
+        pitch_deg = pitch_func(turbine_inflow_velcities[turb_index]) #in degrees
+        pitch = pitch_deg*pi/180.0
+
+        # mult = mult*cos(pitch)
+
+        Omega_rpmFREE = omega_func(freestream) #in rpm
+        OmegaFREE = Omega_rpmFREE*0.10471975512 #convert to rad/s
+
+        pitch_degFREE = pitch_func(freestream) #in degrees
+        pitchFREE = pitch_degFREE*pi/180.0
+
 
         """get the root moments at 0, 90, 180, 270 degrees (need more?)"""
         # 90 deg
         azimuth = deg2rad(0.)
-        point_velocities = get_speeds(turbineX,turbineY,turb_index,hubHt,r,yaw,azimuth,windfarm,windfarmstate,windresource,wakedeficitmodel,wakedeflectionmodel,wakecombinationmodel)
+
+        z_heights = 90.0 .+ r
+        velocities = freestream.*(z_heights./90.0).^shearExp
+        rotor = CCBlade.Rotor(Rhub, Rtip, B, true, pitchFREE, precone)
+        sections = CCBlade.Section.(r,chord,theta,airfoils)
+        op = distributed_velocity_op.(velocities, OmegaFREE, r, precone, yaw, tilt, azimuth, rho)
+        out = CCBlade.solve.(Ref(rotor), sections, op)
+        V = m2.*out.v #farfield swirl
+        W = zeros(length(r))
+        # V = zeros(length(r))
+
         # println("0")
-        Omega = TSR*turbine_inflow_velcities[turb_index]/Rtip
-        m0 = calculate_root_moment.(Ref(r),Ref(point_velocities),Ref(chord),Ref(theta),Ref(airfoils),Rhub,Rtip,hubHt,Omega,pitch,azimuth)
+        # println(point_velocities)
+        # Omega = TSR*turbine_inflow_velcities[turb_index]/Rtip
+        point_velocities = get_speeds(turbineX,turbineY,turb_index,hubHt,r,yaw,azimuth,model_set,problem_description)
+        m0 = calculate_root_moment.(Ref(r),Ref(point_velocities),Ref(chord),Ref(theta),Ref(airfoils),Rhub,Rtip,hubHt,Omega,pitch,azimuth,precone=precone,tilt=tilt,V=V,W=W)
+        # println("0: ", m0)
+
+
+
+
+
 
         azimuth = deg2rad(90.)
-        point_velocities = get_speeds(turbineX,turbineY,turb_index,hubHt,r,yaw,azimuth,windfarm,windfarmstate,windresource,wakedeficitmodel,wakedeflectionmodel,wakecombinationmodel)
+
+        velocities = ones(length(r)).*freestream
+        rotor = CCBlade.Rotor(Rhub, Rtip, B, true, pitchFREE, precone)
+        sections = CCBlade.Section.(r,chord,theta,airfoils)
+        op = distributed_velocity_op.(velocities, OmegaFREE, r, precone, yaw, tilt, azimuth, rho)
+        out = CCBlade.solve.(Ref(rotor), sections, op)
+        w = m2.*out.v #farfield swirl
+        V = zeros(length(r))
+        Warr = append!([0.0],w)
+        Warr = append!(Warr,0.0)
+        rarr = append!([-10000.0],-r)
+        rarr = append!(rarr,10000.0)
+        W_func = Spline1D(rarr,Warr)
+        W = W_func.(turbineY[turb_index].-r)
+        # W = zeros(length(r))
+
+        point_velocities = get_speeds(turbineX,turbineY,turb_index,hubHt,r,yaw,azimuth,model_set,problem_description)
         # println("90")
         # println(point_velocities)
-        Omega = TSR*turbine_inflow_velcities[turb_index]/Rtip
-        m90 = calculate_root_moment.(Ref(r),Ref(point_velocities),Ref(chord),Ref(theta),Ref(airfoils),Rhub,Rtip,hubHt,Omega,pitch,azimuth)
+        # plot(r,point_velocities)
+        # Omega = TSR*turbine_inflow_velcities[turb_index]/Rtip
+        m90 = calculate_root_moment.(Ref(r),Ref(point_velocities),Ref(chord),Ref(theta),Ref(airfoils),Rhub,Rtip,hubHt,Omega,pitch,azimuth,precone=precone,tilt=tilt,V=V,W=W)
+        # println("90: ", m90)
 
         azimuth = deg2rad(180.)
-        point_velocities = get_speeds(turbineX,turbineY,turb_index,hubHt,r,yaw,azimuth,windfarm,windfarmstate,windresource,wakedeficitmodel,wakedeflectionmodel,wakecombinationmodel)
+
+        z_heights = 90.0 .- r
+        velocities = freestream.*(z_heights./90.0).^shearExp
+        rotor = CCBlade.Rotor(Rhub, Rtip, B, true, pitchFREE, precone)
+        sections = CCBlade.Section.(r,chord,theta,airfoils)
+        op = distributed_velocity_op.(velocities, OmegaFREE, r, precone, yaw, tilt, azimuth, rho)
+        out = CCBlade.solve.(Ref(rotor), sections, op)
+        V = -m2.*out.v #farfield swirl
+        W = zeros(length(r))
+        # V = zeros(length(r))
+
+        # point_velocities = get_speeds(turbineX,turbineY,turb_index,hubHt,r,yaw,azimuth,windfarm,windfarmstate,windresource,wakedeficitmodel,wakedeflectionmodel,wakecombinationmodel)
+        point_velocities = get_speeds(turbineX,turbineY,turb_index,hubHt,r,yaw,azimuth,model_set,problem_description)
         # println("180")
-        Omega = TSR*turbine_inflow_velcities[turb_index]/Rtip
-        m180 = calculate_root_moment.(Ref(r),Ref(point_velocities),Ref(chord),Ref(theta),Ref(airfoils),Rhub,Rtip,hubHt,Omega,pitch,azimuth)
+        # Omega = TSR*turbine_inflow_velcities[turb_index]/Rtip
+        m180 = calculate_root_moment.(Ref(r),Ref(point_velocities),Ref(chord),Ref(theta),Ref(airfoils),Rhub,Rtip,hubHt,Omega,pitch,azimuth,precone=precone,tilt=tilt,V=V,W=W)
+        # println("180: ", m180)
 
         azimuth = deg2rad(270.)
-        point_velocities = get_speeds(turbineX,turbineY,turb_index,hubHt,r,yaw,azimuth,windfarm,windfarmstate,windresource,wakedeficitmodel,wakedeflectionmodel,wakecombinationmodel)
+
+        velocities = ones(length(r)).*freestream
+        rotor = CCBlade.Rotor(Rhub, Rtip, B, true, pitchFREE, precone)
+        sections = CCBlade.Section.(r,chord,theta,airfoils)
+        op = distributed_velocity_op.(velocities, OmegaFREE, r, precone, yaw, tilt, azimuth, rho)
+        out = CCBlade.solve.(Ref(rotor), sections, op)
+        w = -m2.*out.v #farfield swirl
+        V = zeros(length(r))
+        # W = zeros(length(r))
+        Warr = append!([0.0],w)
+        Warr = append!(Warr,0.0)
+        rarr = append!([-10000.0],r)
+        rarr = append!(rarr,10000.0)
+        W_func = Spline1D(rarr,Warr)
+        W = W_func.(turbineY[turb_index].+r)
+
+        a = range(-1000.0,stop=1000.0,length=2000)
+        plot(a,W_func.(a))
+        show()
+        # W = W_func.(turbineY[turb_index].+r)
+        # W = interp1d.(rarr,Warr,turbineY[turb_index].+r)
+
+        # point_velocities = get_speeds(turbineX,turbineY,turb_index,hubHt,r,yaw,azimuth,windfarm,windfarmstate,windresource,wakedeficitmodel,wakedeflectionmodel,wakecombinationmodel)
+        point_velocities = get_speeds(turbineX,turbineY,turb_index,hubHt,r,yaw,azimuth,model_set,problem_description)
         # println("270")
         # println(point_velocities)
-        Omega = TSR*turbine_inflow_velcities[turb_index]/Rtip
-        m270 = calculate_root_moment.(Ref(r),Ref(point_velocities),Ref(chord),Ref(theta),Ref(airfoils),Rhub,Rtip,hubHt,Omega,pitch,azimuth)
-
+        # plot(r,point_velocities)
+        # Omega = TSR*turbine_inflow_velcities[turb_index]/Rtip
+        m270 = calculate_root_moment.(Ref(r),Ref(point_velocities),Ref(chord),Ref(theta),Ref(airfoils),Rhub,Rtip,hubHt,Omega,pitch,azimuth,precone=precone,tilt=tilt,V=V,W=W)
+        # println("270: ", 270)
         # println("0: ", m0)
         # println("90: ", m90)
         # println("180: ", m180)
@@ -206,9 +371,10 @@ function get_damage(turbineX,turbineY,turb_index,TSR,pitch,free_speed,Rhub,Rtip,
             effective = alternate/(1.0-mean/su)
             # println("effective: ", effective)
 
-            Nfail = (su/(effective*fos))^m #mLife
+            Nfail = (su/(mult*effective*fos))^m #mLife
             # println("Nfail: ", Nfail)
-            nCycles = Omega*60.0*24.0*365.25*years
+            nCycles = Omega_rpm*60.0*24.0*365.25*years
+            nCycles = nCycles
             d = nCycles/Nfail
             if d > damage
                     damage = d
@@ -316,9 +482,9 @@ end
 
 
 
-#
-#
-#
+
+
+
 #
 # const ff=FlowFarm
 # # # #testing during development
@@ -485,22 +651,24 @@ end
 # wind_shear_model = ff.PowerLawWindShear(shearexponent)
 #
 # turbine_definitions = [] # or `Vector{Coords}(undef, x)`
-# turbine = ff.Turbine(1, [rotor_diameter], [hub_height], [ct_model], [power_model])
+#
+# turbine = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [ct_model], [power_model])
 # turbine_definitions = [turbine for i in 1:nturbines]
 # sorted_turbine_index = zeros(Int64, nturbines)
 # for i in 1:nturbines
-#     turbine = ff.Turbine(i, [rotor_diameter], [hub_height], [ct_model], [power_model])
+#     turbine = ff.TurbineDefinition(i, [rotor_diameter], [hub_height], [ct_model], [power_model])
 #     turbine_definitions[i] = turbine
 #     sorted_turbine_index[i] = Int64(i)
 # end
 #
-# windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definitions)
+#
+# windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, [1,1],turbine_definitions)
 # windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, [0.0])
 # windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, [wind_shear_model])
 #
 # alpha = 0.1
 # k_star = 0.022 # [1]  p. 525
-# turbulence_intensity = 0.1 #0.0875 #[1] p. 508 - this value is only specified to be less than 0.1
+# turbulence_intensity = 0.046 #0.0875 #[1] p. 508 - this value is only specified to be less than 0.1
 # horizontal_spread_rate = k_star
 # vertical_spread_rate = k_star
 # alpha_star = 2.32 #[1] p. 534
