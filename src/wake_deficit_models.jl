@@ -1,7 +1,7 @@
 abstract type AbstractWakeDeficitModel end
 
 """
-JensenTopHat(alpha)
+    JensenTopHat(alpha)
 
 Container for parameters related to the Jensen Top Hat deficit model
 
@@ -14,7 +14,7 @@ end
 JensenTopHat() = JensenTopHat(0.2)
 
 """
-JensenCosine(alpha)
+    JensenCosine(alpha)
 
 Container for parameters related to the Jensen Cosine deficit model
 
@@ -30,7 +30,7 @@ JensenCosine() = JensenCosine(0.1, 20.0*pi/180.0)
 JensenCosine(x) = JensenCosine(x, 20.0*pi/180.0)
 
 """
-Multizone(me, ke, MU, aU, bU)
+    Multizone(me, ke, MU, aU, bU)
 
 Container for parameters related to the Multizone deficit model
 
@@ -51,7 +51,7 @@ end
 Multizone() = Multizone(0.065, [-0.5 0.22 1.0], [0.5 1.0 5.5], 5.0, 1.66)
 
 """
-GaussOriginal(k_star)
+    GaussOriginal(k_star)
 
 Container for parameters related to the origina Gaussian deficit model presented by Bastankhah and Porte-Agel 2014
 
@@ -64,7 +64,7 @@ end
 GaussianOriginal() = GaussOriginal(0.075)
 
 """
-GaussYaw(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+    GaussYaw(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
 
 Container for parameters related to the Gaussian deficit model with yaw presented by Bastankhah and Porte-Agel 2016
 
@@ -85,7 +85,7 @@ end
 GaussYaw(x) = GaussYaw(x, 0.022, 0.022, 2.32, 0.154)
 
 """
-wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::JensenTopHat, windfarmstate::SingleWindFarmState)
+    wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::JensenTopHat, windfarmstate::SingleWindFarmState)
 
 Computes the wake deficit according to the original Jensen top hat wake model, from the paper: 
 "A Note on Wind Generator Interaction" by N.O. Jensen (1983)
@@ -116,7 +116,7 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
 end
 
 """
-wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::JensenCosine, windfarmstate::SingleWindFarmState)
+    wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::JensenCosine, windfarmstate::SingleWindFarmState)
 
 Computes the wake deficit according to the original Jensen cosine wake model, from the paper: 
 "A Note on Wind Generator Interaction" by N.O. Jensen (1983)
@@ -156,11 +156,10 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
 end
 
 """
-wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::Multizone, windfarmstate::SingleWindFarmState)
+    wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::Multizone, windfarmstate::SingleWindFarmState)
 
 Computes the wake deficit at a given location using the original multizone "FLORIS" wake model, from the paper:
-    "Wind plant power optimization through yaw control using a parametric model
-    for wake effects—a CFD simulation study" by Gebraad et al. (2014)
+"Wind plant power optimization through yaw control using a parametric model for wake effects—a CFD simulation study" by Gebraad et al. (2014)
 """
 function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::Multizone, windfarmstate::SingleWindFarmState)
     
@@ -218,10 +217,9 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
 end
 
 """
-wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::GaussOriginal, windfarmstate::SingleWindFarmState)
+    wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::GaussOriginal, windfarmstate::SingleWindFarmState)
 
-Computes the wake deficit at a given location using the Gaussian wake model presented by Bastankhah and Porte-Agel in the paper: 
-"A new analytical model for wind-turbine wakes" (2014)
+Computes the wake deficit at a given location using the Gaussian wake model presented by Bastankhah and Porte-Agel in the paper: "A new analytical model for wind-turbine wakes" (2014)
 """
 function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::GaussOriginal, windfarmstate::SingleWindFarmState)
 
@@ -268,10 +266,9 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
 end
 
 """
-_gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
+    _gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
 
-Helper function for wake_deficit_model when using the GaussYaw model. Computes the length of the near wake 
-    potential core.
+Helper function for wake_deficit_model when using the GaussYaw model. Computes the length of the near wake potential core.
 """
 function _gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
     # from Bastankhah and Porte-Agel 2016 eqn 7.3
@@ -282,7 +279,7 @@ function _gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
 end
 
 """
-_gauss_yaw_spread(dt, k, dx, x0, yaw)
+    _gauss_yaw_spread(dt, k, dx, x0, yaw)
 
 Helper function for wake_deficit_model when using the GaussYaw model. Computes the standard deviation of the wake.
 """
@@ -296,10 +293,9 @@ function _gauss_yaw_spread(dt, k, dx, x0, yaw)
 end
 
 """
-wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::GaussYaw, windfarmstate::SingleWindFarmState)
+    wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::GaussYaw, windfarmstate::SingleWindFarmState)
 
-Computes the wake deficit at a given location using the The Gaussian wake model presented by Bastankhah and Porte-Agel in the paper: 
-    "Experimental and theoretical study of wind turbine wakes in yawed conditions" (2016)
+Computes the wake deficit at a given location using the The Gaussian wake model presented by Bastankhah and Porte-Agel in the paper: "Experimental and theoretical study of wind turbine wakes in yawed conditions" (2016)
 """
 function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::GaussYaw, windfarmstate::SingleWindFarmState)
 
