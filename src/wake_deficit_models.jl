@@ -1,14 +1,46 @@
 abstract type AbstractWakeDeficitModel end
 
+"""
+JensenTopHat(alpha)
+
+Container for parameters related to the Jensen Top Hat deficit model
+
+# Arguments
+- `alpha::Float`: parameter controlling the wake spreading rate and deficit decay. Default value is 0.1
+"""
 struct JensenTopHat{TF} <: AbstractWakeDeficitModel
     alpha::TF
 end
+JensenTopHat() = JensenTopHat(0.2)
 
+"""
+JensenCosine(alpha)
+
+Container for parameters related to the Jensen Cosine deficit model
+
+# Arguments
+- `alpha::Float`: parameter controlling the wake deficit decay rate. Default value is 0.1
+- `beta::Float`: parameter controlling the width of the cosine function. Default value is 20.0 deg., given in radians.
+"""
 struct JensenCosine{TF} <: AbstractWakeDeficitModel
     alpha::TF
     beta::TF
 end
+JensenCosine() = JensenCosine(0.1, 20.0*pi/180.0)
+JensenCosine(x) = JensenCosine(x, 20.0*pi/180.0)
 
+"""
+Multizone(me, ke, MU, aU, bU)
+
+Container for parameters related to the Multizone deficit model
+
+# Arguments
+- `me::Float`: parameter controlling general wake expansion. Default value is 0.065
+- `ke::Array{Float}(3)`: parameters controlling the wake expansion of each zone respectively. Default values are [-0.5 0.22 1.0].
+- `MU::Array{Float}(3)`: parameters controlling the wake deficit decay of each zone respectively. Default values are [0.5 1.0 5.5].
+- `aU::Float`: parameter impacting the wake deficit decay for a constant wake deflection. Default value is 5.0.
+- `bU::Float`: parameter changing the wake deficit decay under yawed conditions. Default value is 1.66.
+"""
 struct Multizone{ATF, TF} <: AbstractWakeDeficitModel
     me::ATF
     ke::TF
@@ -16,11 +48,33 @@ struct Multizone{ATF, TF} <: AbstractWakeDeficitModel
     aU::TF
     bU::TF
 end
+Multizone() = Multizone(0.065, [-0.5 0.22 1.0], [0.5 1.0 5.5], 5.0, 1.66)
 
+"""
+GaussOriginal(k_star)
+
+Container for parameters related to the origina Gaussian deficit model presented by Bastankhah and Porte-Agel 2014
+
+# Arguments
+- `k_star::Float`: parameter controlling the wake spreading rate and deficit decay. Default value is 0.075
+"""
 struct GaussOriginal{TF} <: AbstractWakeDeficitModel
     k_star::TF
 end
+GaussianOriginal() = GaussOriginal(0.075)
 
+"""
+GaussYaw(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+
+Container for parameters related to the Gaussian deficit model with yaw presented by Bastankhah and Porte-Agel 2016
+
+# Arguments
+- `turbulence_intensity::Float`: the ambient turbulence intensity. No default value is provided.
+- `horizontal_spread_rate::Float`: parameter controlling the horizontal spread of the deficit model. Default value is 0.022.
+- `vertical_spread_rate::Float`: parameter controlling the vertical spread of the deficit model. Default value is 0.022.
+- `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
+- `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
+"""
 struct GaussYaw{TF} <: AbstractWakeDeficitModel
     turbulence_intensity::TF
     horizontal_spread_rate::TF
@@ -28,10 +82,15 @@ struct GaussYaw{TF} <: AbstractWakeDeficitModel
     alpha_star::TF
     beta_star::TF
 end
+GaussYaw(x) = GaussYaw(x, 0.022, 0.022, 2.32, 0.154)
 
+"""
+wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::JensenTopHat, windfarmstate::SingleWindFarmState)
+
+Computes the wake deficit according to the original Jensen top hat wake model, from the paper: 
+"A Note on Wind Generator Interaction" by N.O. Jensen (1983)
+"""
 function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::JensenTopHat, windfarmstate::SingleWindFarmState)
-    """the original Jensen top hat wake model, from the paper: "A Note on Wind
-    Generator Interaction" by N.O. Jensen (1983)"""
     # pull out the deflection distances in y (cross stream) and z (up and down)
     deflection_y = deflection[1]
     deflection_z = deflection[2]
@@ -56,6 +115,12 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
     return loss
 end
 
+"""
+wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::JensenCosine, windfarmstate::SingleWindFarmState)
+
+Computes the wake deficit according to the original Jensen cosine wake model, from the paper: 
+"A Note on Wind Generator Interaction" by N.O. Jensen (1983)
+"""
 function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::JensenCosine, windfarmstate::SingleWindFarmState)
     """the original Jensen cosine wake model, from the paper: "A Note on Wind
     Generator Interaction" by N.O. Jensen (1983)"""
@@ -72,7 +137,6 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
 
     r0 = turbine_definition.rotor_diameter[1]/2.0 #turbine rotor radius
     del = sqrt(dy^2+dz^2) #distance from wake center to the point of interest
-    r = model.alpha*dx + r0 #figure (1) from the paper
 
     if dx < 0.
         loss = 0.0 # no loss outside the wake
@@ -91,12 +155,15 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
     return loss
 end
 
+"""
+wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::Multizone, windfarmstate::SingleWindFarmState)
 
-function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::Multizone, windfarmstate::SingleWindFarmState)
-    """The original multizone "FLORIS" wake model, from the paper:
+Computes the wake deficit at a given location using the original multizone "FLORIS" wake model, from the paper:
     "Wind plant power optimization through yaw control using a parametric model
-    for wake effects—a CFD simulation study" by Gebraad et al. (2014)"""
-
+    for wake effects—a CFD simulation study" by Gebraad et al. (2014)
+"""
+function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::Multizone, windfarmstate::SingleWindFarmState)
+    
     dt = turbine_definition.rotor_diameter[1]
     # extract model parameters
     ke = model.ke
@@ -150,7 +217,12 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
     return loss
 end
 
+"""
+wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::GaussOriginal, windfarmstate::SingleWindFarmState)
 
+Computes the wake deficit at a given location using the Gaussian wake model presented by Bastankhah and Porte-Agel in the paper: 
+"A new analytical model for wind-turbine wakes" (2014)
+"""
 function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::GaussOriginal, windfarmstate::SingleWindFarmState)
 
     deflection_y = deflection[1]
@@ -177,9 +249,6 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
     as = model.alpha_star
     bs = model.beta_star
 
-    """The Gaussian wake model presented by Bastankhah and Porte-Agel in
-    the paper: "A new analytical model for wind-turbine wakes" (2014)"""
-
     # calculate beta (paper eq: 6)
     beta = 0.5*(1.0+sqrt(1.0-ct))/sqrt(1.0-ct)
 
@@ -198,6 +267,12 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
 
 end
 
+"""
+_gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
+
+Helper function for wake_deficit_model when using the GaussYaw model. Computes the length of the near wake 
+    potential core.
+"""
 function _gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
     # from Bastankhah and Porte-Agel 2016 eqn 7.3
 
@@ -206,6 +281,11 @@ function _gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
     return x0
 end
 
+"""
+_gauss_yaw_spread(dt, k, dx, x0, yaw)
+
+Helper function for wake_deficit_model when using the GaussYaw model. Computes the standard deviation of the wake.
+"""
 function _gauss_yaw_spread(dt, k, dx, x0, yaw)
     # from Bastankhah and Porte-Agel 2016 eqn 7.2
 
@@ -215,6 +295,12 @@ function _gauss_yaw_spread(dt, k, dx, x0, yaw)
 
 end
 
+"""
+wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::GaussYaw, windfarmstate::SingleWindFarmState)
+
+Computes the wake deficit at a given location using the The Gaussian wake model presented by Bastankhah and Porte-Agel in the paper: 
+    "Experimental and theoretical study of wind turbine wakes in yawed conditions" (2016)
+"""
 function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::GaussYaw, windfarmstate::SingleWindFarmState)
 
     deflection_y = deflection[1]
@@ -236,10 +322,6 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
     kz = model.vertical_spread_rate
     as = model.alpha_star
     bs = model.beta_star
-
-    """The Gaussian wake model presented by Bastankhah and Porte-Agel in
-    the paper: "Experimental and theoretical study of wind turbine wakes
-    in yawed conditions" (2016)"""
 
     if dx > 0.0 # loss in the wake
 
