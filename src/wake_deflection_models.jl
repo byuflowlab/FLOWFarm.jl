@@ -46,11 +46,6 @@ JiminezYawDeflection() = JiminezYawDeflection(0.1)
     [3] Thomas 2017 "Improving the FLORIS wind plant model for compatibility with gradient-based optimization"
 """
 function wake_deflection_model(loc, turbine_id, turbine_definition::TurbineDefinition, model::JiminezYawDeflection, windfarmstate::SingleWindFarmState)
-    # based on:
-    # [1] Jiminez 2010 "Wake defl ection of a wind turbine in yaw"
-    # [2] Gebraad 2014 "Wind plant optimization by yaw control using a parametric wake model"
-    # this version ignores the corrections made to the yaw model for rotor rotation as described in [2] and 
-    # [3] Thomas 2017 "Improving the FLORIS wind plant model for compatibility with gradient-based optimization"
 
     dx = loc[1]-windfarmstate.turbine_x[turbine_id]
     yaw = -windfarmstate.turbine_yaw[turbine_id] # Jiminez used opposite rotation convention, hence (-) sign
@@ -78,7 +73,7 @@ end
     wake_deflection_model(loc, turbine_id, turbine_definition::TurbineDefinition, model::GaussYawDeflection, windfarmstate::SingleWindFarmState)
     
     Calculates the horizontal deflection of the wind turbine wake
-    
+
     Based on:
     [1] Bastankhah and Porte-Agel 2016 "Experimental and theoretical study of
     wind turbine wakes in yawed conditions"
