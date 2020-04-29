@@ -6,7 +6,12 @@ yaw = 0.0
 ct = 0.689 
 cp = 0.8
 
+cut_in_speed = 4.  # m/s
+cut_out_speed = 25.  # m/s
+rated_speed = 16.  # m/s
+rated_power = 2000.  # kW
 generator_efficiency = 0.944
+
 ai = 1.0/3.0
 wind_speed = 12.0
 air_density = 1.1716  # kg/m^3
@@ -30,11 +35,12 @@ rotor_points_y = [0.0]
 rotor_points_z = [0.0]
 
 ct_model = ff.ConstantCt(ct)
-power_model = ff.ConstantCp([cp], [generator_efficiency])
+power_model = ff.PowerModelConstantCp([cp])
 wind_shear_model = ff.PowerLawWindShear(shearexponent)
 
-turbine = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [ct_model], [power_model])
-turbine_definitions = [turbine for i in 1:nturbines]
+turbine1 = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], cut_in_speed, rated_speed, cut_out_speed, rated_power, generator_efficiency, [ct_model], [power_model])
+
+turbine_definitions = [turbine1 for i in 1:nturbines]
 sorted_turbine_index = [i for i  in 1:nturbines]
 turbine_definition_ids = ones(Int, nturbines)
 

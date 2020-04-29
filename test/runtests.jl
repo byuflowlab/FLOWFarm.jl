@@ -17,6 +17,21 @@ using PyPlot
 
 end
 
+@testset "Power Models" begin
+    @testset "Power Function" begin
+        generator_efficiency = 0.944
+        air_density = 1.1716
+        rotor_area = pi*80.0^2/4
+        cp = 0.8
+        v0 = 12.0
+
+        p = ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, v0)
+        @test p ≈ 3.8425979093271587e6 atol=1E-6
+
+    end
+end
+
+
 @testset "Wind Shear Models" begin
 
     @testset "Power Law Wind Shear" begin
@@ -133,6 +148,10 @@ end
         turbine_inflow_velcity = [8.0]
         turbine_id = 1
         turbine_definition_id = 1
+        cut_in_speed = 0.0
+        cut_out_speed = 25.0
+        rated_speed = 12.0
+        rated_power = 1.0176371581904552e6
 
         windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])       
 
@@ -140,9 +159,9 @@ end
         horizontal_spread_rate = k_star
 
         ct_model = ff.ConstantCt(ct)
-        power_model = ff.ConstantCp([cp], [generator_efficiency])
+        power_model = ff.PowerModelConstantCp([cp])
 
-        turbine1 = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [ct_model], [power_model])
+        turbine1 = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
         model = ff.JiminezYawDeflection(horizontal_spread_rate)
 
         dx2p5d = 2.5*rotor_diameter
@@ -187,13 +206,17 @@ end
         turbine_inflow_velcity = [8.0]
         turbine_id = 1
         turbine_definition_id = 1
+        cut_in_speed = 0.0
+        cut_out_speed = 25.0
+        rated_speed = 12.0
+        rated_power = 1.0176371581904552e6
 
         windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])       
         ct_model = ff.ConstantCt(ct)
-        power_model = ff.ConstantCp([cp], [generator_efficiency])
+        power_model = ff.PowerModelConstantCp([cp])
 
-        turbine_definition = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [ct_model], [power_model])
-
+        turbine_definition = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
+        
         k_star = 0.022 # [1]  p. 525
         turbulence_intensity = 0.1 #0.0875 #[1] p. 508 - this value is only specified to be less than 0.1
         horizontal_spread_rate = k_star
@@ -223,70 +246,50 @@ end
     
     @testset "Jensen Top Hat Model" begin
 
-        rotor_diameter = 40.0
-        hub_height = 90.0
-        yaw = 0.0
-        ct = 0.7 
-        ai = 1.0/3.0
-        cp = 0.8
-        generator_efficiency = 0.944
+        include("./model_sets/model_set_1.jl")
 
-        wind_farm_state_id = 1
-        turbine_x = [0.0]
-        turbine_y = [0.0]
-        turbine_z = [0.0] 
-        turbine_yaw = [yaw]
-        turbine_ct = [ct]
-        turbine_ai = [1.0/3.0]
-        sorted_turbine_index = [1]
-        turbine_inflow_velcity = [8.1]
         turbine_id = 1
-        turbine_definition_id = 1
+        turbine_definition = turbine1
 
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])       
-        ct_model = ff.ConstantCt(ct)
-        power_model = ff.ConstantCp([cp], [generator_efficiency])
-
-        turbine_definition = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [ct_model], [power_model])
-
-        alpha = 0.1
-        
         deflection = [0.0, 0.0]
-
-        model = ff.JensenTopHat(alpha)
 
         centerloss40 = 1. - 4.35/8.1
         centerloss100 = 1. - 5.7/8.1
 
+
         # test no loss upstream (data from Jensen 1983)
-        @test ff.wake_deficit_model([-1E-12, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) == 0.0
+        @test ff.wake_deficit_model([-1E-12, 0.0, hub_height], deflection, turbine_id, turbine_definition, wakedeficitmodel, windfarmstate) == 0.0
 
         # test max loss at turbine (data from Jensen 1983)
-        @test ff.wake_deficit_model([0.0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) == (2. * 1/3.0)
+        @test ff.wake_deficit_model([0.0, 0.0, hub_height], deflection, turbine_id, turbine_definition, wakedeficitmodel, windfarmstate) == (2. * 1/3.0)
 
         # test centerline loss 40 meters downstream (data from Jensen 1983)
-        @test ff.wake_deficit_model([40., 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) == centerloss40
+        @test ff.wake_deficit_model([40., 0.0, hub_height], deflection, turbine_id, turbine_definition, wakedeficitmodel, windfarmstate) == centerloss40
 
         # test centerline loss 100 meters downstream (data from Jensen 1983)
-        @test ff.wake_deficit_model([100., 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) == centerloss100
+        @test ff.wake_deficit_model([100., 0.0, hub_height], deflection, turbine_id, turbine_definition, wakedeficitmodel, windfarmstate) == centerloss100
 
         # test wake diameter 40 meters downstream (data from Jensen 1983)
-        @test ff.wake_deficit_model([40., (alpha*40 + rotor_diameter/2.), hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) == centerloss40
-        @test ff.wake_deficit_model([40., (alpha*40 + rotor_diameter/2. + 1E-12), hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) == 0.0
-        @test ff.wake_deficit_model([40., -(alpha*40 + rotor_diameter/2.), hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) == centerloss40
-        @test ff.wake_deficit_model([40., -(alpha*40 + rotor_diameter/2. + 1E-12), hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) == 0.0
+        @test ff.wake_deficit_model([40., (alpha*40 + rotor_diameter/2.), hub_height], deflection, turbine_id, turbine_definition, wakedeficitmodel, windfarmstate) == centerloss40
+        @test ff.wake_deficit_model([40., (alpha*40 + rotor_diameter/2. + 1E-12), hub_height], deflection, turbine_id, turbine_definition, wakedeficitmodel, windfarmstate) == 0.0
+        @test ff.wake_deficit_model([40., -(alpha*40 + rotor_diameter/2.), hub_height], deflection, turbine_id, turbine_definition, wakedeficitmodel, windfarmstate) == centerloss40
+        @test ff.wake_deficit_model([40., -(alpha*40 + rotor_diameter/2. + 1E-12), hub_height], deflection, turbine_id, turbine_definition, wakedeficitmodel, windfarmstate) == 0.0
 
         # test wake diameter 100 meters downstream (data from Jensen 1983)
-        @test ff.wake_deficit_model([100., (alpha*100. + rotor_diameter/2.), hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) == centerloss100
-        @test ff.wake_deficit_model([100., (alpha*100. + rotor_diameter/2. + 1E-12), hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) == 0.0
-        @test ff.wake_deficit_model([100., -(alpha*100. + rotor_diameter/2.), hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) == centerloss100
-        @test ff.wake_deficit_model([100., -(alpha*100. + rotor_diameter/2. + 1E-12), hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) == 0.0
+        @test ff.wake_deficit_model([100., (alpha*100. + rotor_diameter/2.), hub_height], deflection, turbine_id, turbine_definition, wakedeficitmodel, windfarmstate) == centerloss100
+        @test ff.wake_deficit_model([100., (alpha*100. + rotor_diameter/2. + 1E-12), hub_height], deflection, turbine_id, turbine_definition, wakedeficitmodel, windfarmstate) == 0.0
+        @test ff.wake_deficit_model([100., -(alpha*100. + rotor_diameter/2.), hub_height], deflection, turbine_id, turbine_definition, wakedeficitmodel, windfarmstate) == centerloss100
+        @test ff.wake_deficit_model([100., -(alpha*100. + rotor_diameter/2. + 1E-12), hub_height], deflection, turbine_id, turbine_definition, wakedeficitmodel, windfarmstate) == 0.0
     end
 
     @testset "Jensen Cosine Model" begin
 
         rotor_diameter = 40.0
         hub_height = 90.0
+        cut_in_speed = 0.0
+        cut_out_speed = 25.0
+        rated_speed = 12.0
+        rated_power = 1.0176371581904552e6
         aI = 1.0/3.0
         yaw = 0.0
         ct = 0.7 
@@ -314,10 +317,9 @@ end
         
         windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])       
         ct_model = ff.ConstantCt(ct)
-        power_model = ff.ConstantCp([cp], [generator_efficiency])
+        power_model = ff.PowerModelConstantCp([cp])
 
-        turbine_definition = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [ct_model], [power_model])
-
+        turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], cut_in_speed, rated_speed, cut_out_speed, rated_power, generator_efficiency, [ct_model], [power_model])
         model = ff.JensenCosine(alpha, beta)
 
         centerloss40 = 1. - 4.35/8.1
@@ -377,6 +379,10 @@ end
         turbine_z = [0.000022] #[1] p. 509
         rotor_diameter = 0.15 #[1] p. 509
         hub_height = 0.125 #[1] p. 509
+        cut_in_speed = 0.0
+        cut_out_speed = 25.0
+        rated_speed = 12.0
+        rated_power = 1.0176371581904552e6
         yaw = 0.0
         ct = 0.82 # [1] fig. 2
         cp = 0.8
@@ -403,10 +409,10 @@ end
         
         windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])       
         ct_model = ff.ConstantCt(ct)
-        power_model = ff.ConstantCp([cp], [generator_efficiency])
+        power_model = ff.PowerModelConstantCp([cp])
 
-        turbine_definition = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [ct_model], [power_model])
-
+        turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], cut_in_speed, rated_speed, cut_out_speed, rated_power, generator_efficiency, [ct_model], [power_model])
+        
         model = ff.GaussYaw(turbulence_intensity, horizontal_spread_rate , vertical_spread_rate, alpha_star, beta_star)
 
         # data from Bastankhah and Porte-Agel 2016, figure 19

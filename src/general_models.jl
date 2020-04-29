@@ -206,6 +206,8 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
     end
 
 end
+turbine_velocities_one_direction!(model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1) = turbine_velocities_one_direction!(0, 0,
+model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1)
 
 function turbine_powers_one_direction!(rotor_sample_points_y, rotor_sample_points_z,
     problem_description::AbstractWindFarmProblem; wind_farm_state_id=1)
@@ -219,7 +221,7 @@ function turbine_powers_one_direction!(rotor_sample_points_y, rotor_sample_point
 
     for d=1:n_turbines
         turbine = windfarm.turbine_definitions[windfarm.turbine_definition_ids[d]]
-        wt_power = calculate_turbine_power(d, turbine, farmstate, wind_model, turbine.power_model[1])
+        wt_power = calculate_turbine_power(d, turbine, farmstate, wind_model)
 
         farmstate.turbine_generators_powers[d] = wt_power
     end
