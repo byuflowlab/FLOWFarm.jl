@@ -165,6 +165,7 @@ sections = CCBlade.Section.(r,chord,theta,airfoils)
 
 # off = [-1.,-0.8,-0.6,-0.4,-0.2,0.0,0.2,0.4,0.6,0.8,1.0]
 off = range(-1.5,stop=1.5,length=50)
+# off = [0.0]
 dams = zeros(length(off))
 
 
@@ -197,6 +198,7 @@ pitch_func = Akima(speeds, pitches)
 tilt = deg2rad(5.0)
 rho = 1.225
 
+vw = 3.0
 for i in 1:length(off)
 
 
@@ -226,6 +228,8 @@ for i in 1:length(off)
 
     """0 degrees"""
     az = 0.0
+    V = -ones(length(r)).*(cos(az)*vw)
+    W = -ones(length(r)).*(sin(az)*vw)
     U = ff.get_speeds(turbine_x,turbine_y,turb_index,hubHt,r,yaw,az,ms,pd)
     op = multiple_components_op.(U, V, W, Omega, r, precone, yaw, tilt, az, rho)
     out = CCBlade.solve.(Ref(rotor), sections, op)
@@ -234,6 +238,8 @@ for i in 1:length(off)
 
     """90 degrees"""
     az = pi/2.0
+    V = -ones(length(r)).*(cos(az)*vw)
+    W = -ones(length(r)).*(sin(az)*vw)
     U = ff.get_speeds(turbine_x,turbine_y,turb_index,hubHt,r,yaw,az,ms,pd)
     op = multiple_components_op.(U, V, W, Omega, r, precone, yaw, tilt, az, rho)
     out = CCBlade.solve.(Ref(rotor), sections, op)
@@ -241,6 +247,8 @@ for i in 1:length(off)
 
     """180 degrees"""
     az = pi
+    V = -ones(length(r)).*(cos(az)*vw)
+    W = -ones(length(r)).*(sin(az)*vw)
     U = ff.get_speeds(turbine_x,turbine_y,turb_index,hubHt,r,yaw,az,ms,pd)
     op = multiple_components_op.(U, V, W, Omega, r, precone, yaw, tilt, az, rho)
     out = CCBlade.solve.(Ref(rotor), sections, op)
@@ -248,6 +256,8 @@ for i in 1:length(off)
 
     """270 degrees"""
     az = 3.0*pi/2.0
+    V = -ones(length(r)).*(cos(az)*vw)
+    W = -ones(length(r)).*(sin(az)*vw)
     U = ff.get_speeds(turbine_x,turbine_y,turb_index,hubHt,r,yaw,az,ms,pd)
     op = multiple_components_op.(U, V, W, Omega, r, precone, yaw, tilt, az, rho)
     out = CCBlade.solve.(Ref(rotor), sections, op)
@@ -289,14 +299,14 @@ for i in 1:length(off)
 end
 
 plot(off,dams)
-title("SOWFA")
+# title("SOWFA")
 # ylim([0,1.5])
 println("damage: ", dams)
 
 FS,FD = fastdata(turb,ws,sep)
 scatter(FS,FD)
 
-legend(["mean SOWFA velocity","SOWFA+FAST"])
+legend(["wake model","SOWFA+FAST"])
 show()
 
 

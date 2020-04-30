@@ -8,10 +8,6 @@ using NPZ
 const ff=FlowFarm
 
 
-# function add_turbulence(mean,TI,)
-#
-# end
-
 function rainflow(array_ext;uc_mult=0.5)
 
     # """ Rainflow counting of a signal's turning points with Goodman correction
@@ -121,37 +117,6 @@ function get_peaks(array)
         end
     end
     peaks = append!(peaks,A[length(A)])
-    return peaks
-end
-
-
-function get_peaks_indices(array)
-    A = array[:]
-    # get rid of any zero slope in the beginning
-    while A[2] == A[1]
-        A = A[2:length(A)]
-    end
-    peaks = [1]
-    if A[2] > A[1]
-        slope = "p"
-    elseif A[2] < A[1]
-        slope = "m"
-    end
-    for i = 1:length(A)-2
-        ind = i+1
-        if slope == "p"
-            if A[ind+1] < A[ind]
-                peaks = append!(peaks,ind)
-                slope = "m"
-            end
-        elseif slope == "m"
-            if A[ind+1] > A[ind]
-                peaks = append!(peaks,ind)
-                slope = "p"
-            end
-        end
-    end
-    peaks = append!(peaks,length(A))
     return peaks
 end
 
@@ -282,205 +247,52 @@ function multiple_components_op(U, V, W, Omega, r, precone, yaw, tilt, azimuth, 
 
 end
 
-include("FAST_data.jl")
-#
-turb = "low"
-ws = 11.0
-#
-# # u_turb = npzread("flowfields_lowTI/speeds11_waked.npy").+ws
-u_turb = npzread("flowfields_lowTI/speeds11.npy").+ws
-# u_turb = npzread("flowfields_lowTI/u_turbulent.npy").+ws
-# u_turb = npzread("flowfields_lowTI/up.npy").+ws
-# u_turb = u_turb .- mean(u_turb).+ws
-# println(mean(u_turb))
-# u_turb = npzread("flowfields_lowTI/right.npy").+ws
-# u_turb = rand(1000).*0.001 .+ ws
-time = range(0.0,stop=600.0,length=length(u_turb))
-# println(length(time))
-u_turb,time = delete_repeats(u_turb,time)
-# # println(length(time))
-# plot(time,u_turb)
-println(mean(u_turb))
-#
 
-# inds = get_peaks_indices(u_turb)
-# u_turb = u_turb[inds]
-# time = time[inds]
+flap = npzread("flowfields_lowTI/test_flap.npy")
+edge = npzread("flowfields_lowTI/test_edge.npy")
 
-
-
-include("model.jl")
-
-TI_free = 0.046
-TI = "low"
-
-
-ka = 0.38
-kb = 0.004
-
-initial = 0.313
-constant = 1.931
-ai = 0.435
-downstream = -0.855
-alpha_star = 2.32
-beta_star = 0.154
-turb_index = 2
-
-points_x = [0.69,0,-0.69,0]
-points_y = [0,0.69,0,-0.69]
-
-fos = 1.15
-
-Nlocs = 20
+Nlocs = 1
 xlocs = zeros(Nlocs)
 ylocs = zeros(Nlocs)
-angles = range(-pi/2.,stop=pi/2.,length=Nlocs)
+# angles = range(-pi/2.,stop=pi/2.,length=Nlocs)
+angles = [pi/4.]
 root_rad=3.542/2.
 for i in 1:Nlocs
     xlocs[i] = cos(angles[i])*root_rad
     ylocs[i] = sin(angles[i])*root_rad
 end
-
-rotor = CCBlade.Rotor(Rhub, Rtip, B, true, pitch, precone)
-sections = CCBlade.Section.(r,chord,theta,airfoils)
-
-# off = [-1.,-0.8,-0.6,-0.4,-0.2,0.0,0.2,0.4,0.6,0.8,1.0]
-# off = [-1.0,-0.8,-0.6,-0.4,-0.2,0.0]
-# off = range(-1.5,stop=1.5,length=50)
-off = [-0.4]
-dams = zeros(length(off))
-
-
-zero = true
-
-sep = 4.0
-turbulence_intensity = calc_TI(constant,ai,TI_free,initial,sep,downstream)
-ky = ka*turbulence_intensity + kb
-kz = ka*turbulence_intensity + kb
-horizontal_spread_rate = ky
-vertical_spread_rate = kz
-wakedeficitmodel = ff.GaussYaw(turbulence_intensity,horizontal_spread_rate,vertical_spread_rate,alpha_star,beta_star)
-wakedeflectionmodel = ff.JiminezYawDeflection(horizontal_spread_rate)
-ms = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
-
-
-turbine_x = [0.0,sep*rotor_diameter]
-init_inflow_velcities = zeros(length(turbine_x)).+ws
-
-omega_func = Akima(speeds, omegas)
-pitch_func = Akima(speeds, pitches)
-
-tilt = deg2rad(5.0)
-rho = 1.225
-vw = 5.0
-vw = 1.0
-
-
-for k=1:length(off)
-    println("offset: ", off[k])
-    offset = off[k]*rotor_diameter
-    turbine_y = [0.0,offset]
-    windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definition_ids, turbine_definitions)
-    windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, init_inflow_velcities, zeros(nturbines))
-
-    windspeeds = [ws]
-    turbine_inflow_velcities = zeros(nturbines) .+ ws
-    windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, [wind_shear_model])
-
-    flap = zeros(length(u_turb))
-    edge = zeros(length(u_turb))
-
-    az = 0.0
-    for i = 1:length(u_turb)
-        windspeeds = [u_turb[i]]
-        turbine_inflow_velcities = zeros(nturbines) .+ u_turb[i]
-        windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, [wind_shear_model])
-        pd = ff.WindFarmProblemDescription(windfarm, windresource, [windfarmstate])
-
-        ff.turbine_velocities_one_direction!(points_x, points_y, ms, pd)
-        turbine_inflow_velcities = pd.wind_farm_states[1].turbine_inflow_velcities
-        Omega_rpm = omega_func(turbine_inflow_velcities[turb_index]) #in rpm
-        Omega = Omega_rpm*0.10471975512 #convert to rad/s
-        pitch_deg = pitch_func(turbine_inflow_velcities[turb_index]) #in degrees
-        pitch = pitch_deg*pi/180.0
-
-        """find the azimuth"""
-        # az = (Omega*time[i])%(2.0*pi)
-        if i == 1
-            dt = time[2] - time[1]
-        else
-            dt = time[i]-time[i-1]
-        end
-        az = (az + Omega*dt)%(2.0*pi)
-        V = -ones(length(r)).*(cos(az)*vw)
-        W = -ones(length(r)).*(sin(az)*vw)
-        U = ff.get_speeds(turbine_x,turbine_y,turb_index,hubHt,r,yaw,az,ms,pd)
-        op = multiple_components_op.(U, V, W, Omega, r, precone, yaw, tilt, az, rho)
-        out = CCBlade.solve.(Ref(rotor), sections, op)
-        flap[i],edge[i] = get_moments(out,Rhub,Rtip,r,az)
-    end
-
-    # Nlocs = 20
-    # xlocs = zeros(Nlocs)
-    # ylocs = zeros(Nlocs)
-    # angles = range(-pi/2.,stop=pi/2.,length=Nlocs)
-    root_rad=3.542/2.
-    # for i in 1:Nlocs
-    #     xlocs[i] = cos(angles[i])*root_rad
-    #     ylocs[i] = sin(angles[i])*root_rad
-    # end
-
-    xlocs = [cos(pi/4.0)*root_rad]
-    ylocs = [sin(pi/4.0)*root_rad]
-
+fos = 1.15
+global damage
+damage = 0.0
+for i  = 1:Nlocs
     global damage
-    damage = 0.0
-    for i  = 1:Nlocs
-        global damage
-        sigma = ff.calc_moment_stress.(edge,flap,xlocs[i],ylocs[i])
-        peaks = get_peaks(sigma)
-        out = rainflow(peaks)
+    sigma = ff.calc_moment_stress.(edge,flap,xlocs[i],ylocs[i])
+    # hist(sigma,bins=50)
+    peaks = get_peaks(sigma)
+    out = rainflow(peaks)
 
-        alternate = out[1,:]/2.
-        mean = out[2,:]
-        count = out[3,:]
+    alternate = out[1,:]/2.
+    mean = out[2,:]
+    count = out[3,:]
 
-        # figure(1)
-        # title("alternate, julia")
-        # hist(alternate,bins=50)
-        #
-        # figure(2)
-        # title("mean, julia")
-        # hist(mean,mins=50)
+    hist(count,bins=50)
 
+    su = 70000.
+    m = 10.
+    years = 25.
+    freq = 1.0
 
-        su = 70000.
-        m = 10.
-        years = 25.
-        freq = 1.0
-
-        mar = alternate./(1.0.-mean./su)
-
-        figure(1)
-        title("mar, julia")
-        hist(mar,bins=50,range=[6000,11000])
-
-        npts = length(mar)
-        #damage calculations
-        d = 0.0
-        for i = 1:npts
-            Nfail = ((su)/(mar[i]*fos))^m
-            mult = years*365.25*24.0*6.0*freq*6.0/7.0
-            d += count[i]*mult/Nfail
-        end
-        if d > damage
-            damage = d
-        end
+    mar = alternate./(1.0.-mean./su)
+    npts = length(mar)
+    #damage calculations
+    d = 0.0
+    for i = 1:npts
+        Nfail = ((su)/(mar[i]*fos))^m
+        mult = years*365.25*24.0*6.0*freq
+        d += count[i]*mult/Nfail
     end
-    dams[k] = damage
+    if d > damage
+        damage = d
+    end
 end
-# println("damage: ", dams)
-# scatter(off,dams)
-#
-# FS,FD = fastdata(turb,ws,sep)
-# scatter(FS,FD)
+println("damage: ", damage)

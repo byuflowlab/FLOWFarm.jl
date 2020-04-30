@@ -13,31 +13,30 @@ Struct defining a wind farm
 - `turbine_definition_ids::Array{Int}(Nturbines)`: contains integers for each wind turbine specifying its definition
 - `turbine_definitions::Array{AbstractTurbineDefinition}(Ntypes)`: contains structs defining each wind turbine definition (design) used in the farm
 """
-struct WindFarm{AF,AI,AS} <: AbstractWindFarmModel
-    
+struct WindFarm{AF1,AF2,AF3,AI,AS} <: AbstractWindFarmModel
+
     # farm design properties
-    turbine_x::AF
-    turbine_y::AF
-    turbine_z::AF
+    turbine_x::AF1
+    turbine_y::AF2
+    turbine_z::AF3
     turbine_definition_ids::AI
     turbine_definitions::AS
 
 end
 
 
-struct SingleWindFarmState{TI,AF,AI} <: AbstractWindFarmModel
+struct SingleWindFarmState{TI,AF,AF1,AF2,AF3,AF4,AF5,AF6,AI} <: AbstractWindFarmModel
 
     # farm properties in rotated frame
     id::TI
-    turbine_x::AF
-    turbine_y::AF
-    turbine_z::AF
-    turbine_yaw::AF
-    turbine_ct::AF
-    turbine_ai::AF
+    turbine_x::AF1
+    turbine_y::AF2
+    turbine_z::AF3
+    turbine_yaw::AF4
+    turbine_ct::AF5
+    turbine_ai::AF6
     sorted_turbine_index::AI
     turbine_inflow_velcities::AF
     turbine_generators_powers::AF
 
 end
-
