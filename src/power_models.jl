@@ -1,7 +1,3 @@
-include("turbines.jl")
-include("wind_resources.jl")
-using FLOWMath: linear
-
 abstract type AbstractPowerModel end
 
 struct PowerModelConstantCp{TF} <: AbstractPowerModel

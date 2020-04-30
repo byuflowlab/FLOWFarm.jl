@@ -1,5 +1,10 @@
 module FlowFarm
 
+# using CCBlade
+# using PyPlot
+using FLOWMath: linear
+# using Statistics
+
 include("turbines.jl")
 include("windfarms.jl")
 include("wind_resources.jl")
@@ -12,6 +17,6 @@ include("local_turbulence_intensity_models.jl")
 include("power_models.jl")
 include("general_models.jl")
 include("user_functions.jl")
-include("fatigue_functions.jl")
+# include("fatigue_functions.jl")
 
 end # module

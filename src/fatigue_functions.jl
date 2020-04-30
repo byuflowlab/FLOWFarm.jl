@@ -1,10 +1,3 @@
-using FlowFarm
-using CCBlade
-using PyPlot
-using FLOWMath
-using Statistics
-
-
 function distributed_velocity_op(V, Omega, r, precone, yaw, tilt, azimuth, rho, mu=1.81206e-05, asound=1.0)
 
     sy = sin(yaw)

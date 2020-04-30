@@ -1,5 +1,3 @@
-include("power_models.jl")
-
 abstract type AbstractWindFarmProblem end
 abstract type AbstractModelSet end
 
