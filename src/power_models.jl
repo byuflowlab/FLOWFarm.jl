@@ -61,7 +61,7 @@ end
 function calculate_turbine_power(turbine_id, turbine_definition::TurbineDefinition, farmstate::SingleWindFarmState, wind_model::AbstractWindResourceModel)
 
     # extract turbine design information
-    generator_efficiency = turbine_definition.generator_efficiency[1]
+    generator_efficiency = turbine_definition.generator_efficiency
     cut_in_speed = turbine_definition.cut_in_speed
     cut_out_speed = turbine_definition.cut_out_speed
     rated_speed = turbine_definition.rated_speed
