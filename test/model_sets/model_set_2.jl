@@ -9,7 +9,7 @@ cp = 0.8
 cut_in_speed = 4.  # m/s
 cut_out_speed = 25.  # m/s
 rated_speed = 16.  # m/s
-rated_power = 2000.  # kW
+rated_power = 2.0E6  # W
 generator_efficiency = 0.944
 
 ai = 1.0/3.0

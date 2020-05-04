@@ -116,25 +116,29 @@ end
 
     end
 
-    @testset "calculate_turbine_power() PowerConstantCp" begin
+    @testset "calculate_turbine_power() PowerModelConstantCp" begin
        
         include("./model_sets/model_set_2.jl")
 
         # test below cut in
-        windfarmstate.inflow
-        p = ff.calculate_turbine_power(turbine1.id, turbine1, windfarmstate, windresource)
+        windfarmstate.turbine_inflow_velcities[1] = 1.0
+        p = ff.calculate_turbine_power(1, turbine1, windfarmstate, windresource)
         @test p ≈ 0.0 atol=1E-6
 
         # region 2
-        p = ff.calculate_turbine_power(turbine1.id, turbine1, windfarmstate, windresource)
-        @test p ≈ 0.0 atol=1E-6
+        v0 = windfarmstate.turbine_inflow_velcities[1] = 8.0
+        p = ff.calculate_turbine_power(1, turbine1, windfarmstate, windresource)
+        rotor_area = pi*0.25*rotor_diameter^2
+        @test p ≈ 0.5*cp*air_density*rotor_area*generator_efficiency*v0^3 atol=1E-6
 
         # above rated
-        p = ff.calculate_turbine_power(turbine1.id, turbine1, windfarmstate, windresource)
-        @test p ≈ 0.0 atol=1E-6
+        windfarmstate.turbine_inflow_velcities[1] = 20.0
+        p = ff.calculate_turbine_power(1, turbine1, windfarmstate, windresource)
+        @test p ≈ turbine1.rated_power[1] atol=1E-6
 
         # above cut out
-        p = ff.calculate_turbine_power(turbine1.id, turbine1, windfarmstate, windresource)
+        windfarmstate.turbine_inflow_velcities[1] = 30.0
+        p = ff.calculate_turbine_power(1, turbine1, windfarmstate, windresource)
         @test p ≈ 0.0 atol=1E-6
 
     end
