@@ -88,15 +88,14 @@ end
         # extract velocity and cp points
         velpoints = data[:,1]
         powpoints = data[:,2]*1E6
-        println("power points ", powpoints)
 
         # intialize power model struct
         power_model = ff.PowerModelPowerPoints(velpoints, powpoints)
 
-        # below rated
+        # calc power
         p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, power_model)
 
-        # 
+        # test
         @test p ≈ p0 atol=1E-6
 
     end
@@ -231,7 +230,7 @@ end
         horizontal_spread_rate = k_star
 
         ct_model = ff.ConstantCt(ct)
-        power_model = ff.PowerModelConstantCp([cp])
+        power_model = ff.PowerModelConstantCp(cp)
 
         turbine1 = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
         model = ff.JiminezYawDeflection(horizontal_spread_rate)
@@ -391,7 +390,7 @@ end
         ct_model = ff.ConstantCt(ct)
         power_model = ff.PowerModelConstantCp([cp])
 
-        turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], cut_in_speed, rated_speed, cut_out_speed, rated_power, generator_efficiency, [ct_model], [power_model])
+        turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
         model = ff.JensenCosine(alpha, beta)
 
         centerloss40 = 1. - 4.35/8.1
@@ -483,7 +482,7 @@ end
         ct_model = ff.ConstantCt(ct)
         power_model = ff.PowerModelConstantCp([cp])
 
-        turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], cut_in_speed, rated_speed, cut_out_speed, rated_power, generator_efficiency, [ct_model], [power_model])
+        turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
         
         model = ff.GaussYaw(turbulence_intensity, horizontal_spread_rate , vertical_spread_rate, alpha_star, beta_star)
 

@@ -35,10 +35,10 @@ rotor_points_y = [0.0]
 rotor_points_z = [0.0]
 
 ct_model = ff.ConstantCt(ct)
-power_model = ff.PowerModelConstantCp([cp])
+power_model = ff.PowerModelConstantCp(cp)
 wind_shear_model = ff.PowerLawWindShear(shearexponent)
 
-turbine1 = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], cut_in_speed, rated_speed, cut_out_speed, rated_power, generator_efficiency, [ct_model], power_model)
+turbine1 = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], power_model)
 
 turbine_definitions = [turbine1 for i in 1:nturbines]
 sorted_turbine_index = [i for i  in 1:nturbines]

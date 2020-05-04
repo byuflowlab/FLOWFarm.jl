@@ -61,7 +61,7 @@ end
 function calculate_turbine_power(turbine_id, turbine_definition::TurbineDefinition, farmstate::SingleWindFarmState, wind_model::AbstractWindResourceModel)
 
     # extract turbine design information
-    generator_efficiency = turbine_definition.generator_efficiency
+    generator_efficiency = turbine_definition.generator_efficiency[1]
     cut_in_speed = turbine_definition.cut_in_speed
     cut_out_speed = turbine_definition.cut_out_speed
     rated_speed = turbine_definition.rated_speed
@@ -81,18 +81,18 @@ function calculate_turbine_power(turbine_id, turbine_definition::TurbineDefiniti
     power_model = turbine_definition.power_model
 
     # calculated wind turbine power
-    if wt_velocity < cut_in_speed
+    if wt_velocity < cut_in_speed[1]
         wt_power = 0.0
-    elseif wt_velocity < rated_speed
+    elseif wt_velocity < rated_speed[1]
         wt_power = calculate_power(generator_efficiency, air_density, rotor_area, wt_velocity, power_model)
-    elseif wt_velocity < cut_out_speed
-        wt_power = rated_power
-    elseif wt_velocity > cut_out_speed
+    elseif wt_velocity < cut_out_speed[1]
+        wt_power = rated_power[1]
+    elseif wt_velocity > cut_out_speed[1]
         wt_power = 0.0
     end
 
     # adjust calculated power to not get higher than rated power
-    if wt_power > rated_power
+    if wt_power > rated_power[1]
         wt_power = 0.0
     end
 
