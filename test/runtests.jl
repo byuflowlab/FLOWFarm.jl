@@ -17,6 +17,48 @@ using PyPlot
 
     end
 
+    @testset "Circular boundary" begin
+
+        center = [100,500]
+        radius = 500
+        testing_x = [100,100,100,100,-500,700]
+        testing_y = [500,1100,-100,0,500,500]
+        test_values = [-500,100,100,0,100,100]
+
+        @test ff.circle_boundary(center,radius,testing_x,testing_y) == test_values
+
+    end
+
+    @testset "Polygon boundary" begin
+
+    v = zeros(4,2)
+    v[2,1] = 500
+    v[3,1] = 500
+    v[3,2] = 500
+    v[4,2] = 500
+    n = zeros(4,2)
+    n[1,2] = -1
+    n[2,1] = 1
+    n[3,2] = 1
+    n[4,1] = -1
+
+    testing_x = [250,250,250,250,-100,600]
+    testing_y = [250,-100,600,0,250,250]
+    test_values = ones(6,4).*-250
+    test_values[2,1] = 100
+    test_values[2,3] = -600
+    test_values[3,1] = -600
+    test_values[3,3] = 100
+    test_values[4,1] = 0
+    test_values[4,3] = -500
+    test_values[5,2] = -600
+    test_values[5,4] = 100
+    test_values[6,2] = 100
+    test_values[6,4] = -600
+
+    @test ff.windfarm_boundary(v,n,testing_x,testing_y) == test_values
+    end
+
 end
 
 

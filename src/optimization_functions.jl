@@ -87,33 +87,3 @@ function windfarm_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_
         end
         return face_distance
 end
-
-
-function calculate_boundary(vertices)
-
-    # find the points that actually comprise a convex hull
-    hull = ConvexHull(list(vertices))
-
-    # keep only vertices that actually comprise a convex hull and arrange in CCW order
-    vertices = vertices[hull.vertices]
-
-    # get the real number of vertices
-    nVertices = vertices.shape[0]
-
-    # initialize normals array
-    unit_normals = np.zeros([nVertices, 2])
-
-    # determine if point is inside or outside of each face, and distance from each face
-    for j in range(0, nVertices):
-
-        # calculate the unit normal vector of the current face (taking points CCW)
-        if j < nVertices - 1:  # all but the set of point that close the shape
-            normal = np.array([vertices[j+1, 1]-vertices[j, 1],
-                               -(vertices[j+1, 0]-vertices[j, 0])])
-            unit_normals[j] = normal/np.linalg.norm(normal)
-        else:   # the set of points that close the shape
-            normal = np.array([vertices[0, 1]-vertices[j, 1],
-                               -(vertices[0, 0]-vertices[j, 0])])
-            unit_normals[j] = normal/np.linalg.norm(normal)
-
-    return vertices, unit_normals
