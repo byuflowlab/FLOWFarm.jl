@@ -31,5 +31,17 @@ function turbine_spacing(turbine_x,turbine_y)
 end
 
 
-# function farm_boundary(turbine_x,turbine_y)
-# end
+"""
+    circle_boundary(center_x,center_y,radius,turbine_x,turbine_y)
+
+calculate the
+
+# Arguments
+- `center_x::Float`: circular boundary center x
+- `center_y::Float`: circular boundary center y
+- `radius::Float`: circulat boundary radius
+- `turbine_x::Array{Float}`: turbine x locations
+- `turbine_y::Array{Float}`: turbine y locations
+"""
+function circle_boundary(center_x,center_y,radius,turbine_x,turbine_y)
+end
