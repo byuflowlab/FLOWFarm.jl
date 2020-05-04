@@ -8,14 +8,14 @@ struct PowerModelConstantCp{TF} <: AbstractPowerModel
     cp::TF
 end
 
-struct PowerModelCpPoints{ATF, TF} <: AbstractPowerModel
-    cp_points::ATF
+struct PowerModelCpPoints{ATF} <: AbstractPowerModel
     vel_points::ATF
+    cp_points::ATF
 end
 
-struct PowerModelPowerPoints{ATF, TF} <: AbstractPowerModel
-    power_points::ATF
+struct PowerModelPowerPoints{ATF} <: AbstractPowerModel
     vel_points::ATF
+    power_points::ATF
 end
 
 # struct PowerModelPowerCurveCubic{} <: AbstractPowerModel
