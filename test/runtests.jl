@@ -18,7 +18,7 @@ using PyPlot
 end
 
 @testset "Power Models" begin
-    @testset "Power Function" begin
+    @testset "calculate_power_from_cp" begin
         generator_efficiency = 0.944
         air_density = 1.1716
         rotor_area = pi*80.0^2/4
@@ -29,6 +29,77 @@ end
         @test p ≈ 3.8425979093271587e6 atol=1E-6
 
     end
+
+    @testset "calculate_power() PowerModelConstantCP" begin
+        generator_efficiency = 0.944
+        air_density = 1.1716
+        rotor_area = pi*80.0^2/4
+        cp = 0.8
+        v0 = 12.0
+
+        power_model = ff.PowerModelConstantCp(cp)
+
+        p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, power_model)
+        @test p ≈ 3.8425979093271587e6 atol=1E-6
+
+    end
+
+    @testset "calculate_power() PowerModelCpPoints" begin
+        generator_efficiency = 0.944
+        air_density = 1.1716
+        rotor_area = pi*80.0^2/4
+
+        # load data
+        data = readdlm("inputfiles/NREL5MWCPCT.txt",  ' ', skipstart=1)
+
+        # vel and cp for test based on input cp curve
+        v0 = 0.5*(8.495558624311073004 + 8.626405258223240224)
+        cp0 = 0.5*(4.631607703567138801e-01 + 4.631607703567138801e-01)
+
+        # calculate expected power out
+        power = 0.5*cp0*air_density*rotor_area*generator_efficiency*v0^3
+
+        # extract velocity and cp points
+        velpoints = data[:,1]
+        cppoints = data[:,2]
+
+        # intialize power model struct
+        power_model = ff.PowerModelCpPoints(velpoints, cppoints)
+
+        # calculated power and test
+        p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, power_model)
+        @test p ≈ power atol=1E-6
+
+    end
+
+    @testset "calculate_power() PowerModelPowerPoints" begin
+        generator_efficiency = 0.944
+        air_density = 1.1716
+        rotor_area = pi*80.0^2/4
+        cp = 0.8
+
+        # vel and power for test based on input power curve
+        v0 = 0.5*(6.9778601570742005 + 7.469669440862736)
+        p0 = 0.5*(0.4665924276169269 + 0.5768374164810695)*1E6
+
+        # load data
+        data = readdlm("inputfiles/niayifar_vestas_v80_power_curve_observed.txt",  ',', skipstart=1)
+        
+        # extract velocity and cp points
+        velpoints = data[:,1]
+        powpoints = data[:,2]*1E6
+
+        # intialize power model struct
+        power_model = ff.PowerModelPowerPoints(velpoints, powpoints)
+
+        # calc power
+        p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, power_model)
+
+        # test
+        @test p ≈ p0 atol=1E-6
+
+    end
+
 end
 
 
@@ -159,7 +230,7 @@ end
         horizontal_spread_rate = k_star
 
         ct_model = ff.ConstantCt(ct)
-        power_model = ff.PowerModelConstantCp([cp])
+        power_model = ff.PowerModelConstantCp(cp)
 
         turbine1 = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
         model = ff.JiminezYawDeflection(horizontal_spread_rate)
@@ -319,7 +390,7 @@ end
         ct_model = ff.ConstantCt(ct)
         power_model = ff.PowerModelConstantCp([cp])
 
-        turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], cut_in_speed, rated_speed, cut_out_speed, rated_power, generator_efficiency, [ct_model], [power_model])
+        turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
         model = ff.JensenCosine(alpha, beta)
 
         centerloss40 = 1. - 4.35/8.1
@@ -411,7 +482,7 @@ end
         ct_model = ff.ConstantCt(ct)
         power_model = ff.PowerModelConstantCp([cp])
 
-        turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], cut_in_speed, rated_speed, cut_out_speed, rated_power, generator_efficiency, [ct_model], [power_model])
+        turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
         
         model = ff.GaussYaw(turbulence_intensity, horizontal_spread_rate , vertical_spread_rate, alpha_star, beta_star)
 
