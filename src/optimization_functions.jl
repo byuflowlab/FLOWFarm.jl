@@ -29,3 +29,7 @@ function turbine_spacing(turbine_x,turbine_y)
         end
         return spacing_vec
 end
+
+
+function farm_boundary(turbine_x,turbine_y)
+end
