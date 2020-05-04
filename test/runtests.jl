@@ -2,7 +2,7 @@ import FlowFarm; const ff = FlowFarm
 using Test
 using DelimitedFiles
 using LinearAlgebra
-using PyPlot 
+using PyPlot
 
 @testset "Thrust Coefficient Models" begin
 
@@ -46,11 +46,11 @@ end
         # test at reference height
         loc =[0.0, 0.0, 80.0]
         @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, model) == point_velocity_no_shear
-    
+
         # test at ground height
         loc =[0.0, 0.0, 0.0]
         @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, model) == 0.0
-    
+
         # test below ground height
         loc =[0.0, 0.0, -10.0]
         @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, model) == 0.0
@@ -64,7 +64,7 @@ end
         loc =[0.0, 0.0, 10.0]
         u = point_velocity_no_shear*((loc[3] - ground_height)/(reference_height-ground_height))^shear_exp
         @test ff.adjust_for_wind_shear(loc, point_velocity_no_shear, reference_height, ground_height, model) == u
-    
+
     end
 
 end
@@ -72,7 +72,7 @@ end
 @testset "Wake Combination Models" begin
 
     old_deficit_sum = 0.3
-    wind_speed = 8.0 
+    wind_speed = 8.0
     deltav = 0.2
     turb_inflow = 7.5
 
@@ -92,9 +92,9 @@ end
         model = ff.SumOfSquaresLocalVelocitySuperposition()
         result = sqrt(old_deficit_sum^2 + (turb_inflow*deltav)^2)
         @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
-    end 
+    end
 
-    @testset "Linear Local Velocity Superposition" begin 
+    @testset "Linear Local Velocity Superposition" begin
     model = ff.LinearLocalVelocitySuperposition()
     result = old_deficit_sum + turb_inflow*deltav
     @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
@@ -130,8 +130,8 @@ end
         # -0.5257731958762868, 0.8588075800011918 # yaw = 20
         # -0.5670103092783503, 0.8923216733210179 # yaw = 30
 
-        rotor_diameter = 0.15 
-        hub_height = 0.125 
+        rotor_diameter = 0.15
+        hub_height = 0.125
         yaw_20 = 20.0*pi/180.0
         ct = 0.8 # [1] fig. 8
         cp = 0.8
@@ -153,7 +153,7 @@ end
         rated_speed = 12.0
         rated_power = 1.0176371581904552e6
 
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])       
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])
 
         k_star = 0.07 # adjusted to match experimental data. #TODO improve tests with model results
         horizontal_spread_rate = k_star
@@ -211,12 +211,12 @@ end
         rated_speed = 12.0
         rated_power = 1.0176371581904552e6
 
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])       
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])
         ct_model = ff.ConstantCt(ct)
         power_model = ff.PowerModelConstantCp([cp])
 
         turbine_definition = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
-        
+
         k_star = 0.022 # [1]  p. 525
         turbulence_intensity = 0.1 #0.0875 #[1] p. 508 - this value is only specified to be less than 0.1
         horizontal_spread_rate = k_star
@@ -231,7 +231,7 @@ end
 
         dx8d = 8.0*rotor_diameter
         dy8d_20 = 0.34090909090908905*rotor_diameter # from [1] figure 21
-        
+
         # test deflection at 4D with yaw 20 deg
         @test ff.wake_deflection_model([dx4d, dy4d_20, hub_height], turbine_id, turbine_definition, model, windfarmstate) ≈ dy4d_20 atol=atol
 
@@ -243,7 +243,7 @@ end
 end
 
 @testset "Wake Deficit Models" begin
-    
+
     @testset "Jensen Top Hat Model" begin
 
         include("./model_sets/model_set_1.jl")
@@ -292,14 +292,14 @@ end
         rated_power = 1.0176371581904552e6
         aI = 1.0/3.0
         yaw = 0.0
-        ct = 0.7 
+        ct = 0.7
         cp = 0.8
         generator_efficiency = 0.944
 
         wind_farm_state_id = 1
         turbine_x = [0.0]
         turbine_y = [0.0]
-        turbine_z = [0.0] 
+        turbine_z = [0.0]
         turbine_yaw = [yaw]
         turbine_ct = [ct]
         turbine_ai = [1.0/3.0]
@@ -307,15 +307,15 @@ end
         turbine_inflow_velcity = [8.0]
         turbine_id = 1
         turbine_definition_id = 1
-        
+
 
         alpha = 0.1
         beta = 20.0*pi/180.0
 
 
         deflection = [0.0, 0.0]
-        
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])       
+
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])
         ct_model = ff.ConstantCt(ct)
         power_model = ff.PowerModelConstantCp([cp])
 
@@ -369,7 +369,7 @@ end
         @test ff.wake_deficit_model([40., dy, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) == loss40attheta
 
     end
-    
+
     @testset "Gauss Yaw Model" begin
         rtol = 0.1
         # [1] based on data from Bastankhah and Porte-Agel 2016
@@ -396,7 +396,7 @@ end
         beta_star = 0.154 #[1] p. 534
 
         wind_farm_state_id = 1
-        
+
         turbine_yaw = [yaw]
         turbine_ct = [ct]
         turbine_ai = [1.0/3.0]
@@ -406,25 +406,25 @@ end
         turbine_definition_id = 1
 
         deflection = [0.0, 0.0]
-        
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])       
+
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])
         ct_model = ff.ConstantCt(ct)
         power_model = ff.PowerModelConstantCp([cp])
 
         turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], cut_in_speed, rated_speed, cut_out_speed, rated_power, generator_efficiency, [ct_model], [power_model])
-        
+
         model = ff.GaussYaw(turbulence_intensity, horizontal_spread_rate , vertical_spread_rate, alpha_star, beta_star)
 
         # data from Bastankhah and Porte-Agel 2016, figure 19
         yaw_20 = 20.0*pi/180.0
         ct_20 = 0.7378415935735881
         # x0_20 = 4.217687074829926*rotor_diameter
-        x1_20 = 4.221216585981899*rotor_diameter 
+        x1_20 = 4.221216585981899*rotor_diameter
         loss1_20 = 0.49396179751631175
         x2_20 = 6.014102294253845*rotor_diameter
         loss2_20 = 0.31515733529783185
-        x3_20 = 7.987265838770787*rotor_diameter 
-        loss3_20 = 0.22750736687013284 
+        x3_20 = 7.987265838770787*rotor_diameter
+        loss3_20 = 0.22750736687013284
         x8d_20 = 8.0*rotor_diameter
         loss8d_20 = .7203389830508229 # [1] figure 21
 
@@ -433,30 +433,30 @@ end
         x1_0 = 4.0*rotor_diameter
         loss1_0 = 0.45806451612903154 # from figure 21
         # loss1_0 = 0.5922779922779922
-        x2_0 = 6.00904977375566*rotor_diameter 
+        x2_0 = 6.00904977375566*rotor_diameter
         # loss2_0 = 1.0 - 0.6033
         loss2_0 = 0.37606177606177627
         x3_0 = 8.00452488687783*rotor_diameter
         loss3_0 = 0.2710424710424715
-        x4_0 = 10.000000000000002*rotor_diameter 
+        x4_0 = 10.000000000000002*rotor_diameter
         loss4_0 = 0.20772200772200788
 
         # test no loss upstream
         @test ff.wake_deficit_model([-1E-12, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) == 0.0
 
         # test loss at x1 with no yaw
-        @test ff.wake_deficit_model([x1_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) ≈ loss1_0 rtol=rtol 
+        @test ff.wake_deficit_model([x1_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) ≈ loss1_0 rtol=rtol
 
         deflection = [0.0, 0.0]
         # test loss at x2 with no yaw
-        @test ff.wake_deficit_model([x2_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)  ≈ loss2_0 rtol=rtol 
+        @test ff.wake_deficit_model([x2_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)  ≈ loss2_0 rtol=rtol
 
         # test loss at x3 with no yaw
-        @test ff.wake_deficit_model([x3_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) ≈ loss3_0 rtol=rtol 
+        @test ff.wake_deficit_model([x3_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) ≈ loss3_0 rtol=rtol
 
         # test loss at x4 with no yaw
-        @test ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)  ≈ loss4_0 rtol=rtol 
-        
+        @test ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)  ≈ loss4_0 rtol=rtol
+
         # # test centerline loss 40 meters downstream (data from Jensen 1983)
         # @test ff.wake_deficit_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40
 
@@ -495,13 +495,13 @@ end
 
         wind_direction_met = 0.0
         xnew, ynew = ff.rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
-        @test xnew ≈ [0.0 0.0] atol=atol 
-        @test ynew ≈ [-1.0 1.0] atol=atol 
+        @test xnew ≈ [0.0 0.0] atol=atol
+        @test ynew ≈ [-1.0 1.0] atol=atol
 
         wind_direction_met = 3*pi/2
         xnew, ynew = ff.rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
-        @test xnew ≈ [-1.0 1.0] atol=atol 
-        @test ynew ≈ [0.0 0.0] atol=atol 
+        @test xnew ≈ [-1.0 1.0] atol=atol
+        @test ynew ≈ [0.0 0.0] atol=atol
     end
 
     @testset "Point velocity" begin
@@ -518,17 +518,17 @@ end
         # test max loss at turbine (data from Jensen 1983)
         expected_velocity = wind_speed*(1.0 - (2. * 1/3.0))
         loc = [1E-6, 0.0, hub_height]
-        @test ff.point_velocity(loc, ms1, pd1, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity rtol=rtol 
+        @test ff.point_velocity(loc, ms1, pd1, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity rtol=rtol
 
         # test centerline loss 40 meters downstream (data from Jensen 1983)
         expected_velocity = wind_speed*(4.35/8.1)
         loc = [40.0, 0.0, hub_height]
-        @test ff.point_velocity(loc, ms1, pd1, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity rtol=rtol 
+        @test ff.point_velocity(loc, ms1, pd1, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity rtol=rtol
 
         # test centerline loss 100 meters downstream (data from Jensen 1983)
         expected_velocity = wind_speed*(5.7/8.1)
         loc = [100.0, 0.0, hub_height]
-        @test ff.point_velocity(loc, ms1, pd1, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity  rtol=rtol 
+        @test ff.point_velocity(loc, ms1, pd1, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity  rtol=rtol
     end
 
     @testset "Turbine Inflow Velocities one direction" begin
@@ -547,8 +547,8 @@ end
         expected_velocity = wind_speed*data[:, 2]
 
         ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, ms2, pd2)
-        
-        @test windfarmstate.turbine_inflow_velcities ≈ expected_velocity rtol=rtol 
+
+        @test windfarmstate.turbine_inflow_velcities ≈ expected_velocity rtol=rtol
 
     end
 
@@ -564,10 +564,10 @@ end
         rtol = 1E-6
 
         include("./model_sets/model_set_2.jl")
-        
+
         ff.turbine_powers_one_direction!(rotor_points_y, rotor_points_z, pd2)
-        
-        @test windfarmstate.turbine_generators_powers ≈ wind_speed*data[:, 2] rtol=rtol 
+
+        @test windfarmstate.turbine_generators_powers ≈ wind_speed*data[:, 2] rtol=rtol
 
     end
 
@@ -585,12 +585,12 @@ end
 
         ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, ms2, pd2)
         ff.turbine_powers_one_direction!(rotor_points_y, rotor_points_z, pd2)
-        
+
         stepsize = 10
         xrange = 1:stepsize:10*rotor_diameter*nturbines
         yrange = -1*rotor_diameter*nturbines:stepsize:1*rotor_diameter*nturbines
         zrange = hub_height:stepsize:hub_height
-        points = [[x y z] for x in xrange for y in yrange for z in zrange] 
+        points = [[x y z] for x in xrange for y in yrange for z in zrange]
         println("size: ", size(points[:]))
         println(points[1][1])
         println(pd2.wind_farm_states[1].turbine_inflow_velcities)
@@ -599,12 +599,12 @@ end
         # yrange = 0:stepsize:0
         # zrange = 0:stepsize:2*hub_height
         # velv = ff.calculate_flow_field(1, xrange, yrange, zrange, rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, windshearmodel, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
-        
+
         # println(vel)
 
         # Plots.pyplot()
         # points = permutedims(reshape(hcat(points...), (length(points[1]), length(points))))
-        # println(size(points[:][1])) 
+        # println(size(points[:][1]))
         # println(size(points[:][2]))
         # println(size(vel))
         # println(size(vel), length(xrange), length(yrange))
@@ -614,7 +614,22 @@ end
         # flowfieldplot = imshow(velv, cmap="Blues_r")
         # x = range(-5, stop = 5, length = 40)
         # flowfieldplot = plot(points[:, 1], points[:, 2], vel, show=true, st=:contourf)
-        
+
+    end
+
+end
+
+
+@testset "Optimization functions" begin
+
+    @testset "Turbine spacing calculation" begin
+
+        testing_x = [0,0,500,500,7481]
+        testing_y = [0,500,0,500,-43891]
+        turbine_separation = [500,500,707.1067811865476,44523.9850193129,707.1067811865476,500,45016.95505029189,500,44442.70741077775,44936.56909466943]
+
+        @test ff.turbine_spacing(testing_x,testing_y) == turbine_separation
+
     end
 
 end
