@@ -100,6 +100,29 @@ end
 
     end
 
+    @testset "calculate_turbine_power() PowerConstantCp" begin
+       
+        include("./model_sets/model_set_2.jl")
+
+        # test below cut in
+        windfarmstate.inflow
+        p = ff.calculate_turbine_power(turbine1.id, turbine1, windfarmstate, windresource)
+        @test p ≈ 0.0 atol=1E-6
+
+        # region 2
+        p = ff.calculate_turbine_power(turbine1.id, turbine1, windfarmstate, windresource)
+        @test p ≈ 0.0 atol=1E-6
+
+        # above rated
+        p = ff.calculate_turbine_power(turbine1.id, turbine1, windfarmstate, windresource)
+        @test p ≈ 0.0 atol=1E-6
+
+        # above cut out
+        p = ff.calculate_turbine_power(turbine1.id, turbine1, windfarmstate, windresource)
+        @test p ≈ 0.0 atol=1E-6
+
+    end
+
 end
 
 
