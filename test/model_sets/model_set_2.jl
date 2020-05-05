@@ -34,7 +34,7 @@ turbine_inflow_velcities = zeros(nturbines) .+ wind_speed
 rotor_points_y = [0.0]
 rotor_points_z = [0.0]
 
-ct_model = ff.ConstantCt(ct)
+ct_model = ff.ThrustModelConstantCt(ct)
 power_model = ff.PowerModelConstantCp(cp)
 wind_shear_model = ff.PowerLawWindShear(shearexponent)
 
