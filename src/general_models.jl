@@ -200,7 +200,8 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
         windfarmstate.turbine_ct[downwind_turbine_id] = calculate_ct(wind_turbine_velocity, downwind_turbine.ct_model[1])
 
         # update local turbulence intensity for downstream turbine
-        windfarmstate.turbine_local_ti[downwind_turbine_id] = calculate_local_ti(model_set.ti_model)
+        ambient_ti = problem_description.wind_resource.ambient_tis[wind_farm_state_id]
+        windfarmstate.turbine_local_ti[downwind_turbine_id] = calculate_local_ti(ambient_ti, model_set.local_ti_model)
 
     end
 

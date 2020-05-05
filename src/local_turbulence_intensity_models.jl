@@ -12,8 +12,8 @@ struct LocalTIModelGaussTI{TF} <: AbstractLocalTurbulenceIntensityModel
     ti::TF
 end
 
-function calculate_local_ti(ti_model::LocalTIModelNoLocalTI)
-    return ti_model.ti
+function calculate_local_ti(ambient_ti, ti_model::LocalTIModelNoLocalTI)
+    return ambient_ti
 end
 
 # ! calculate local turbulence intensity at turbI
