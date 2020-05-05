@@ -106,7 +106,7 @@ function point_velocity(loc, model_set::AbstractModelSet, problem_description::A
 
         # get index of upstream turbine
         upwind_turb_id = sorted_turbine_index[u]
-    
+
         # skip this loop if it would include a turbine's impact on itself)
         if upwind_turb_id==downwind_turbine_id; continue; end
 
@@ -115,7 +115,7 @@ function point_velocity(loc, model_set::AbstractModelSet, problem_description::A
 
         # downstream distance between upstream turbine and point
         x = loc[1] - turbine_x[upwind_turb_id]
-        
+
         # set this iterations velocity deficit to 0
         deltav = 0.0
 
@@ -147,6 +147,11 @@ function point_velocity(loc, model_set::AbstractModelSet, problem_description::A
 
 end
 
+
+turbine_velocities_one_direction!(model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1) = turbine_velocities_one_direction!(0, 0,
+model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1)
+
+
 function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_points_z,
     model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1)
 
@@ -165,7 +170,7 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
         # get turbine definition of downstream turbine
         turbine_definition_id = windfarm.turbine_definition_ids[downwind_turbine_id]
         downwind_turbine = windfarm.turbine_definitions[turbine_definition_id]
-        
+
         # initialize downstream wind turbine velocity to zero
         wind_turbine_velocity = 0.0
 
@@ -204,27 +209,7 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
     end
 
 end
-turbine_velocities_one_direction!(model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1) = turbine_velocities_one_direction!(0, 0,
-model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1)
 
-function turbine_powers_one_direction!(rotor_sample_points_y, rotor_sample_points_z,
-    problem_description::AbstractWindFarmProblem; wind_farm_state_id=1)
-
-    windfarm = problem_description.wind_farm
-    wind_model = problem_description.wind_resource
-    farmstate = problem_description.wind_farm_states[wind_farm_state_id]
-
-    # get number of turbines and rotor sample point
-    n_turbines = length(farmstate.turbine_x)
-
-    for d=1:n_turbines
-        turbine = windfarm.turbine_definitions[windfarm.turbine_definition_ids[d]]
-        wt_power = calculate_turbine_power(d, turbine, farmstate, wind_model)
-
-        farmstate.turbine_generators_powers[d] = wt_power
-    end
-
-end
 
 function calculate_flow_field(direction_id, xrange, yrange, zrange, rotor_sample_points_y, rotor_sample_points_z,
     model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem;
