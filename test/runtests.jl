@@ -1,9 +1,8 @@
-import FlowFarm; const ff = FlowFarm
+using FlowFarm; const ff = FlowFarm
 using Test
 using DelimitedFiles
 using LinearAlgebra
 using PyPlot
-
 
 @testset "Optimization functions" begin
 
