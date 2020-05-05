@@ -1,5 +1,17 @@
 abstract type AbstractWakeDeflectionModel end
 
+"""
+    GaussYawDeflection(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+
+Container for parameters related to the Gaussian deflection model presented by Bastankhah and Porte-Agel 2016
+
+# Arguments
+- `turbulence_intensity::Float`: the ambient turbulence intensity. No default value is provided.
+- `horizontal_spread_rate::Float`: parameter controlling the horizontal spread of the deficit model. Default value is 0.022.
+- `vertical_spread_rate::Float`: parameter controlling the vertical spread of the deficit model. Default value is 0.022.
+- `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
+- `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
+"""
 struct GaussYawDeflection{TF} <: AbstractWakeDeflectionModel
     turbulence_intensity::TF
     horizontal_spread_rate::TF
@@ -7,17 +19,33 @@ struct GaussYawDeflection{TF} <: AbstractWakeDeflectionModel
     alpha_star::TF
     beta_star::TF
 end
+GaussYawDeflection(x) = GaussYawDeflection(x, 0.022, 0.022, 2.32, 0.154)
 
+"""
+    JiminezYawDeflection(horizontal_spread_rate)
+
+Container for parameters related to the Jiminez deflection model
+
+# Arguments
+- `horizontal_spread_rate::Float`: parameter controlling the wake spreading rate and deficit decay. Default value is 0.1
+"""
 struct JiminezYawDeflection{TF} <: AbstractWakeDeflectionModel
     horizontal_spread_rate::TF
 end
+JiminezYawDeflection() = JiminezYawDeflection(0.1)
 
+"""
+    wake_deflection_model(loc, turbine_id, turbine_definition::TurbineDefinition, model::JiminezYawDeflection, windfarmstate::SingleWindFarmState)
+    
+    Calculates the horizontal deflection of the wind turbine wake
+
+    Based on:
+    [1] Jiminez 2010 "Wake defl ection of a wind turbine in yaw"
+    [2] Gebraad 2014 "Wind plant optimization by yaw control using a parametric wake model"
+    this version ignores the corrections made to the yaw model for rotor rotation as described in [2] and 
+    [3] Thomas 2017 "Improving the FLORIS wind plant model for compatibility with gradient-based optimization"
+"""
 function wake_deflection_model(loc, turbine_id, turbine_definition::TurbineDefinition, model::JiminezYawDeflection, windfarmstate::SingleWindFarmState)
-    # based on:
-    # [1] Jiminez 2010 "Wake defl ection of a wind turbine in yaw"
-    # [2] Gebraad 2014 "Wind plant optimization by yaw control using a parametric wake model"
-    # this version ignores the corrections made to the yaw model for rotor rotation as described in [2] and 
-    # [3] Thomas 2017 "Improving the FLORIS wind plant model for compatibility with gradient-based optimization"
 
     dx = loc[1]-windfarmstate.turbine_x[turbine_id]
     yaw = -windfarmstate.turbine_yaw[turbine_id] # Jiminez used opposite rotation convention, hence (-) sign
@@ -40,8 +68,17 @@ function wake_deflection_model(loc, turbine_id, turbine_definition::TurbineDefin
     return y_deflection
 
 end
+
+"""
+    wake_deflection_model(loc, turbine_id, turbine_definition::TurbineDefinition, model::GaussYawDeflection, windfarmstate::SingleWindFarmState)
+    
+    Calculates the horizontal deflection of the wind turbine wake
+
+    Based on:
+    [1] Bastankhah and Porte-Agel 2016 "Experimental and theoretical study of
+    wind turbine wakes in yawed conditions"
+"""
 function wake_deflection_model(loc, turbine_id, turbine_definition::TurbineDefinition, model::GaussYawDeflection, windfarmstate::SingleWindFarmState)
-    # [1] Bastankhah and Porte-Agel 2016
 
     dx = loc[1]-windfarmstate.turbine_x[turbine_id]
     yaw = windfarmstate.turbine_yaw[turbine_id]

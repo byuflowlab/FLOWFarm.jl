@@ -1,9 +1,14 @@
 abstract type AbstractTurbineDefinition end
 
-struct TurbineDefinition{TI,AF,ACTM, APM} <: AbstractTurbineDefinition
+struct TurbineDefinition{TI,AF,CTM,PM} <: AbstractTurbineDefinition
     id::TI
     rotor_diameter::AF
     hub_height::AF
-    ct_model::ACTM
-    power_model::APM
+    cut_in_speed::AF
+    rated_speed::AF
+    cut_out_speed::AF
+    rated_power::AF
+    generator_efficiency::AF
+    ct_model::CTM
+    power_model::PM
 end
