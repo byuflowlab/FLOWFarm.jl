@@ -277,7 +277,6 @@ function distributed_velocity_op(V, Omega, r, precone, yaw, tilt, azimuth, rho, 
 
     # operating point
     return OperatingPoint(Vx, Vy, rho, mu, asound)
-
 end
 
 
