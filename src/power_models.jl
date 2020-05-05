@@ -17,11 +17,35 @@ end
 # struct PowerModelPowerCurveCubic{} <: AbstractPowerModel
 # end
 
+"""
+    calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity)
+
+Calculate the power for a wind turbine based on standard theory for region 2
+
+# Arguments
+- `generator_efficiency::Float`: Efficiency of the turbine generator
+- `air_density::Float`: Air density
+- `rotor_area::Float`: Rotor-swept area of the wind turbine
+- `cp::Float`: Power coefficient of the wind turbine
+- `wt_velocity::Float`: Inflow velocity to the wind turbine
+"""
 function calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity)
     power = generator_efficiency*(0.5*air_density*rotor_area*cp*wt_velocity^3)
     return power
 end
 
+"""
+    calculate_power(generator_efficiency, air_density, rotor_area, wt_velocity, power_model)
+
+Calculate the power for a wind turbine based on standard theory for region 2 using a constant cp
+
+# Arguments
+- `generator_efficiency::Float`: Efficiency of the turbine generator
+- `air_density::Float`: Air density
+- `rotor_area::Float`: Rotor-swept area of the wind turbine
+- `wt_velocity::Float`: Inflow velocity to the wind turbine
+- `power_model::PowerModelConstantCp`: Struct containing the cp value to be used in region 2
+"""
 function calculate_power(generator_efficiency, air_density, rotor_area, wt_velocity, power_model::PowerModelConstantCp)
 
     # extract cp_value
@@ -33,6 +57,19 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
 
 end
 
+"""
+    calculate_power(generator_efficiency, air_density, rotor_area, wt_velocity, power_model)
+
+Calculate the power for a wind turbine based on standard theory for region 2 using a cp 
+    curve with linear interpolation
+
+# Arguments
+- `generator_efficiency::Float`: Efficiency of the turbine generator
+- `air_density::Float`: Air density
+- `rotor_area::Float`: Rotor-swept area of the wind turbine
+- `wt_velocity::Float`: Inflow velocity to the wind turbine
+- `power_model::PowerModelCpPoints`: Struct containing the velocity and cp values defining the cp curve
+"""
 function calculate_power(generator_efficiency, air_density, rotor_area, wt_velocity, power_model::PowerModelCpPoints)
 
     # estimate cp_value using linear interpolation
@@ -45,6 +82,20 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
 
 end
 
+"""
+    calculate_power(generator_efficiency, air_density, rotor_area, wt_velocity, power_model)
+
+Calculate the power for a wind turbine based on a pre-determined power curve with linear 
+    interpolation
+
+# Arguments
+- `generator_efficiency::Float`: Efficiency of the turbine generator
+- `air_density::Float`: Air density
+- `rotor_area::Float`: Rotor-swept area of the wind turbine
+- `wt_velocity::Float`: Inflow velocity to the wind turbine
+- `power_model::PowerModelPowerPoints`: Struct containing the velocity and power values 
+    defining the power curve
+"""
 function calculate_power(generator_efficiency, air_density, rotor_area, wt_velocity, power_model::PowerModelPowerPoints)
 
     # estimate power using linear interpolation
@@ -54,6 +105,19 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
 
 end
 
+"""
+    calculate_turbine_power(turbine_id, turbine_definition::TurbineDefinition, 
+        farmstate::SingleWindFarmState, wind_model::AbstractWindResourceModel)
+
+Calculate the power for a wind turbine based on a pre-determined power curve with linear 
+    interpolation
+
+# Arguments
+- `turbine_id::Int`: Efficiency of the turbine generator
+- `turbine_definition::TurbineDefinition`: Struct containing the relevant wind turbine deffinition
+- `farmstate::SingleWindFarmState`: Struct contatining the current wind farm state, including correct inflow velocities
+- `wind_model::AbstractWindResourceModel`: Struct defining the wind resource
+"""
 function calculate_turbine_power(turbine_id, turbine_definition::TurbineDefinition, farmstate::SingleWindFarmState, wind_model::AbstractWindResourceModel)
 
     # extract turbine design information
