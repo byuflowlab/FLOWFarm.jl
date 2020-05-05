@@ -1,9 +1,8 @@
-import FlowFarm; const ff = FlowFarm
+using FlowFarm; const ff = FlowFarm
 using Test
 using DelimitedFiles
 using LinearAlgebra
 using PyPlot
-
 
 @testset "Optimization functions" begin
 
@@ -67,9 +66,40 @@ end
     @testset "Constant Thrust Coefficent Model" begin
 
         ct = 0.7
-        ct_model = ff.ConstantCt(ct)
+        v0 = 8.0
+        ct_model = ff.ThrustModelConstantCt(ct)
 
-        @test ff.calculate_ct(ct_model) == ct
+        @test ff.calculate_ct(v0, ct_model) == ct
+
+    end
+
+    @testset "Point based Thrust Coefficent Model" begin
+
+        # load data
+        data = readdlm("inputfiles/NREL5MWCPCT.txt",  ' ', skipstart=1)
+
+        # extract velocity and ct points
+        velpoints = data[:,1]
+        ctpoints = data[:,3]
+
+        # intialize ct model
+        ct_model = ff.ThrustModelCtPoints(velpoints, ctpoints)
+
+        # low velocity
+        v0 = 1.0
+        ct0 = ctpoints[1]
+        @test ff.calculate_ct(v0, ct_model) == ct0
+
+        # mid velocity
+        v0 = 0.5*(6.925399017365052146 + 7.056245651277220254)
+        ct0 = 0.5*(7.930937230057298892e-01 + 7.884019134159416797e-01)
+        @test ff.calculate_ct(v0, ct_model) == ct0
+
+        # high velocity
+        v0 = 30.0
+        ct0 = ctpoints[end]
+        @test ff.calculate_ct(v0, ct_model) == ct0
+
 
     end
 
@@ -314,7 +344,7 @@ end
         k_star = 0.07 # adjusted to match experimental data. #TODO improve tests with model results
         horizontal_spread_rate = k_star
 
-        ct_model = ff.ConstantCt(ct)
+        ct_model = ff.ThrustModelConstantCt(ct)
         power_model = ff.PowerModelConstantCp(cp)
 
         turbine1 = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
@@ -368,7 +398,7 @@ end
         rated_power = 1.0176371581904552e6
 
         windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])
-        ct_model = ff.ConstantCt(ct)
+        ct_model = ff.ThrustModelConstantCt(ct)
         power_model = ff.PowerModelConstantCp([cp])
 
         turbine_definition = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
@@ -472,7 +502,7 @@ end
         deflection = [0.0, 0.0]
 
         windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])
-        ct_model = ff.ConstantCt(ct)
+        ct_model = ff.ThrustModelConstantCt(ct)
         power_model = ff.PowerModelConstantCp([cp])
 
         turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
@@ -564,7 +594,7 @@ end
         deflection = [0.0, 0.0]
 
         windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])
-        ct_model = ff.ConstantCt(ct)
+        ct_model = ff.ThrustModelConstantCt(ct)
         power_model = ff.PowerModelConstantCp([cp])
 
         turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])

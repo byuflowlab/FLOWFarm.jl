@@ -23,7 +23,7 @@ shearexponent = 0.15
 turbine_inflow_velcities = [wind_speed]
 nturbines = 1 
 
-ct_model = ff.ConstantCt(ct)
+ct_model = ff.ThrustModelConstantCt(ct)
 power_model = ff.PowerModelConstantCp(cp)
 wind_shear_model = [ff.PowerLawWindShear(shearexponent)]
 

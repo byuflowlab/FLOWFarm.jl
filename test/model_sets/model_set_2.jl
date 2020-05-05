@@ -34,7 +34,7 @@ turbine_inflow_velcities = zeros(nturbines) .+ wind_speed
 rotor_points_y = [0.0]
 rotor_points_z = [0.0]
 
-ct_model = ff.ConstantCt(ct)
+ct_model = ff.ThrustModelConstantCt(ct)
 power_model = ff.PowerModelConstantCp(cp)
 wind_shear_model = ff.PowerLawWindShear(shearexponent)
 
@@ -43,8 +43,6 @@ turbine1 = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed
 turbine_definitions = [turbine1 for i in 1:nturbines]
 sorted_turbine_index = [i for i  in 1:nturbines]
 turbine_definition_ids = ones(Int, nturbines)
-
-
 
 windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definition_ids, turbine_definitions)
 windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, zeros(nturbines))
