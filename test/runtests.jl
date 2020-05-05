@@ -338,8 +338,9 @@ end
         cut_out_speed = 25.0
         rated_speed = 12.0
         rated_power = 1.0176371581904552e6
+        ambient_ti = 0.1
 
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0], [ambient_ti])
 
         k_star = 0.07 # adjusted to match experimental data. #TODO improve tests with model results
         horizontal_spread_rate = k_star
@@ -396,8 +397,9 @@ end
         cut_out_speed = 25.0
         rated_speed = 12.0
         rated_power = 1.0176371581904552e6
+        ambient_ti = 0.1
 
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0], [ambient_ti])
         ct_model = ff.ThrustModelConstantCt(ct)
         power_model = ff.PowerModelConstantCp([cp])
 
@@ -491,6 +493,7 @@ end
         turbine_ai = [1.0/3.0]
         sorted_turbine_index = [1]
         turbine_inflow_velcity = [8.0]
+        ambient_ti = 0.1
         turbine_id = 1
         turbine_definition_id = 1
 
@@ -501,7 +504,7 @@ end
 
         deflection = [0.0, 0.0]
 
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0], [ambient_ti])
         ct_model = ff.ThrustModelConstantCt(ct)
         power_model = ff.PowerModelConstantCp([cp])
 
@@ -588,12 +591,13 @@ end
         turbine_ai = [1.0/3.0]
         sorted_turbine_index = [1]
         turbine_inflow_velcity = [8.0]
+        ambient_ti = 0.1
         turbine_id = 1
         turbine_definition_id = 1
 
         deflection = [0.0, 0.0]
 
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0])
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0], [ambient_ti])
         ct_model = ff.ThrustModelConstantCt(ct)
         power_model = ff.PowerModelConstantCp([cp])
 

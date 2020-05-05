@@ -26,17 +26,17 @@ end
 Container for objects defining models to use in wind farm calculations
 
 # Arguments
-- `wake_defiict_model::Array{AbstractWakeDeficitModel}(1)`: contains a struct defining the desired wake deficit model
-- `wake_deflection_model::Array{AbstractWakeDeflectionModel}(1)`: contains a struct defining the desired wake deflection model
-- `wake_combination_model::Array{AbstractWakeCombinationModel}(1)`: contains a struct defining the desired wake combination model
-- `ti_model::Array{AbstractTurbulenceIntensityModel}(1)`: contains a struct defining the desired turbulence intensity model
+- `wake_defiict_model::AbstractWakeDeficitModel`: contains a struct defining the desired wake deficit model
+- `wake_deflection_model::AbstractWakeDeflectionModel`: contains a struct defining the desired wake deflection model
+- `wake_combination_model::AbstractWakeCombinationModel`: contains a struct defining the desired wake combination model
+- `local_ti_model::AbstractTurbulenceIntensityModel`: contains a struct defining the desired turbulence intensity model
 """
-struct WindFarmModelSet{ADTM,ADNM,ACM} <: AbstractModelSet
+struct WindFarmModelSet{DTM,DNM,CM,TIM} <: AbstractModelSet
 
-    wake_deficit_model::ADTM
-    wake_deflection_model::ADNM
-    wake_combination_model::ACM
-    # local_turbulence_intensity_model::ATIM
+    wake_deficit_model::DTM
+    wake_deflection_model::DNM
+    wake_combination_model::CM
+    local_ti_model::TIM
 
 end
 
@@ -148,10 +148,6 @@ function point_velocity(loc, model_set::AbstractModelSet, problem_description::A
 end
 
 
-turbine_velocities_one_direction!(model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1) = turbine_velocities_one_direction!(0, 0,
-model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1)
-
-
 function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_points_z,
     model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1)
 
@@ -204,11 +200,16 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
         # update thrust coefficient for downstream turbine
         windfarmstate.turbine_ct[downwind_turbine_id] = calculate_ct(wind_turbine_velocity, downwind_turbine.ct_model[1])
 
-        # TODO add local turbulence intensity calculations
+        # update local turbulence intensity for downstream turbine
+        ambient_ti = problem_description.wind_resource.ambient_tis[wind_farm_state_id]
+        windfarmstate.turbine_local_ti[downwind_turbine_id] = calculate_local_ti(ambient_ti, model_set.local_ti_model)
 
     end
 
 end
+
+turbine_velocities_one_direction!(model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1) = turbine_velocities_one_direction!([0.0], [0.0],
+model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1)
 
 
 function calculate_flow_field(direction_id, xrange, yrange, zrange, rotor_sample_points_y, rotor_sample_points_z,
