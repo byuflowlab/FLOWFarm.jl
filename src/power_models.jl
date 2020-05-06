@@ -14,8 +14,24 @@ struct PowerModelPowerPoints{ATF} <: AbstractPowerModel
     power_points::ATF
 end
 
-# struct PowerModelPowerCurveCubic{} <: AbstractPowerModel
-# end
+struct PowerModelPowerCurveCubic{TF} <: AbstractPowerModel
+    rated_speed::TF
+    rated_power::TF
+end
+
+
+function calculate_power(generator_efficiency, air_density, rotor_area, wt_velocity, power_model::PowerModelPowerCurveCubic)
+
+    # extract cp_value
+    rated_power = power_model.rated_power
+    rated_speed = power_model.rated_speed
+
+    power = (wt_velocity/rated_speed)^3*rated_power
+
+    return power
+
+end
+
 
 """
     calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity)
@@ -200,7 +216,7 @@ function calculate_aep(model_set::AbstractModelSet, problem_description::Abstrac
     wind_probabilities = wind_resource.wind_probabilities
 
     nstates = length(problem_description.wind_farm_states)
-    seconds_per_year = 365.25*24.0*3600.0
+    hours_per_year = 365.25*24.0
 
     state_energy = zeros(nstates)
     for i = 1:nstates
@@ -216,7 +232,7 @@ function calculate_aep(model_set::AbstractModelSet, problem_description::Abstrac
             problem_description, wind_farm_state_id=i)
 
         state_power = sum(problem_description.wind_farm_states[i].turbine_generators_powers)
-        state_energy[i] = state_power*seconds_per_year*wind_probabilities[i]
+        state_energy[i] = state_power*hours_per_year*wind_probabilities[i]
     end
 
     return sum(state_energy)

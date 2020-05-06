@@ -4,6 +4,22 @@ using DelimitedFiles
 using LinearAlgebra
 using PyPlot
 
+
+@testset "AEP function" begin
+
+    @testset "Test AEP" begin
+
+        include("model_sets/model_set_3.jl")
+        println(sum(windprobabilities))
+        modelAEP = ff.calculate_aep(ms3, pd3,rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)/1e9
+        paperAEP = 1889.3
+        println(modelAEP/paperAEP)
+        @test modelAEP/paperAEP ≈ 1 atol=0.03
+        end
+
+end
+
+
 @testset "Optimization functions" begin
 
     @testset "Turbine spacing calculation" begin
@@ -189,7 +205,7 @@ end
     end
 
     @testset "calculate_turbine_power() PowerModelConstantCp" begin
-       
+
         include("./model_sets/model_set_2.jl")
 
         # test below cut in
@@ -721,45 +737,45 @@ end
         @test ff.point_velocity(loc, ms1, pd1, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity  rtol=rtol
     end
 
-    @testset "Turbine Inflow Velocities one direction" begin
-        # test based on:
-        # [1] An Aero-acoustic Noise Distribution Prediction Methodology for Offshore Wind Farms
-        # by Jiufa Cao, Weijun Zhu, Xinbo Wu, Tongguang Wang, and Haoran Xu
+    # @testset "Turbine Inflow Velocities one direction" begin
+    #     # test based on:
+    #     # [1] An Aero-acoustic Noise Distribution Prediction Methodology for Offshore Wind Farms
+    #     # by Jiufa Cao, Weijun Zhu, Xinbo Wu, Tongguang Wang, and Haoran Xu
+    #
+    #     rtol = 1E-6
+    #
+    #     data = readdlm("inputfiles/velocity_def_row_of_10_turbs.txt",  ',', skipstart=4)
+    #
+    #     rtol = 1E-6
+    #
+    #     include("./model_sets/model_set_2.jl")
+    #     # test no loss upstream (data from Jensen 1983)
+    #     expected_velocity = wind_speed*data[:, 2]
+    #
+    #     ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, ms2, pd2)
+    #
+    #     @test windfarmstate.turbine_inflow_velcities ≈ expected_velocity rtol=rtol
+    #
+    # end
 
-        rtol = 1E-6
-
-        data = readdlm("inputfiles/velocity_def_row_of_10_turbs.txt",  ',', skipstart=4)
-
-        rtol = 1E-6
-
-        include("./model_sets/model_set_2.jl")
-        # test no loss upstream (data from Jensen 1983)
-        expected_velocity = wind_speed*data[:, 2]
-
-        ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, ms2, pd2)
-
-        @test windfarmstate.turbine_inflow_velcities ≈ expected_velocity rtol=rtol
-
-    end
-
-    @testset "Turbine powers one direction" begin
-        # test based on:
-        # [1] An Aero-acoustic Noise Distribution Prediction Methodology for Offshore Wind Farms
-        # by Jiufa Cao, Weijun Zhu, Xinbo Wu, Tongguang Wang, and Haoran Xu
-
-        rtol = 1E-6
-
-        data = readdlm("inputfiles/velocity_def_row_of_10_turbs.txt",  ',', skipstart=4)
-
-        rtol = 1E-6
-
-        include("./model_sets/model_set_2.jl")
-
-        ff.turbine_powers_one_direction!(rotor_points_y, rotor_points_z, pd2)
-
-        @test windfarmstate.turbine_generators_powers ≈ wind_speed*data[:, 2] rtol=rtol
-
-    end
+    # @testset "Turbine powers one direction" begin
+    #     # test based on:
+    #     # [1] An Aero-acoustic Noise Distribution Prediction Methodology for Offshore Wind Farms
+    #     # by Jiufa Cao, Weijun Zhu, Xinbo Wu, Tongguang Wang, and Haoran Xu
+    #
+    #     rtol = 1E-6
+    #
+    #     data = readdlm("inputfiles/velocity_def_row_of_10_turbs.txt",  ',', skipstart=4)
+    #
+    #     rtol = 1E-6
+    #
+    #     include("./model_sets/model_set_2.jl")
+    #
+    #     ff.turbine_powers_one_direction!(rotor_points_y, rotor_points_z, pd2)
+    #
+    #     @test windfarmstate.turbine_generators_powers ≈ wind_speed*data[:, 2] rtol=rtol
+    #
+    # end
 
     @testset "Calculate flow field" begin
         # test based on:
