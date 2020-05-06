@@ -76,9 +76,8 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 """
 struct GaussYaw{TF} <: AbstractWakeDeficitModel
-    turbulence_intensities::ATF
-    horizontal_spread_rates::ATF
-    vertical_spread_rates::ATF
+    horizontal_spread_rate::TF
+    vertical_spread_rate::TF
     alpha_star::TF
     beta_star::TF
 end
@@ -241,11 +240,12 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
 
     # extract model parameters
     ks = model.k_star       # wake spread rate (k* in 2014 paper)
-    ti = model.turbulence_intensity
     ky = model.horizontal_spread_rate
     kz = model.vertical_spread_rate
     as = model.alpha_star
     bs = model.beta_star
+
+    ti = windfarmstate.turbine_local_ti[turbine_id]
 
     # calculate beta (paper eq: 6)
     beta = 0.5*(1.0+sqrt(1.0-ct))/sqrt(1.0-ct)
@@ -313,7 +313,7 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
 
     # extract model parameters
     # ks = model.k_star       # wake spread rate (k* in 2014 paper)
-    ti = model.turbulence_intensity
+    ti = windfarmstate.turbine_local_ti[turbine_id]
     ky = model.horizontal_spread_rate
     kz = model.vertical_spread_rate
     as = model.alpha_star

@@ -76,12 +76,12 @@ function _bpa_theta_0(yaw, ct)
     return theta0
 end
 
-function _bpa_deflection(d, ct, yaw, ky, kz, sigmay, sigmaz, theta0, x0)
-    a = theta0*x0/d
+function _bpa_deflection(diam, ct, yaw, ky, kz, sigmay, sigmaz, theta0, x0)
+    a = theta0*x0/diam
     b = (theta0/14.7)*sqrt(cos(yaw)/(ky*kz*ct))*(2.9-1.3*sqrt(1.0-ct)-ct)
-    c = (1.6+sqrt(ct))*(1.6*sqrt(8.0*sigmay*sigmaz/(cos(yaw)*d^2))-ct)
-    d = (1.6-sqrt(ct))*(1.6*sqrt(8.0*sigmay*sigmaz/(cos(yaw)*d^2))+ct)
-    y_deflection = d*(a+b*log(c/d))
+    c = (1.6+sqrt(ct))*(1.6*sqrt(8.0*sigmay*sigmaz/(cos(yaw)*diam^2))-ct)
+    d = (1.6-sqrt(ct))*(1.6*sqrt(8.0*sigmay*sigmaz/(cos(yaw)*diam^2))+ct)
+    y_deflection = diam*(a+b*log(c/d))
     return y_deflection
 end
 
@@ -114,7 +114,7 @@ function wake_deflection_model(loc, turbine_id, turbine_definition::TurbineDefin
     x0 = _gauss_yaw_potential_core(diam, yaw, ct, as, ti, bs)
     sigmay = _gauss_yaw_spread(diam, ky, dx, x0, yaw)
     sigmaz = _gauss_yaw_spread(diam, kz, dx, x0, 0.0)
-    y_deflection = _bpa_deflection(d, ct, yaw, ky, kz, sigmay, sigmaz, theta0, x0)
+    y_deflection = _bpa_deflection(diam, ct, yaw, ky, kz, sigmay, sigmaz, theta0, x0)
 
     return y_deflection
 end

@@ -76,12 +76,12 @@ function _ct_to_axial_ind_func(ct)
     axial_induction = 0.0
 
     # calculate axial induction
-    if (ct > 0.96) then  # Glauert condition
-        axial_induction = 0.143 + sqrt(0.0203-0.6427*(0.889 - ct))
+    if ct > 0.96  # Glauert condition
+        axial_induction = 0.143 + sqrt(0.0203 - 0.6427*(0.889 - ct))
     else
-        axial_induction = 0.5*(1.0-sqrt(1.0-ct))
-    end if
-
-    return axial_induction
+        axial_induction = 0.5*(1.0 - sqrt(1.0 - ct))
+    end
     
+    return axial_induction
+
 end

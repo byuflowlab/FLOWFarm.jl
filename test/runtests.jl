@@ -4,6 +4,45 @@ using DelimitedFiles
 using LinearAlgebra
 using PyPlot
 
+@testset "utilities" begin
+
+    @testset "wake overlap" begin
+
+        turbine_y = 1000.0
+        turbine_z = wake_center_z = 90.0
+        rotor_diameter = 80.0
+        wake_diameter = 80.0
+        wake_center_y = 0.0
+
+        # test no overlap
+        overlap = ff.overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y, 
+            wake_center_z, wake_diameter)
+        @test overlap == 0.0
+
+        # test partial overlap
+        turbine_y = 0.8079455*rotor_diameter/2.0
+        overlap = ff.overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y, 
+            wake_center_z, wake_diameter)
+        @test overlap ≈ 0.5*0.25*pi*rotor_diameter^2 atol=1E-4
+
+        # test full overlap larger wake
+        turbine_y = 0.0
+        wake_diameter = 90.0
+        overlap = ff.overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y, 
+            wake_center_z, wake_diameter)
+        @test overlap ≈ 0.25*pi*rotor_diameter^2 atol=1E-6
+
+        # test full overlap larger rotor
+        turbine_y = 0.0
+        wake_diameter = 70.0
+        overlap = ff.overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y, 
+            wake_center_z, wake_diameter)
+        @test overlap ≈ 0.25*pi*wake_diameter^2 atol=1E-6
+
+    end
+
+end
+
 @testset "Optimization functions" begin
 
     @testset "Turbine spacing calculation" begin
@@ -603,7 +642,7 @@ end
 
         turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
 
-        model = ff.GaussYaw(turbulence_intensity, horizontal_spread_rate , vertical_spread_rate, alpha_star, beta_star)
+        model = ff.GaussYaw(horizontal_spread_rate , vertical_spread_rate, alpha_star, beta_star)
 
         # data from Bastankhah and Porte-Agel 2016, figure 19
         yaw_20 = 20.0*pi/180.0
