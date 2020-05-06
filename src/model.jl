@@ -1,8 +1,8 @@
-using FlowFarm
-using CCBlade
-using PyPlot
-using FLOWMath
-using Statistics
+# using FlowFarm
+# using CCBlade
+# using PyPlot
+# using FLOWMath
+# using Statistics
 
 const ff=FlowFarm
 
@@ -63,6 +63,11 @@ yaw = 0.0
 ct = 8.0/9.0
 cp = 0.42
 
+cut_in_speed = 3.0
+cut_out_speed = 25.0
+rated_speed = 11.4
+rated_power = 5e6
+
 generator_efficiency = 0.944
 ai = 1.0/3.0
 wind_speed = 12.
@@ -75,6 +80,7 @@ turbine_yaw = zeros(nturbines)
 turbine_ct = zeros(nturbines) .+ ct
 turbine_ai = zeros(nturbines) .+ ai
 winddirections = [270.0*pi/180.0]
+ambient_ti = ones(length(winddirections)) .* 0.11
 windspeeds = [wind_speed]
 windprobabilities = [1.0]
 measurementheight = [hub_height]
@@ -85,16 +91,20 @@ turbine_inflow_velcities = zeros(nturbines) .+ wind_speed
 rotor_points_y = [0.0]
 rotor_points_z = [0.0]
 
-ct_model = ff.ConstantCt(ct)
-power_model = ff.ConstantCp([cp], [generator_efficiency])
+ct_model = ff.ThrustModelConstantCt(ct)
+power_model = ff.PowerModelConstantCp(cp)
 wind_shear_model = ff.PowerLawWindShear(shearexponent)
 
-turbine = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [ct_model], [power_model])
+# turbine = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [ct_model], [power_model])
+turbine = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], power_model)
 # turbine_definitions = [turbine for i in 1:nturbines]
 turbine_definitions = [turbine]
 sorted_turbine_index = [i for i  in 1:nturbines]
 turbine_definition_ids = ones(Int, nturbines)
 
-windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, [wind_shear_model])
+
+windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_ti, [wind_shear_model])
 
 wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
+
+local_ti_model = ff.LocalTIModelNoLocalTI()

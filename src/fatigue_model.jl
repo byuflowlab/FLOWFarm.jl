@@ -8,6 +8,98 @@ using Random
 const ff=FlowFarm
 
 
+function multiple_components_op(U, V, W, Omega, r, precone, yaw, tilt, azimuth, rho, mu=1.81206e-05, asound=1.0)
+
+    sy = sin(yaw)
+    cy = cos(yaw)
+    st = sin(tilt)
+    ct = cos(tilt)
+    sa = sin(azimuth)
+    ca = cos(azimuth)
+    sc = sin(precone)
+    cc = cos(precone)
+
+    magnitude = sqrt.(U.^2 + V.^2 + W.^2)
+    x0 = U./magnitude
+    y0 = V./magnitude
+    z0 = W./magnitude
+
+    #first
+    x1 = x0.*cy + y0.*sy
+    y1 = -x0.*sy + y0.*cy
+    z1 = z0
+
+    #second
+    x2 = -z1.*st + x1.*ct
+    y2 = y1
+    z2 = z1.*ct + x1.*st
+
+    #third
+    x3 = x2
+    y3 = y2.*ca + z2.*sa
+    z3 = -y2.*sa + z2.*ca
+
+    #fourth
+    x4 = z3.*sc + x3.*cc
+    y4 = y3
+    z4 = z3.*cc - x3.*sc
+
+    # transform wind to blade c.s.
+    Vwind_x = magnitude.*x4
+    Vwind_y = magnitude.*y4
+    Vwind_z = magnitude.*z4
+
+    # coordinate in azimuthal coordinate system
+    z_az = r.*cos(precone)
+
+    # wind from rotation to blade c.s.
+    Vrot_x = -Omega*sc
+    Vrot_y = Omega.*z_az
+
+    # total velocity
+    Vx = Vwind_x .+ Vrot_x
+    Vy = Vwind_y + Vrot_y
+
+    # operating point
+    return OperatingPoint(Vx, Vy, rho, mu, asound)
+end
+
+
+function distributed_velocity_op(V, Omega, r, precone, yaw, tilt, azimuth, rho, mu=1.81206e-05, asound=1.0)
+
+    sy = sin(yaw)
+    cy = cos(yaw)
+    st = sin(tilt)
+    ct = cos(tilt)
+    sa = sin(azimuth)
+    ca = cos(azimuth)
+    sc = sin(precone)
+    cc = cos(precone)
+
+    # coordinate in azimuthal coordinate system
+    x_az = -r.*sin(precone)
+    z_az = r.*cos(precone)
+
+    # get section heights in wind-aligned coordinate system
+    heightFromHub = (z_az*ca)*ct - x_az*st
+
+    # transform wind to blade c.s.
+    Vwind_x = V * ((cy*st*ca + sy*sa)*sc + cy*ct*cc)
+    Vwind_y = V * (cy*st*sa - sy*ca)
+
+    # wind from rotation to blade c.s.
+    Vrot_x = -Omega*sc
+    Vrot_y = Omega*z_az
+
+    # total velocity
+    Vx = Vwind_x + Vrot_x
+    Vy = Vwind_y + Vrot_y
+
+    # operating point
+    return OperatingPoint(Vx, Vy, rho, mu, asound)
+end
+
+
 function find_xyz_simple(x_hub,y_hub,z_hub,r,yaw,azimuth)
 
         sy = sin(yaw)
@@ -298,6 +390,7 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
         measurementheight = problem_description.wind_resource.measurement_heights
         air_density = problem_description.wind_resource.air_density
         wind_shear_model = problem_description.wind_resource.wind_shear_model
+        ambient_tis = problem_description.wind_resource.ambient_tis
         windfarm = problem_description.wind_farm
         windfarmstate = problem_description.wind_farm_states[state_ID]
         turb_type = problem_description.wind_farm.turbine_definition_ids[turbine_ID]
@@ -321,7 +414,7 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
 
             windspeeds = ws + turb_samples[i]*TI_inst*ws
             turbine_inflow_velcities = zeros(nturbines) .+ windspeeds
-            temp_resource = ff.DiscretizedWindResource([3*pi/2], [windspeeds], [1.0], measurementheight, air_density, wind_shear_model)
+            temp_resource = ff.DiscretizedWindResource([3*pi/2], [windspeeds], [1.0], measurementheight, air_density,ambient_tis, wind_shear_model)
             temp_pd = ff.WindFarmProblemDescription(windfarm, temp_resource, [windfarmstate])
 
             ff.turbine_velocities_one_direction!(points_x, points_y, model_set, temp_pd)
@@ -333,6 +426,7 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
             U = get_speeds(turbine_x,turbine_y,turbine_ID,hub_height,r,yaw,az,model_set,temp_pd)
             op = distributed_velocity_op.(U, Omega, r, precone, yaw, tilt, az, rho)
             out = CCBlade.solve.(Ref(rotor), sections, op)
+            # out = CCBlade.solve(rotor, sections[1], op[1])
             flap_temp,edge_temp = get_moments(out,Rhub,Rtip,r,az)
             flap = append!(flap,flap_temp)
             edge = append!(edge,edge_temp)
@@ -417,6 +511,12 @@ function get_total_farm_damage(model_set,problem_description,nCycles,az_arr,
 
     damage = zeros(nturbines)
     for k = 1:ndirections
+
+        problem_description.wind_farm_states[i].turbine_x[:],problem_description.wind_farm_states[i].turbine_y[:] =
+                rotate_to_wind_direction(wind_farm.turbine_x, wind_farm.turbine_y, wind_resource.wind_directions[i])
+
+        problem_description.wind_farm_states[i].sorted_turbine_index[:] = sortperm(problem_description.wind_farm_states[i].turbine_x)
+
         state_damage = get_single_state_damage(model_set,problem_description,k,nCycles,az_arr,
             turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,
             Nlocs=Nlocs)
@@ -424,4 +524,21 @@ function get_total_farm_damage(model_set,problem_description,nCycles,az_arr,
     end
 
     return damage
+end
+
+
+for i = 1:nstates
+    problem_description.wind_farm_states[i].turbine_x[:],problem_description.wind_farm_states[i].turbine_y[:] =
+            rotate_to_wind_direction(wind_farm.turbine_x, wind_farm.turbine_y, wind_resource.wind_directions[i])
+
+    problem_description.wind_farm_states[i].sorted_turbine_index[:] = sortperm(problem_description.wind_farm_states[i].turbine_x)
+
+    turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_points_z,
+        model_set, problem_description, wind_farm_state_id=i)
+
+    turbine_powers_one_direction!(rotor_sample_points_y, rotor_sample_points_z,
+        problem_description, wind_farm_state_id=i)
+
+    state_power = sum(problem_description.wind_farm_states[i].turbine_generators_powers)
+    state_energy[i] = state_power*seconds_per_year*wind_probabilities[i]
 end
