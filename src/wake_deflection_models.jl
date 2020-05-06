@@ -69,6 +69,13 @@ function wake_deflection_model(loc, turbine_id, turbine_definition::TurbineDefin
 
 end
 
+function _bpa_theta_0(yaw, ct)
+
+    theta0 = (0.3*yaw/cos(yaw))*(1.0-sqrt(1.0-ct*cos(yaw)))
+
+    return theta0
+end
+
 """
     wake_deflection_model(loc, turbine_id, turbine_definition::TurbineDefinition, model::GaussYawDeflection, windfarmstate::SingleWindFarmState)
     
@@ -92,7 +99,7 @@ function wake_deflection_model(loc, turbine_id, turbine_definition::TurbineDefin
     kz = model.vertical_spread_rate
 
     # [1] eqn 6.12
-    theta0 = (0.3*yaw/cos(yaw))*(1.0-sqrt(1.0-ct*cos(yaw)))
+    theta0 = _bpa_theta_0(yaw, ct)
 
     # [1] eqn 7.4
     x0 = _gauss_yaw_potential_core(diam, yaw, ct, as, ti, bs)

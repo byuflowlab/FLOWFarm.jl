@@ -76,9 +76,9 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 """
 struct GaussYaw{TF} <: AbstractWakeDeficitModel
-    turbulence_intensity::TF
-    horizontal_spread_rate::TF
-    vertical_spread_rate::TF
+    turbulence_intensities::ATF
+    horizontal_spread_rates::ATF
+    vertical_spread_rates::ATF
     alpha_star::TF
     beta_star::TF
 end
@@ -270,10 +270,10 @@ end
 
 Helper function for wake_deficit_model when using the GaussYaw model. Computes the length of the near wake potential core.
 """
-function _gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
+function _gauss_yaw_potential_core(d, yaw, ct, as, ti, bs)
     # from Bastankhah and Porte-Agel 2016 eqn 7.3
 
-    x0 = dt*(cos(yaw)*(1.0+sqrt(1.0-ct)))/(sqrt(2.0)*(as*ti+bs*(1.0-sqrt(1.0-ct))))
+    x0 = d*(cos(yaw)*(1.0+sqrt(1.0-ct)))/(sqrt(2.0)*(as*ti+bs*(1.0-sqrt(1.0-ct))))
 
     return x0
 end

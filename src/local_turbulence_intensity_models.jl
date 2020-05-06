@@ -5,7 +5,8 @@ struct LocalTIModelNoLocalTI{} <: AbstractLocalTurbulenceIntensityModel
 end
 
 struct LocalTIModelMaxTI{TF} <: AbstractLocalTurbulenceIntensityModel
-    ambient_ti::TF
+    astar::TF
+    bstar::TF
 end
 
 struct LocalTIModelGaussTI{TF} <: AbstractLocalTurbulenceIntensityModel
@@ -16,7 +17,15 @@ function calculate_local_ti(ambient_ti, ti_model::LocalTIModelNoLocalTI)
     return ambient_ti
 end
 
-function calculate_local_ti(ambient_ti, windfarmstate, ti_model::LocalTIModelMaxTI; turbine_id=1)
+# compute wake spread parameter based on local turbulence intensity
+function _k_star_func(ti_ust)
+    
+    # calculate wake spread parameter from Niayifar and Porte Agel (2015, 2016)
+    k_star_ust = 0.3837*ti_ust+0.003678
+    
+end
+
+function calculate_local_ti(ambient_ti, windfarm, windfarmstate, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6)
 
     # calculate local turbulence intensity at turbI
     
@@ -36,29 +45,41 @@ function calculate_local_ti(ambient_ti, windfarmstate, ti_model::LocalTIModelMax
         turb = windfarmstate.sorted_turbine_index[u]
         
         # skip turbine's influence on itself
-        if (turb .eq. turbI) cycle
+        if turb == turbine_id; continue; end
         
-        ! calculate downstream distance between wind turbines
-        x = turbineXw(turbI) - turbineXw(turb)
+        # calculate downstream distance between wind turbines
+        x = windfarmstate.turbine_x[turbine_id] - windfarmstate.turbine_x[turb]
         
-        if (x > tol) then
-            ! determine the far-wake onset location 
-            call x0_func(rotorDiameter(turb), yaw(turb), Ct_local(turb), alpha, & 
-                        & TIturbs(turb), beta, x0)
-        
-            ! calculate the distance from the onset of far-wake
-            deltax0 = x - x0
-        
-            ! horizontal spread 
-            call sigmay_func(x, x0, ky_local(turb), rotorDiameter(turb), yaw(turb), sigmay)
+        if x > tol
 
-            ! vertical spread 
-            call sigmaz_func(x, x0, kz_local(turb), rotorDiameter(turb), sigmaz)
+            # extract state and design info for current upstream turbine
+            d_ust = windfarm.turbine_definitions[def_id].rotor_diameter
+            yaw_ust = windfarmstate.turbine_yaw[turb]
+            ti_ust = windfarmstate.turbine_local_ti[turb]
+
+            # calculate ct at the current upstream turbine
+            def_id = windfarm.turbine_definition_ids[turb]
+            ct_model = windfarm.turbine_definitions[def_id].ct_model
+            ct_ust = calculate_ct(windfarmstate.turbine_inflow_velcities[turb], ct_model)
+
+            # determine the far-wake onset location
+            astar = ti_model.astar
+            bstar = ti_model.bstar
+            x0 = _gauss_yaw_potential_core(d_ust, yaw_ust, ct_ust, astar, ti_ust, bstar)
         
-            ! determine the initial wake angle at the onset of far wake
-            call theta_c_0_func(yaw(turb), Ct_local(turb), theta_c_0)
+            # calculate the distance from the onset of far-wake
+            deltax0 = x - x0
+
+            # calculate wake spread rate for current upstream turbine
+            kstar_ust = _k_star_func(ti_ust)
+        
+            # calculate horizontal and vertical spread standard deviations
+            sigmay = sigmaz = _gauss_yaw_spread(x, x0, kstar_ust, d_ust, yaw_ust)
+
+            # determine the initial wake angle at the onset of far wake
+            theta_c_0 = _bpa_theta_0(yaw_ust, ct_ust)
     
-            ! horizontal cross-wind wake displacement from hub
+            # horizontal cross-wind wake displacement from hub
             call wake_offset_func(x, rotorDiameter(turb), theta_c_0, x0, yaw(turb), &
                                     & ky_local(turb), kz_local(turb), &
                                     Ct_local(turb), sigmay, sigmaz, wake_offset)
