@@ -5,6 +5,7 @@ module FlowFarm
 using FLOWMath: linear
 # using Statistics
 
+include("utilities.jl")
 include("turbines.jl")
 include("windfarms.jl")
 include("wind_resources.jl")
