@@ -1,9 +1,9 @@
 using FlowFarm
 using CCBlade
-using PyPlot
+# using PyPlot
 using FLOWMath
-using Statistics
-using Random
+# using Statistics
+# using Random
 
 const ff=FlowFarm
 
@@ -292,41 +292,48 @@ end
 
 
 function get_moments(out,Rhub,Rtip,r,az,precone,tilt)
-    loads_flap = out.Np/1000.
-    loads_edge = out.Tp/1000.
+    nr = length(r)+2
+
+    loads_flap = zeros(nr)
+    loads_edge = zeros(nr)
+    r_arr = zeros(nr)
+
+    loads_flap[2:end-1] = out.Np/1000.
+    loads_edge[2:end-1] = out.Tp/1000.
+    r_arr[2:end-1] = r
     #
     #approximate loads at r = Rhub
-    dL_flap = loads_flap[2]-loads_flap[1]
-    dL_edge = loads_edge[2]-loads_edge[1]
-    dr = r[2]-r[1]
+    dL_flap = loads_flap[3]-loads_flap[2]
+    dL_edge = loads_edge[3]-loads_edge[2]
+    dr = r_arr[3]-r_arr[2]
 
     m_flap = dL_flap/dr
     m_edge = dL_edge/dr
 
-    Lhub_flap = loads_flap[1] + m_flap*(Rhub-r[1])
-    Lhub_edge = loads_edge[1] + m_edge*(Rhub-r[1])
+    Lhub_flap = loads_flap[2] + m_flap*(Rhub-r_arr[2])
+    Lhub_edge = loads_edge[2] + m_edge*(Rhub-r_arr[2])
 
-    loads_flap = append!([Lhub_flap],loads_flap)
-    loads_edge = append!([Lhub_edge],loads_edge)
-    r = append!([Rhub],r)
+    loads_flap[1] = Lhub_flap
+    loads_edge[1] = Lhub_edge
+    r_arr[1] = Rhub
 
     #approximate loads at r = Rtip
-    dL_flap = loads_flap[end]-loads_flap[end-1]
-    dL_edge = loads_edge[end]-loads_edge[end-1]
-    dr = r[end]-r[end-1]
+    dL_flap = loads_flap[end-1]-loads_flap[end-2]
+    dL_edge = loads_edge[end-1]-loads_edge[end-2]
+    dr = r_arr[end-1]-r_arr[end-2]
 
     m_flap = dL_flap/dr
     m_edge = dL_edge/dr
 
-    Lhub_flap = loads_flap[end] + m_flap*(Rtip-r[end])
-    Lhub_edge = loads_edge[end] + m_edge*(Rtip-r[end])
+    Lhub_flap = loads_flap[end] + m_flap*(Rtip-r_arr[end-1])
+    Lhub_edge = loads_edge[end] + m_edge*(Rtip-r_arr[end-1])
 
-    loads_flap = append!(loads_flap,[Lhub_flap])
-    loads_edge = append!(loads_edge,[Lhub_edge])
-    r = append!(r,[Rtip])
+    loads_flap[end] = Lhub_flap
+    loads_edge[end] = Lhub_edge
+    r_arr[end] = Rtip
 
-    M_flap = trapz(r,loads_flap.*(r.-Rhub))
-    M_edge = trapz(r,loads_edge.*(r.-Rhub))
+    M_flap = trapz(r_arr,loads_flap.*(r_arr.-Rhub))
+    M_edge = trapz(r_arr,loads_edge.*(r_arr.-Rhub))
 
     # add gravity loads
     blade_mass=17536.617
@@ -341,9 +348,6 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
     turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho;
     Nlocs=20,fos=1.15)
 
-        flap = []
-        edge = []
-        oms = []
         naz = length(az_arr)
 
         turbine_x = problem_description.wind_farm_states[state_ID].turbine_x
@@ -363,6 +367,12 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
         hub_height = problem_description.wind_farm.turbine_definitions[turb_type].hub_height
         yaw = problem_description.wind_farm_states[state_ID].turbine_yaw[turbine_ID]
 
+        # flap = []
+        # edge = []
+        # oms = []
+        flap = zeros(nCycles*naz)
+        edge = zeros(nCycles*naz)
+        oms = zeros(nCycles*naz)
 
         for i = 1:nCycles*naz
             az = az_arr[(i+1)%naz+1]
@@ -392,11 +402,8 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
             U = get_speeds(turbine_x,turbine_y,turbine_ID,hub_height,r,yaw,az,model_set,temp_pd)
             op = distributed_velocity_op.(U, Omega, r, precone, yaw, tilt, az, rho)
             out = CCBlade.solve.(Ref(rotor), sections, op)
-            # out = CCBlade.solve(rotor, sections[1], op[1])
-            flap_temp,edge_temp = ff.get_moments(out,Rhub,Rtip,r,az,precone,tilt)
-            flap = append!(flap,flap_temp)
-            edge = append!(edge,edge_temp)
-            oms = append!(oms,Omega)
+            flap[i],edge[i] = ff.get_moments(out,Rhub,Rtip,r,az,precone,tilt)
+            oms[i] = Omega
 
         end
 
@@ -432,12 +439,10 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
             npts = length(mar)
             #damage calculations
             d = 0.0
-            d_arr = []
             for i = 1:npts
                 Nfail = ((su)/(mar[i]*fos))^m
                 mult = years*365.25*24.0*3600.0*freq/total_time
                 d += count[i]*mult/Nfail
-                d_arr = append!(d_arr,count[i]*mult/Nfail)
             end
             if d > damage
                 damage = d
