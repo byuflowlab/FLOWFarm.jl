@@ -1,4 +1,4 @@
-include("fatigue_model.jl")
+# include("fatigue_model.jl")
 
 # include("FAST_data.jl")
 include("model.jl")
@@ -122,8 +122,8 @@ for k=1:length(off)
     # # state_damage = get_single_state_damage(ms,pd,1,nCycles,az_arr,
     # #     turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_function,r,rotor,sections,Rhub,Rtip)
     t1 = time()
-    total_damage = get_total_farm_damage(ms,pd,nCycles,az_arr,
-        turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_function,r,rotor,sections,Rhub,Rtip)
+    total_damage = ff.get_total_farm_damage(ms,pd,nCycles,az_arr,
+        turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_function,r,rotor,sections,Rhub,Rtip,precone,tilt,rho)
     t1_damage[k] = total_damage[1]
     t2_damage[k] = total_damage[2]
     println(time()-t1)

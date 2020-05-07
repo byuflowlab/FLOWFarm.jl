@@ -291,7 +291,7 @@ function calc_TI(constant,ai,TI_free,initial,sep,downstream)
 end
 
 
-function get_moments(out,Rhub,Rtip,r,az)
+function get_moments(out,Rhub,Rtip,r,az,precone,tilt)
     loads_flap = out.Np/1000.
     loads_edge = out.Tp/1000.
     #
@@ -337,44 +337,9 @@ function get_moments(out,Rhub,Rtip,r,az)
 end
 
 
-function distributed_velocity_op(V, Omega, r, precone, yaw, tilt, azimuth, rho, mu=1.81206e-05, asound=1.0)
-
-    sy = sin(yaw)
-    cy = cos(yaw)
-    st = sin(tilt)
-    ct = cos(tilt)
-    sa = sin(azimuth)
-    ca = cos(azimuth)
-    sc = sin(precone)
-    cc = cos(precone)
-
-    # coordinate in azimuthal coordinate system
-    x_az = -r.*sin(precone)
-    z_az = r.*cos(precone)
-
-    # get section heights in wind-aligned coordinate system
-    heightFromHub = (z_az*ca)*ct - x_az*st
-
-    # transform wind to blade c.s.
-    Vwind_x = V * ((cy*st*ca + sy*sa)*sc + cy*ct*cc)
-    Vwind_y = V * (cy*st*sa - sy*ca)
-
-    # wind from rotation to blade c.s.
-    Vrot_x = -Omega*sc
-    Vrot_y = Omega*z_az
-
-    # total velocity
-    Vx = Vwind_x + Vrot_x
-    Vy = Vwind_y + Vrot_y
-
-    # operating point
-    return OperatingPoint(Vx, Vy, rho, mu, asound)
-end
-
-
 function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCycles,az_arr,
-    turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip;
-    Nlocs=20)
+    turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho;
+    Nlocs=20,fos=1.15)
 
         flap = []
         edge = []
@@ -383,6 +348,7 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
 
         turbine_x = problem_description.wind_farm_states[state_ID].turbine_x
         turbine_y = problem_description.wind_farm_states[state_ID].turbine_y
+        turbine_z = problem_description.wind_farm_states[state_ID].turbine_z
         nturbines = length(turbine_x)
 
         naz = length(az_arr)
@@ -402,7 +368,7 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
             az = az_arr[(i+1)%naz+1]
 
             """need to figure this out"""
-            x_locs, y_locs, z_locs = find_xyz_simple(turbine_x[turbine_ID],turbine_y[turbine_ID],turbine_z[turbine_ID].+hub_height,r,yaw,az)
+            x_locs, y_locs, z_locs = ff.find_xyz_simple(turbine_x[turbine_ID],turbine_y[turbine_ID],turbine_z[turbine_ID].+hub_height,r,yaw,az)
             TI_arr = zeros(length(r))
             for k = 1:length(r)
                 loc = [x_locs[k],y_locs[k],z_locs[k]]
@@ -419,15 +385,15 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
 
             ff.turbine_velocities_one_direction!(points_x, points_y, model_set, temp_pd)
             turbine_inflow_velcities = temp_pd.wind_farm_states[state_ID].turbine_inflow_velcities
-            Omega_rpm = omega_func(turbine_inflow_velcities[turb_index]) #in rpm
+            Omega_rpm = omega_func(turbine_inflow_velcities[turbine_ID]) #in rpm
             Omega = Omega_rpm*0.10471975512 #convert to rad/s
-            pitch_deg = pitch_func(turbine_inflow_velcities[turb_index]) #in degrees
+            pitch_deg = pitch_func(turbine_inflow_velcities[turbine_ID]) #in degrees
             pitch = pitch_deg*pi/180.0 #convert to rad
             U = get_speeds(turbine_x,turbine_y,turbine_ID,hub_height,r,yaw,az,model_set,temp_pd)
             op = distributed_velocity_op.(U, Omega, r, precone, yaw, tilt, az, rho)
             out = CCBlade.solve.(Ref(rotor), sections, op)
             # out = CCBlade.solve(rotor, sections[1], op[1])
-            flap_temp,edge_temp = get_moments(out,Rhub,Rtip,r,az)
+            flap_temp,edge_temp = ff.get_moments(out,Rhub,Rtip,r,az,precone,tilt)
             flap = append!(flap,flap_temp)
             edge = append!(edge,edge_temp)
             oms = append!(oms,Omega)
@@ -483,16 +449,16 @@ end
 
 
 function get_single_state_damage(model_set,problem_description,state_ID,nCycles,az_arr,
-    turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip;
-    Nlocs=20)
+    turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho;
+    Nlocs=20,fos=1.15)
 
     turbine_x = problem_description.wind_farm_states[state_ID].turbine_x
     nturbines = length(turbine_x)
     damage = zeros(nturbines)
     for k = 1:nturbines
-        damage[k] = get_single_damage(model_set,problem_description,k,state_ID,nCycles,az_arr,
-            turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,
-            Nlocs=Nlocs)
+        damage[k] = ff.get_single_damage(model_set,problem_description,k,state_ID,nCycles,az_arr,
+            turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho,
+            Nlocs=Nlocs,fos=fos)
     end
 
     return damage
@@ -500,9 +466,11 @@ end
 
 
 function get_total_farm_damage(model_set,problem_description,nCycles,az_arr,
-    turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip;
-    Nlocs=20)
+    turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho;
+    Nlocs=20,fos=1.15)
 
+    wind_farm = problem_description.wind_farm
+    wind_resource = problem_description.wind_resource
     turbine_x = problem_description.wind_farm_states[1].turbine_x
     nturbines = length(turbine_x)
 
@@ -512,33 +480,16 @@ function get_total_farm_damage(model_set,problem_description,nCycles,az_arr,
     damage = zeros(nturbines)
     for k = 1:ndirections
 
-        problem_description.wind_farm_states[i].turbine_x[:],problem_description.wind_farm_states[i].turbine_y[:] =
-                rotate_to_wind_direction(wind_farm.turbine_x, wind_farm.turbine_y, wind_resource.wind_directions[i])
+        problem_description.wind_farm_states[k].turbine_x[:],problem_description.wind_farm_states[k].turbine_y[:] =
+                ff.rotate_to_wind_direction(wind_farm.turbine_x, wind_farm.turbine_y, wind_resource.wind_directions[k])
 
-        problem_description.wind_farm_states[i].sorted_turbine_index[:] = sortperm(problem_description.wind_farm_states[i].turbine_x)
+        problem_description.wind_farm_states[k].sorted_turbine_index[:] = sortperm(problem_description.wind_farm_states[k].turbine_x)
 
-        state_damage = get_single_state_damage(model_set,problem_description,k,nCycles,az_arr,
-            turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,
-            Nlocs=Nlocs)
+        state_damage = ff.get_single_state_damage(model_set,problem_description,k,nCycles,az_arr,
+            turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho,
+            Nlocs=Nlocs,fos=fos)
         damage = damage + state_damage.*frequencies[k]
     end
 
     return damage
-end
-
-
-for i = 1:nstates
-    problem_description.wind_farm_states[i].turbine_x[:],problem_description.wind_farm_states[i].turbine_y[:] =
-            rotate_to_wind_direction(wind_farm.turbine_x, wind_farm.turbine_y, wind_resource.wind_directions[i])
-
-    problem_description.wind_farm_states[i].sorted_turbine_index[:] = sortperm(problem_description.wind_farm_states[i].turbine_x)
-
-    turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_points_z,
-        model_set, problem_description, wind_farm_state_id=i)
-
-    turbine_powers_one_direction!(rotor_sample_points_y, rotor_sample_points_z,
-        problem_description, wind_farm_state_id=i)
-
-    state_power = sum(problem_description.wind_farm_states[i].turbine_generators_powers)
-    state_energy[i] = state_power*seconds_per_year*wind_probabilities[i]
 end

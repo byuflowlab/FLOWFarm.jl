@@ -18,6 +18,6 @@ include("general_models.jl")
 include("power_models.jl")
 include("user_functions.jl")
 include("optimization_functions.jl")
-# include("fatigue_functions.jl")
+include("fatigue_model.jl")
 
 end # module
