@@ -298,8 +298,8 @@ function get_moments(out,Rhub,Rtip,r,az,precone,tilt)
     loads_edge = zeros(nr)
     r_arr = zeros(nr)
 
-    loads_flap[2:end-1] = out.Np/1000.
-    loads_edge[2:end-1] = out.Tp/1000.
+    loads_flap[2:end-1] = out.Np/1000.0
+    loads_edge[2:end-1] = out.Tp/1000.0
     r_arr[2:end-1] = r
     #
     #approximate loads at r = Rhub
@@ -339,7 +339,7 @@ function get_moments(out,Rhub,Rtip,r,az,precone,tilt)
     blade_mass=17536.617
     blade_cm=20.650
     grav=9.81
-    M_edge += sin(az)*cos(precone)*cos(tilt)*blade_mass*grav*blade_cm/1000.
+    M_edge += sin(az)*cos(precone)*cos(tilt)*blade_mass*grav*blade_cm/1000.0
     return M_flap, M_edge
 end
 
@@ -409,8 +409,8 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
 
         xlocs = zeros(Nlocs)
         ylocs = zeros(Nlocs)
-        angles = range(-pi/2.,stop=pi/2.,length=Nlocs)
-        root_rad=3.542/2.
+        angles = range(-pi/2.0,stop=pi/2.0,length=Nlocs)
+        root_rad=3.542/2.0
         for i in 1:Nlocs
             xlocs[i] = cos(angles[i])*root_rad
             ylocs[i] = sin(angles[i])*root_rad
@@ -429,9 +429,9 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
             mean = out[2,:]
             count = out[3,:]
 
-            su = 70000.
-            m = 10.
-            years = 25.
+            su = 70000.0
+            m = 10.0
+            years = 25.0
             freq = 1.0
 
             mar = alternate./(1.0.-mean./su)
