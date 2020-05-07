@@ -55,10 +55,29 @@ function overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y,
     else
         wake_overlap = 0.0
     end
-    
-    # if ((wake_overlap/(pi*OVr*OVr) > (1.0 + tol)) || (wake_overlap/(pi*OVRR*OVRR) > (1.0 + tol)))
-    #     print *, "wake overlap in func: ", wake_overlap/(pi*OVr*OVr)
-    #     print *, "wake overlap in func: ", wake_overlap/(pi*OVRR*OVRR)
-    # end if
                              
+end
+
+function smooth_max(x, y; s=10.0)
+
+    # based on John D. Cook's writings at 
+    # (1) https://www.johndcook.com/blog/2010/01/13/soft-maximum/
+    # and
+    # (2) https://www.johndcook.com/blog/2010/01/20/how-to-compute-the-soft-maximum/
+    
+    # s controls the level of smoothing used in the smooth max
+    # x and y are the values to be compared
+    
+    # g is the result
+
+    # LogSumExponential Method - used this in the past
+    # g = (x*exp(s*x)+y*exp(s*y))/(exp(s*x)+exp(s*y))
+
+    # non-overflowing version of Smooth Max function (see ref 2 above)
+    max_val = max(x, y)
+    min_val = min(x, y)
+    r = (log(1.0 + exp(s*(min_val - max_val))) + s*max_val)/s
+
+    return r
+
 end

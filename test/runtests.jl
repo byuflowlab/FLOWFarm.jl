@@ -41,6 +41,23 @@ using PyPlot
 
     end
 
+    @testset "smooth max" begin
+
+        x = 1.0
+        y = 2.0
+
+        m = ff.smooth_max(x, y)
+        @test m ≈ y atol=1E-4
+
+        x = 1.99
+        m = ff.smooth_max(x, y, s=400)
+        @test m ≈ y atol=1E-4
+
+        x = -4
+        m = ff.smooth_max(x, y, s=4)
+        @test m ≈ y atol=1E-6
+    end
+
 end
 
 @testset "Optimization functions" begin
