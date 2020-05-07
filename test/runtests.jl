@@ -56,6 +56,7 @@ using PyPlot
         x = -4
         m = ff.smooth_max(x, y, s=4)
         @test m ≈ y atol=1E-6
+        
     end
 
 end
