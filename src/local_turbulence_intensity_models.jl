@@ -14,7 +14,7 @@ struct LocalTIModelGaussTI{TF} <: AbstractLocalTurbulenceIntensityModel
     ti::TF
 end
 
-function calculate_local_ti(ambient_ti, ti_model::LocalTIModelNoLocalTI)
+function calculate_local_ti(ambient_ti, windfarm, windfarmstate, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=1E-6)
     return ambient_ti
 end
 
@@ -136,15 +136,10 @@ function calculate_local_ti(ambient_ti, windfarm, windfarmstate, ti_model::Local
             # save ti_area_ratio and ti_dst to new memory locations to avoid 
             # aliasing during differentiation
             ti_area_ratio_tmp = deepcopy(ti_area_ratio)
-    
 
             # update local turbulence intensity
-            # println("About to call")
-            # println("INPUTS")
-            # println(x, " ", d_dst, " ", d_ust,  " ", h_ust,  " ", h_dst, " ", ct_ust,  " ", kstar_ust,  " ", delta_y,  " ", ambient_ti,  " ", ti_ust,  " ", ti_area_ratio_tmp)
             ti_dst, ti_area_ratio = _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, kstar_ust, delta_y, ambient_ti, ti_ust, ti_dst, ti_area_ratio_tmp)
-            # println("PRINTING TI_DST")
-            # println(ti_dst)
+            
         end
         
     

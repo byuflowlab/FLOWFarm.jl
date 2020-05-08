@@ -735,30 +735,31 @@ end
 @testset "Local Turbulence Intensity Models" begin
 
     @testset "Niayifar Added TI Function" begin
-    tol = 1E-2
-    yaw = 0.0
-    ct = 0.8
-    alpha = 2.32
-    beta = 0.154
-    ky = 0.022
-    kz = 0.022
-    wind_speed = 8.0
 
-    ti = 0.077
-    x = 560.0
-    rotor_diameter = 80.0
-    deltay = 0.0
-    wake_height = 70.0
-    turbine_height = 70.0
-    sm_smoothing = 700.0
+        tol = 1E-2
+        yaw = 0.0
+        ct = 0.8
+        alpha = 2.32
+        beta = 0.154
+        ky = 0.022
+        kz = 0.022
+        wind_speed = 8.0
 
-    ti_area_ratio_in = 0.0
-    ti_dst_in = 0.0
-    ti_ust = 0.077
+        ti = 0.077
+        x = 560.0
+        rotor_diameter = 80.0
+        deltay = 0.0
+        wake_height = 70.0
+        turbine_height = 70.0
+        sm_smoothing = 700.0
 
-    ti, ti_ratio = ff._niayifar_added_ti_function(x, rotor_diameter, rotor_diameter, wake_height, turbine_height, ct, ky, deltay, ti, ti_ust, ti_dst_in, ti_area_ratio_in; s=700.0)
-    
-    @test ti ≈ 0.1476 atol=tol
+        ti_area_ratio_in = 0.0
+        ti_dst_in = 0.0
+        ti_ust = 0.077
+
+        ti, ti_ratio = ff._niayifar_added_ti_function(x, rotor_diameter, rotor_diameter, wake_height, turbine_height, ct, ky, deltay, ti, ti_ust, ti_dst_in, ti_area_ratio_in; s=700.0)
+        
+        @test ti ≈ 0.1476 atol=tol
 
     end
 
@@ -766,15 +767,75 @@ end
 
         atol = 1E-2
 
+        # load model set
         include("./model_sets/model_set_4.jl")
+
+        # calculate turbine inflow velocities
+        ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, ms4, pd4)
+
+        # load horns rev ti ata
+        data = readdlm("inputfiles/horns_rev_ti_by_row_niayifar.txt", ',', skipstart=1)
 
         # freestream
         ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(1+ 4*10), tol=1E-6)
-        @test ti_dst  == ambient_ti 
+        @test ti_dst  == data[1,2] 
 
-        # one upstream turbine
+        # row 2
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(2+ 4*10), tol=1E-6)
+        @test ti_dst  ≈ data[2,2] atol=atol
+
+        # row 3
         ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(3+ 4*10), tol=1E-6)
-        @test ti_dst  ≈ 0.15 atol=atol
+        @test ti_dst  ≈ data[3,2] atol=atol
+
+        # row 4
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(4+ 4*10), tol=1E-6)
+        @test ti_dst  ≈ data[4,2] atol=atol
+
+        # row 5
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(5+ 4*10), tol=1E-6)
+        @test ti_dst  ≈ data[5,2] atol=atol
+
+        # row 6
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(6+ 4*10), tol=1E-6)
+        @test ti_dst  ≈ data[6,2] atol=atol
+
+    end
+
+    @testset "Local TI Model No Local TI" begin
+
+        # load model set
+        include("./model_sets/model_set_2.jl")
+
+        # calculate turbine inflow velocities
+        ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, ms2, pd2)
+
+        # load horns rev ti ata
+        data = readdlm("inputfiles/horns_rev_ti_by_row_niayifar.txt", ',', skipstart=1)
+
+        # freestream
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(1+ 4*10), tol=1E-6)
+        @test ti_dst == ambient_ti 
+
+        # row 2
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(2+ 4*10), tol=1E-6)
+        @test ti_dst == ambient_ti 
+
+        # row 3
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(3+ 4*10), tol=1E-6)
+        @test ti_dst == ambient_ti 
+
+        # row 4
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(4+ 4*10), tol=1E-6)
+        @test ti_dst == ambient_ti 
+
+        # row 5
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(5+ 4*10), tol=1E-6)
+        @test ti_dst == ambient_ti 
+
+        # row 6
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(6+ 4*10), tol=1E-6)
+        @test ti_dst == ambient_ti 
 
     end
 

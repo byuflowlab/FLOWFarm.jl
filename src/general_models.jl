@@ -197,7 +197,7 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
         windfarmstate.turbine_inflow_velcities[downwind_turbine_id] = deepcopy(wind_turbine_velocity)
 
         # update thrust coefficient for downstream turbine
-        windfarmstate.turbine_ct[downwind_turbine_id] = calculate_ct(wind_turbine_velocity, downwind_turbine.ct_model[1])
+        windfarmstate.turbine_ct[downwind_turbine_id] = calculate_ct(wind_turbine_velocity, downwind_turbine.ct_model)
 
         # update local turbulence intensity for downstream turbine
         ambient_ti = problem_description.wind_resource.ambient_tis[wind_farm_state_id]

@@ -34,7 +34,7 @@ cut_out_speed = 25.0
 rated_speed = 12.0
 rated_power = 1.0176371581904552e6
 
-turbine1 = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], power_model)
+turbine1 = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], ct_model, power_model)
 turbine_definitions = [turbine1]
 turbine_definition_ids = [1]
 sorted_turbine_index = [1]

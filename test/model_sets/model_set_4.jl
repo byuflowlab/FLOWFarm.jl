@@ -38,8 +38,7 @@ rotor_points_z = [0.0]
 powerdata = readdlm("inputfiles/niayifar_vestas_v80_power_curve_observed.txt",  ',', skipstart=1)
 velpoints = powerdata[:,1]
 powerpoints = powerdata[:,2]*1E6
-println("Power data here")
-println(powerpoints)
+
 # initialize power model
 power_model = ff.PowerModelPowerPoints(velpoints, powerpoints)
 
