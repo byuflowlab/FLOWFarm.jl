@@ -1,13 +1,30 @@
 using FlowFarm
 using CCBlade
-# using PyPlot
-using FLOWMath
-# using Statistics
-# using Random
 
 const ff=FlowFarm
 
 
+"""
+    multiple_components_op(U, V, W, Omega, r, precone, yaw, tilt, azimuth, rho, mu=1.81206e-05, asound=1.0)
+
+Return the operating points along the blade considering all the inflow velocity components.
+
+# Arguments
+- `U::Array{Float}`: u velocity component of the inflow at each r
+- `V::Array{Float}`: v velocity component of the inflow at each r
+- `W::Array{Float}`: w velocity component of the inflow at each r
+- `Omega::Float`: rotor rotational speed
+- `r::Array{Float}`: radial locations of interest
+- `precone::Float`: rotor precone angle
+- `yaw::Float`: rotor yaw angle
+- `tilt::Float`: rotor tilt angle
+- `azimuth::Float`: blade azimuth angle
+- `rho::Float`: air density
+
+# Keyword Arguments
+- `mu::Float`: air viscocity (can usually use the default)
+- `asound::Float`: speed of sound (can usually use the default)
+"""
 function multiple_components_op(U, V, W, Omega, r, precone, yaw, tilt, azimuth, rho, mu=1.81206e-05, asound=1.0)
 
     sy = sin(yaw)
@@ -65,6 +82,25 @@ function multiple_components_op(U, V, W, Omega, r, precone, yaw, tilt, azimuth, 
 end
 
 
+"""
+    distributed_velocity_op(V, Omega, r, precone, yaw, tilt, azimuth, rho, mu=1.81206e-05, asound=1.0)
+
+Return the operating points along the blade considering varied inflow along the blade.
+
+# Arguments
+- `V::Array{Float}`: velocity inflow at each r
+- `Omega::Float`: rotor rotational speed
+- `r::Array{Float}`: radial locations of interest
+- `precone::Float`: rotor precone angle
+- `yaw::Float`: rotor yaw angle
+- `tilt::Float`: rotor tilt angle
+- `azimuth::Float`: blade azimuth angle
+- `rho::Float`: air density
+
+# Keyword Arguments
+- `mu::Float`: air viscocity (can usually use the default)
+- `asound::Float`: speed of sound (can usually use the default)
+"""
 function distributed_velocity_op(V, Omega, r, precone, yaw, tilt, azimuth, rho, mu=1.81206e-05, asound=1.0)
 
     sy = sin(yaw)
@@ -100,6 +136,21 @@ function distributed_velocity_op(V, Omega, r, precone, yaw, tilt, azimuth, rho, 
 end
 
 
+"""
+    find_xyz_simple(x_hub,y_hub,z_hub,r,yaw,azimuth)
+
+Find the xyz locations of points along a blade given it's location and azimuth angle.
+Currently doesn't consider precone or tilt.
+
+# Arguments
+- `x_hub::Float`: x location of hub
+- `y_hub::Float`: y location of hub
+- `z_hub::Float`: z location of hub (hub height if no topology)
+- `r::Array{Float}`: radial locations of interest
+- `precone::Float`: rotor precone angle
+- `yaw::Float`: rotor yaw angle
+- `azimuth::Float`: blade azimuth angle
+"""
 function find_xyz_simple(x_hub,y_hub,z_hub,r,yaw,azimuth)
 
         sy = sin(yaw)
@@ -115,6 +166,21 @@ function find_xyz_simple(x_hub,y_hub,z_hub,r,yaw,azimuth)
 end
 
 
+"""
+    calc_moment_stress(mx,my,dx,dy,Rcyl=1.771,tcyl=0.06)
+
+Calculates stresses from bending moments on a hollow cylinder
+
+# Arguments
+- `mx::Float`: x moment
+- `my::Float`: y moment
+- `dx::Float`: x distance to the location of interest
+- `dy::Float`: y distance to the location of interest
+
+# Keyword Arguments
+- `Rcyl::Float`: radius of the cylinder
+- `tcyl::Float`: thickenss of the cylinder
+"""
 function calc_moment_stress(mx,my,dx,dy,Rcyl=1.771,tcyl=0.06)
 
         I = 0.25*pi*(Rcyl^4-(Rcyl-tcyl)^4)
@@ -137,22 +203,24 @@ function get_speeds(turbineX,turbineY,turb_index,hubHt,r,yaw,azimuth,model_set,p
 end
 
 
-function rainflow(array_ext;uc_mult=0.5)
+"""
 
-    # """ Rainflow counting of a signal's turning points with Goodman correction
-    #
-    #     Args:
-    #         array_ext (numpy.ndarray): array of turning points
-    #
-    #     Keyword Args:
-    #         uc_mult (float): partial-load scaling [opt, default=0.5]
-    #
-    #     Returns:
-    #         array_out (numpy.ndarray): (3 x n_cycle) array of rainflow values:
-    #                                     1) load range
-    #                                     2) range mean
-    #                                     3) cycle count
-    # """
+    rainflow(array_ext,uc_mult=0.5)
+Rainflow counting of a signal's turning points
+
+# Arguments
+        array_ext (numpy.ndarray): array of turning points
+
+# Keyword Arguments
+        uc_mult (float): partial-load scaling [opt, default=0.5]
+
+# Returns
+        array_out (numpy.ndarray): (3 x n_cycle) array of rainflow values:
+                                    1) load range
+                                    2) range mean
+                                    3) cycle count
+"""
+function rainflow(array_ext,uc_mult=0.5)
 
     tot_num = length(array_ext)             # total size of input array
     array_out = zeros(3, tot_num-1)         # initialize output array
@@ -219,6 +287,14 @@ function rainflow(array_ext;uc_mult=0.5)
 end
 
 
+"""
+    get_peaks(array)
+
+get the turning point values of a signal
+
+# Arguments
+- `array::Array{Float}`: the signal to find the turning points, or peaks
+"""
 function get_peaks(array)
     A = array[:]
     # get rid of any zero slope in the beginning
@@ -250,6 +326,14 @@ function get_peaks(array)
 end
 
 
+"""
+    get_peaks_indices(array)
+
+return the indices of the signal peaks
+
+# Arguments
+- `array::Array{Float}`: the signal to find the turning points, or peaks
+"""
 function get_peaks_indices(array)
     A = array[:]
     # get rid of any zero slope in the beginning
@@ -291,6 +375,20 @@ function calc_TI(constant,ai,TI_free,initial,sep,downstream)
 end
 
 
+"""
+    get_moments(out,Rhub,Rtip,r,az,precone,tilt)
+
+Trapezoidal integration to find the blade root bending moment using the loads distribution
+
+# Arguments
+- `out::CCBlade dict: output from running CCBlade solve
+- `Rhub::Float`: radius of the rotor hub
+- `Rtip::Float`: radius of the blade tip
+- `r::Array{Float}`: radial locations of interest
+- `az::Float`: blade azimuth angle
+- `precone::Float`: rotor precone angle
+- `tilt::Float`: rotor tilt angle
+"""
 function get_moments(out,Rhub,Rtip,r,az,precone,tilt)
     nr = length(r)+2
 
@@ -384,7 +482,8 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
                 loc = [x_locs[k],y_locs[k],z_locs[k]]
                 TI_arr[k] = turbulence_func(loc)
             end
-            TI_inst = sum(TI_arr)/length(TI_arr)
+            # TI_inst = sum(TI_arr)/length(TI_arr)
+            TI_inst = sum(TI_arr.*r)/sum(r)
             # TI_inst = 0.16
             """"""
 
