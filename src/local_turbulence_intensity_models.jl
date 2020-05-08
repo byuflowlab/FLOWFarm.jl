@@ -8,6 +8,7 @@ struct LocalTIModelMaxTI{TF} <: AbstractLocalTurbulenceIntensityModel
     astar::TF
     bstar::TF
 end
+LocalTIModelMaxTI() = LocalTIModelMaxTI(2.32, 0.154)
 
 struct LocalTIModelGaussTI{TF} <: AbstractLocalTurbulenceIntensityModel
     ti::TF
@@ -21,11 +22,11 @@ end
 function _k_star_func(ti_ust)
     
     # calculate wake spread parameter from Niayifar and Porte Agel (2015, 2016)
-    k_star_ust = 0.3837*ti_ust+0.003678
+    k_star_ust = 0.3837*ti_ust + 0.003678
     
 end
 
-function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, kstar_ust, delta_y, ti_amb, ti_ust, ti_area_ratio_in)
+function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, kstar_ust, delta_y, ti_amb, ti_ust, ti_dst, ti_area_ratio_in; s=700.0)
     # Niayifar and Porte Agel 2015, 2016 using smooth max on area TI ratio
 
     # calculate axial induction based on the Ct value
@@ -36,20 +37,23 @@ function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, ksta
     epsilon = 0.2*sqrt(beta)
     
     # calculate wake spread for TI calcs
-    sigma = k_star_ust*x + d_ust*epsilon
+    sigma = kstar_ust*x + d_ust*epsilon
     d_w = 4.0*sigma
     
     # calculate wake overlap ratio
     wake_overlap = overlap_area_func(0.0, h_dst, d_dst, delta_y, h_ust, d_w)
 
+    # initialize the wake/rotor area overlap ratio
+    ti_area_ratio = 0.0
+
     # only include turbines with area overlap in the softmax
-    if (wake_overlap > 0.0_dp) then
+    if wake_overlap > 0.0
     
         # Calculate the turbulence added to the inflow of the downstream turbine by the 
         # wake of the upstream turbine
-        ti_added = 0.73*(axial_induction_ust^0.8325)*(ti_ust**0.0325)*((x/d_ust)^(-0.32))
+        ti_added = 0.73*(axial_induction_ust^0.8325)*(ti_ust^0.0325)*((x/d_ust)^(-0.32))
 
-        rotor_area_dst = 0.25_dp*pi*d_dst^2
+        rotor_area_dst = 0.25*pi*d_dst^2.0
         ti_area_ratio_tmp = ti_added*(wake_overlap/rotor_area_dst)
     
         # Run through the smooth max to get an approximation of the true max TI area ratio
@@ -57,30 +61,30 @@ function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, ksta
         
         # Calculate the total turbulence intensity at the downstream turbine based on 
         # the result of the smooth max function
-        ti_dst = sqrt(ti_amb**2.0_dp + ti_area_ratio**2.0_dp)
-
-        return ti_dst, ti_area_ratio
+        ti_dst = sqrt(ti_amb^2.0 + ti_area_ratio^2.0)
         
-    end if
+    end
+
+    return ti_dst, ti_area_ratio
+
 end
 
 function calculate_local_ti(ambient_ti, windfarm, windfarmstate, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6)
 
     # calculate local turbulence intensity at turbI
     
-    # initialize the TI_area_ratio to 0.0 for each turbine
+    # initialize the ri_dst and ti_area_ratio to 0.0 for current turbine
     ti_area_ratio = 0.0
-
-    # initialize local ti tmp for downstream turbine
-    ti_dst_tmp = windfarmstate.turbine_local_ti[turbine_id]
+    ti_dst = windfarmstate.turbine_local_ti[turbine_id]
 
     # extract downstream turbine information
     dst_def_id = windfarm.turbine_definition_ids[turbine_id]
-    d_dst = windfarm.turbine_definitions[def_id].rotor_diameter
+    d_dst = windfarm.turbine_definitions[dst_def_id].rotor_diameter[1]
+    h_dst = windfarm.turbine_definitions[dst_def_id].hub_height[1]
 
     # extract the number of turbines
-    nturbines = length(ti_dst_tmp)
-    
+    nturbines = length(windfarm.turbine_x)
+
     # loop over upstream turbines
     for u=1:nturbines
     
@@ -97,8 +101,8 @@ function calculate_local_ti(ambient_ti, windfarm, windfarmstate, ti_model::Local
 
             # extract state and design info for current upstream turbine
             ust_def_id = windfarm.turbine_definition_ids[turb]
-            d_ust = windfarm.turbine_definitions[ust_def_id].rotor_diameter
-            h_ust = windfarm.turbine_definitions[ust_def_id].hub_height
+            d_ust = windfarm.turbine_definitions[ust_def_id].rotor_diameter[1]
+            h_ust = windfarm.turbine_definitions[ust_def_id].hub_height[1]
             yaw_ust = windfarmstate.turbine_yaw[turb]
             ti_ust = windfarmstate.turbine_local_ti[turb]
 
@@ -133,10 +137,16 @@ function calculate_local_ti(ambient_ti, windfarm, windfarmstate, ti_model::Local
             # aliasing during differentiation
             ti_area_ratio_tmp = deepcopy(ti_area_ratio)
     
+
             # update local turbulence intensity
-            ti_dst, ti_area_ratio = _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, kstar_ust, delta_y, ambient_ti, ti_ust, ti_area_ratio_tmp)
-            
+            # println("About to call")
+            # println("INPUTS")
+            # println(x, " ", d_dst, " ", d_ust,  " ", h_ust,  " ", h_dst, " ", ct_ust,  " ", kstar_ust,  " ", delta_y,  " ", ambient_ti,  " ", ti_ust,  " ", ti_area_ratio_tmp)
+            ti_dst, ti_area_ratio = _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, kstar_ust, delta_y, ambient_ti, ti_ust, ti_dst, ti_area_ratio_tmp)
+            # println("PRINTING TI_DST")
+            # println(ti_dst)
         end
+        
     
     end
 

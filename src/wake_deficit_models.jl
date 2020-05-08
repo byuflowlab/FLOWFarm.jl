@@ -81,7 +81,7 @@ struct GaussYaw{TF} <: AbstractWakeDeficitModel
     alpha_star::TF
     beta_star::TF
 end
-GaussYaw(x) = GaussYaw(x, 0.022, 0.022, 2.32, 0.154)
+GaussYaw() = GaussYaw(0.022, 0.022, 2.32, 0.154)
 
 """
     wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::JensenTopHat, windfarmstate::SingleWindFarmState)

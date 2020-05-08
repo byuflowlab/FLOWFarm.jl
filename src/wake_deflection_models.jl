@@ -1,25 +1,23 @@
 abstract type AbstractWakeDeflectionModel end
 
 """
-    GaussYawDeflection(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+    GaussYawDeflection(horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
 
 Container for parameters related to the Gaussian deflection model presented by Bastankhah and Porte-Agel 2016
 
 # Arguments
-- `turbulence_intensity::Float`: the ambient turbulence intensity. No default value is provided.
 - `horizontal_spread_rate::Float`: parameter controlling the horizontal spread of the deficit model. Default value is 0.022.
 - `vertical_spread_rate::Float`: parameter controlling the vertical spread of the deficit model. Default value is 0.022.
 - `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 """
 struct GaussYawDeflection{TF} <: AbstractWakeDeflectionModel
-    turbulence_intensity::TF
     horizontal_spread_rate::TF
     vertical_spread_rate::TF
     alpha_star::TF
     beta_star::TF
 end
-GaussYawDeflection(x) = GaussYawDeflection(x, 0.022, 0.022, 2.32, 0.154)
+GaussYawDeflection() = GaussYawDeflection(0.022, 0.022, 2.32, 0.154)
 
 """
     JiminezYawDeflection(horizontal_spread_rate)
@@ -100,10 +98,10 @@ function wake_deflection_model(loc, turbine_id, turbine_definition::TurbineDefin
     yaw = windfarmstate.turbine_yaw[turbine_id]
     ct = windfarmstate.turbine_ct[turbine_id]
     diam = turbine_definition.rotor_diameter[1]
+    ti = windfarmstate.turbine_local_ti[turbine_id]
 
     as = model.alpha_star
     bs = model.beta_star
-    ti = model.turbulence_intensity
     ky = model.horizontal_spread_rate
     kz = model.vertical_spread_rate
 

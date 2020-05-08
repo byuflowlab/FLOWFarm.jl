@@ -56,7 +56,7 @@ using PyPlot
         x = -4
         m = ff.smooth_max(x, y, s=4)
         @test m ≈ y atol=1E-6
-        
+
     end
 
 end
@@ -469,7 +469,7 @@ end
         alpha_star = 2.32 #[1] p. 534
         beta_star = 0.154 #[1] p. 534
 
-        model = ff.GaussYawDeflection(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+        model = ff.GaussYawDeflection(horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
 
         dx4d = 4.0*rotor_diameter
         dy4d_20 = 0.2684659090909065*rotor_diameter # from [1] figure 21
@@ -731,6 +731,55 @@ end
 
     end
 end
+
+@testset "Local Turbulence Intensity Models" begin
+
+    @testset "Niayifar Added TI Function" begin
+    tol = 1E-2
+    yaw = 0.0
+    ct = 0.8
+    alpha = 2.32
+    beta = 0.154
+    ky = 0.022
+    kz = 0.022
+    wind_speed = 8.0
+
+    ti = 0.077
+    x = 560.0
+    rotor_diameter = 80.0
+    deltay = 0.0
+    wake_height = 70.0
+    turbine_height = 70.0
+    sm_smoothing = 700.0
+
+    ti_area_ratio_in = 0.0
+    ti_dst_in = 0.0
+    ti_ust = 0.077
+
+    ti, ti_ratio = ff._niayifar_added_ti_function(x, rotor_diameter, rotor_diameter, wake_height, turbine_height, ct, ky, deltay, ti, ti_ust, ti_dst_in, ti_area_ratio_in; s=700.0)
+    
+    @test ti ≈ 0.1476 atol=tol
+
+    end
+
+    @testset "Local TI Model Max TI Ratio" begin
+
+        atol = 1E-2
+
+        include("./model_sets/model_set_4.jl")
+
+        # freestream
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(1+ 4*10), tol=1E-6)
+        @test ti_dst  == ambient_ti 
+
+        # one upstream turbine
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(3+ 4*10), tol=1E-6)
+        @test ti_dst  ≈ 0.15 atol=atol
+
+    end
+
+end
+
 
 @testset "General Models" begin
 

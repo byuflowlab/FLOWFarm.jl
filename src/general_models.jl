@@ -21,7 +21,7 @@ end
 
 
 """
-    WindFarmModelSet(wakedeficitmodel, wake_deflection_model, wake_combination_model, ti_model, wind_shear_model)
+    WindFarmModelSet(wakedeficitmodel, wake_deflection_model, wake_combination_model, local_ti_model, wind_shear_model)
 
 Container for objects defining models to use in wind farm calculations
 
@@ -201,7 +201,7 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
 
         # update local turbulence intensity for downstream turbine
         ambient_ti = problem_description.wind_resource.ambient_tis[wind_farm_state_id]
-        windfarmstate.turbine_local_ti[downwind_turbine_id] = calculate_local_ti(ambient_ti, windfarm, windfarmstate, ti_model, turbine_id=downwind_turbine_id)
+        windfarmstate.turbine_local_ti[downwind_turbine_id] = calculate_local_ti(ambient_ti, windfarm, windfarmstate, model_set.local_ti_model, turbine_id=downwind_turbine_id)
 
     end
 
