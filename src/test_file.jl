@@ -7,13 +7,13 @@ include("model.jl")
 function turbulence_function(loc)
     r = sqrt(loc[2]^2+(loc[3]-90.0)^2)
     if loc[1] > 10.0
-        if r < 70.0
-            return 0.17
+        if r < 80.0
+            return 0.14
         else
-            return 0.05
+            return 0.046
         end
     else
-        return 0.05
+        return 0.046
     end
 end
 
@@ -22,7 +22,7 @@ turb = "low"
 ws = 11.0
 TI_free = 0.046
 
-sep = 4.0
+sep = 7.0
 
 ka = 0.38
 kb = 0.004
@@ -56,19 +56,15 @@ sections = CCBlade.Section.(r,chord,theta,airfoils)
 
 # off = [-1.,-0.8,-0.6,-0.4,-0.2,0.0,0.2,0.4,0.6,0.8,1.0]
 # off = [-1.0,-0.8,-0.6,-0.4,-0.2,0.0]
-off = range(-1.0,stop=1.0,length=12)
+off = range(-1.0,stop=1.0,length=25)
 # off = [-0.6]
 dams = zeros(length(off))
 
 
-# turbulence_intensity = calc_TI(constant,ai,TI_free,initial,sep,downstream)
-# ky = ka*turbulence_intensity + kb
-# kz = ka*turbulence_intensity + kb
-
 # println(ky)
-turbulence_intensity = 0.3
-ky = 0.06
-kz = 0.06
+turbulence_intensity = 0.046
+ky = 0.025
+kz = 0.025
 horizontal_spread_rate = ky
 vertical_spread_rate = kz
 wakedeficitmodel = ff.GaussYaw(turbulence_intensity,horizontal_spread_rate,vertical_spread_rate,alpha_star,beta_star)
@@ -136,9 +132,10 @@ end
 
 scatter(off,t1_damage)
 scatter(off,t2_damage)
-# #
-# FS,FD = fastdata(turb,ws,sep)
-# scatter(FS,FD)
+
+ include("FAST_data.jl")
+FS,FD = fastdata(turb,ws,sep)
+scatter(FS,FD)
 #
 xlabel("offset")
 ylabel("damage")
