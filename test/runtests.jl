@@ -4,7 +4,6 @@ using DelimitedFiles
 using LinearAlgebra
 using PyPlot
 
-
 @testset "AEP function" begin
 
     @testset "Test AEP" begin
@@ -19,6 +18,62 @@ using PyPlot
 
 end
 
+@testset "utilities" begin
+
+    @testset "wake overlap" begin
+
+        turbine_y = 1000.0
+        turbine_z = wake_center_z = 90.0
+        rotor_diameter = 80.0
+        wake_diameter = 80.0
+        wake_center_y = 0.0
+
+        # test no overlap
+        overlap = ff.overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y, 
+            wake_center_z, wake_diameter)
+        @test overlap == 0.0
+
+        # test partial overlap
+        turbine_y = 0.8079455*rotor_diameter/2.0
+        overlap = ff.overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y, 
+            wake_center_z, wake_diameter)
+        @test overlap ≈ 0.5*0.25*pi*rotor_diameter^2 atol=1E-4
+
+        # test full overlap larger wake
+        turbine_y = 0.0
+        wake_diameter = 90.0
+        overlap = ff.overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y, 
+            wake_center_z, wake_diameter)
+        @test overlap ≈ 0.25*pi*rotor_diameter^2 atol=1E-6
+
+        # test full overlap larger rotor
+        turbine_y = 0.0
+        wake_diameter = 70.0
+        overlap = ff.overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y, 
+            wake_center_z, wake_diameter)
+        @test overlap ≈ 0.25*pi*wake_diameter^2 atol=1E-6
+
+    end
+
+    @testset "smooth max" begin
+
+        x = 1.0
+        y = 2.0
+
+        m = ff.smooth_max(x, y)
+        @test m ≈ y atol=1E-4
+
+        x = 1.99
+        m = ff.smooth_max(x, y, s=400)
+        @test m ≈ y atol=1E-4
+
+        x = -4
+        m = ff.smooth_max(x, y, s=4)
+        @test m ≈ y atol=1E-6
+
+    end
+
+end
 
 @testset "Optimization functions" begin
 
@@ -428,7 +483,7 @@ end
         alpha_star = 2.32 #[1] p. 534
         beta_star = 0.154 #[1] p. 534
 
-        model = ff.GaussYawDeflection(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+        model = ff.GaussYawDeflection(horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
 
         dx4d = 4.0*rotor_diameter
         dy4d_20 = 0.2684659090909065*rotor_diameter # from [1] figure 21
@@ -619,7 +674,7 @@ end
 
         turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
 
-        model = ff.GaussYaw(turbulence_intensity, horizontal_spread_rate , vertical_spread_rate, alpha_star, beta_star)
+        model = ff.GaussYaw(horizontal_spread_rate , vertical_spread_rate, alpha_star, beta_star)
 
         # data from Bastankhah and Porte-Agel 2016, figure 19
         yaw_20 = 20.0*pi/180.0
@@ -690,6 +745,116 @@ end
 
     end
 end
+
+@testset "Local Turbulence Intensity Models" begin
+
+    @testset "Niayifar Added TI Function" begin
+
+        tol = 1E-2
+        yaw = 0.0
+        ct = 0.8
+        alpha = 2.32
+        beta = 0.154
+        ky = 0.022
+        kz = 0.022
+        wind_speed = 8.0
+
+        ti = 0.077
+        x = 560.0
+        rotor_diameter = 80.0
+        deltay = 0.0
+        wake_height = 70.0
+        turbine_height = 70.0
+        sm_smoothing = 700.0
+
+        ti_area_ratio_in = 0.0
+        ti_dst_in = 0.0
+        ti_ust = 0.077
+
+        ti, ti_ratio = ff._niayifar_added_ti_function(x, rotor_diameter, rotor_diameter, wake_height, turbine_height, ct, ky, deltay, ti, ti_ust, ti_dst_in, ti_area_ratio_in; s=700.0)
+        
+        @test ti ≈ 0.1476 atol=tol
+
+    end
+
+    @testset "Local TI Model Max TI Ratio" begin
+
+        atol = 1E-2
+
+        # load model set
+        include("./model_sets/model_set_4.jl")
+
+        # calculate turbine inflow velocities
+        ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, ms4, pd4)
+
+        # load horns rev ti ata
+        data = readdlm("inputfiles/horns_rev_ti_by_row_niayifar.txt", ',', skipstart=1)
+
+        # freestream
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(1+ 4*10), tol=1E-6)
+        @test ti_dst  == data[1,2] 
+
+        # row 2
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(2+ 4*10), tol=1E-6)
+        @test ti_dst  ≈ data[2,2] atol=atol
+
+        # row 3
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(3+ 4*10), tol=1E-6)
+        @test ti_dst  ≈ data[3,2] atol=atol
+
+        # row 4
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(4+ 4*10), tol=1E-6)
+        @test ti_dst  ≈ data[4,2] atol=atol
+
+        # row 5
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(5+ 4*10), tol=1E-6)
+        @test ti_dst  ≈ data[5,2] atol=atol
+
+        # row 6
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(6+ 4*10), tol=1E-6)
+        @test ti_dst  ≈ data[6,2] atol=atol
+
+    end
+
+    @testset "Local TI Model No Local TI" begin
+
+        # load model set
+        include("./model_sets/model_set_2.jl")
+
+        # calculate turbine inflow velocities
+        ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, ms2, pd2)
+
+        # load horns rev ti ata
+        data = readdlm("inputfiles/horns_rev_ti_by_row_niayifar.txt", ',', skipstart=1)
+
+        # freestream
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(1+ 4*10), tol=1E-6)
+        @test ti_dst == ambient_ti 
+
+        # row 2
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(2+ 4*10), tol=1E-6)
+        @test ti_dst == ambient_ti 
+
+        # row 3
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(3+ 4*10), tol=1E-6)
+        @test ti_dst == ambient_ti 
+
+        # row 4
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(4+ 4*10), tol=1E-6)
+        @test ti_dst == ambient_ti 
+
+        # row 5
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(5+ 4*10), tol=1E-6)
+        @test ti_dst == ambient_ti 
+
+        # row 6
+        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(6+ 4*10), tol=1E-6)
+        @test ti_dst == ambient_ti 
+
+    end
+
+end
+
 
 @testset "General Models" begin
 
