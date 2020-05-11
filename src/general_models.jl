@@ -105,7 +105,7 @@ function point_velocity(loc, model_set::AbstractModelSet, problem_description::A
     for u=1:nturbines
 
         # get index of upstream turbine
-        upwind_turb_id = sorted_turbine_index[u]
+        upwind_turb_id = Int(sorted_turbine_index[u])
 
         # skip this loop if it would include a turbine's impact on itself)
         if upwind_turb_id==downwind_turbine_id; continue; end
@@ -159,25 +159,30 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
     for d=1:n_turbines
 
         # get index of downstream turbine
-        downwind_turbine_id = windfarmstate.sorted_turbine_index[d]
+        downwind_turbine_id = Int(windfarmstate.sorted_turbine_index[d])
         # get turbine definition of downstream turbine
         turbine_definition_id = windfarm.turbine_definition_ids[downwind_turbine_id]
         downwind_turbine = windfarm.turbine_definitions[turbine_definition_id]
 
         # initialize downstream wind turbine velocity to zero
-        wind_turbine_velocity = 0.0
+        wind_turbine_velocity = typeof(windfarmstate.turbine_x[downwind_turbine_id])(0.0)
 
         for p=1:n_rotor_sample_points
 
-            loc = zeros(3)
+
             # scale rotor sample point coordinate by rotor diameter (in rotor hub ref. frame)
             local_rotor_sample_point_y = rotor_sample_points_y[p]*0.5*downwind_turbine.rotor_diameter[1]
             local_rotor_sample_point_z = rotor_sample_points_z[p]*0.5*downwind_turbine.rotor_diameter[1]
 
             # move sample points to correct height and yaw location in wind farm state reference frame
-            loc[1] = windfarmstate.turbine_x[downwind_turbine_id] .+ local_rotor_sample_point_y*sin(windfarmstate.turbine_yaw[downwind_turbine_id])
-            loc[2] = windfarmstate.turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y*cos(windfarmstate.turbine_yaw[downwind_turbine_id])
-            loc[3] = windfarmstate.turbine_z[downwind_turbine_id] .+ downwind_turbine.hub_height[1] + local_rotor_sample_point_z
+            # loc = zeros(typeof(windfarmstate.turbine_x[downwind_turbine_id]),3)
+            # loc[1] = windfarmstate.turbine_x[downwind_turbine_id] .+ local_rotor_sample_point_y*sin(windfarmstate.turbine_yaw[downwind_turbine_id])
+            # loc[2] = windfarmstate.turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y*cos(windfarmstate.turbine_yaw[downwind_turbine_id])
+            # loc[3] = windfarmstate.turbine_z[downwind_turbine_id] .+ downwind_turbine.hub_height[1] + local_rotor_sample_point_z
+
+            loc = [windfarmstate.turbine_x[downwind_turbine_id] .+ local_rotor_sample_point_y*sin(windfarmstate.turbine_yaw[downwind_turbine_id]),
+                    windfarmstate.turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y*cos(windfarmstate.turbine_yaw[downwind_turbine_id]),
+                    windfarmstate.turbine_z[downwind_turbine_id] .+ downwind_turbine.hub_height[1] + local_rotor_sample_point_z]
             # calculate the velocity at given point
             point_velocity_with_shear = point_velocity(loc, model_set, problem_description,
                 wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=downwind_turbine_id)

@@ -210,7 +210,6 @@ Calculate wind farm AEP
 function calculate_aep(model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem;
             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0])
 
-    """NEED TESTS"""
     wind_farm = problem_description.wind_farm
     wind_resource = problem_description.wind_resource
     wind_probabilities = wind_resource.wind_probabilities
@@ -218,8 +217,17 @@ function calculate_aep(model_set::AbstractModelSet, problem_description::Abstrac
     nstates = length(problem_description.wind_farm_states)
     hours_per_year = 365.25*24.0
 
-    state_energy = zeros(nstates)
+    state_energy = Vector{typeof(wind_farm.turbine_x[1])}(undef,nstates)
     for i = 1:nstates
+
+        # rot_x,rot_y =
+        #         rotate_to_wind_direction(wind_farm.turbine_x, wind_farm.turbine_y, wind_resource.wind_directions[i])
+        #
+        # problem_description.wind_farm_states[i].sorted_turbine_index[:] = sortperm(rot_x)
+        #
+        # problem_description.wind_farm_states[i].turbine_x[:] = rot_x
+        # problem_description.wind_farm_states[i].turbine_y[:] = rot_y
+
         problem_description.wind_farm_states[i].turbine_x[:],problem_description.wind_farm_states[i].turbine_y[:] =
                 rotate_to_wind_direction(wind_farm.turbine_x, wind_farm.turbine_y, wind_resource.wind_directions[i])
 

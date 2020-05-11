@@ -25,7 +25,7 @@ struct WindFarm{AF1,AF2,AF3,AI,AS} <: AbstractWindFarmModel
 end
 
 
-struct SingleWindFarmState{TI,AF,AF1,AF2,AF3,AF4,AF5,AF6,AI} <: AbstractWindFarmModel
+struct SingleWindFarmState{TI,AF1,AF2,AF3,AF4,AF5,AF6,AF7,AF8,AF9,AI} <: AbstractWindFarmModel
 
     # farm properties in rotated frame
     id::TI
@@ -35,9 +35,9 @@ struct SingleWindFarmState{TI,AF,AF1,AF2,AF3,AF4,AF5,AF6,AI} <: AbstractWindFarm
     turbine_yaw::AF4
     turbine_ct::AF5
     turbine_ai::AF6
+    turbine_inflow_velcities::AF7
+    turbine_generators_powers::AF8
+    turbine_local_ti::AF9
     sorted_turbine_index::AI
-    turbine_inflow_velcities::AF
-    turbine_generators_powers::AF
-    turbine_local_ti::AF
 
 end
