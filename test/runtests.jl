@@ -755,9 +755,108 @@ end
         # @test ff.wake_deficit_model([40., dy, hub_height], deflection, model, turbine) == loss40attheta
 
     end
+
+    @testset "Gauss Yaw Model Variable Spread" begin
+        rtol = 0.1
+        # [1] Bastankhah and Porte-Agel 2016
+        # [2] Niayifar and Porte-Agel 2016
+
+        turbine_x = [0.0]
+        turbine_y = [0.0]
+        turbine_z = [0.000022] #[1] p. 509
+        rotor_diameter = 0.15 #[1] p. 509
+        hub_height = 0.125 #[1] p. 509
+        cut_in_speed = 0.0
+        cut_out_speed = 25.0
+        rated_speed = 12.0
+        rated_power = 1.0176371581904552e6
+        yaw = 0.0
+        ct = 0.82 # [1] fig. 2
+        generator_efficiency = 0.944
+
+        k_star = 0.022 # [1]  p. 525
+        turbulence_intensity = 0.1 #0.0875 #[1] p. 508 - this value is only specified to be less than 0.1
+        alpha_star = 2.32 #[1] p. 534
+        beta_star = 0.154 #[1] p. 534
+
+        wind_farm_state_id = 1
+
+        turbine_yaw = [yaw]
+        turbine_ct = [ct]
+        turbine_ai = [1.0/3.0]
+        sorted_turbine_index = [1]
+        turbine_inflow_velcity = [8.0]
+        ambient_ti = (k_star - 0.003678)/0.3837
+        println(ambient_ti)
+        turbine_id = 1
+        turbine_definition_id = 1
+
+        deflection = [0.0, 0.0]
+
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0], [ambient_ti])
+        ct_model = ff.ThrustModelConstantCt(ct)
+        power_model = ff.PowerModelConstantCp([cp])
+
+        turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
+
+        model = ff.GaussYawVariableSpread(alpha_star, beta_star)
+
+        # data from Bastankhah and Porte-Agel 2016, figure 19
+        yaw_20 = 20.0*pi/180.0
+        ct_20 = 0.7378415935735881
+        # x0_20 = 4.217687074829926*rotor_diameter
+        x1_20 = 4.221216585981899*rotor_diameter
+        loss1_20 = 0.49396179751631175
+        x2_20 = 6.014102294253845*rotor_diameter
+        loss2_20 = 0.31515733529783185
+        x3_20 = 7.987265838770787*rotor_diameter
+        loss3_20 = 0.22750736687013284
+        x8d_20 = 8.0*rotor_diameter
+        loss8d_20 = .7203389830508229 # [1] figure 21
+
+        yaw_0 = 0.0*pi/180.0
+        # x0_0 = 4.112436115843271*rotor_diameter
+        x1_0 = 4.0*rotor_diameter
+        loss1_0 = 0.5757358817491954 # from figure 21
+        # loss1_0 = 0.5922779922779922
+        x2_0 = 6.00904977375566*rotor_diameter
+        # loss2_0 = 1.0 - 0.6033
+        loss2_0 = 0.4805792772689106
+        x3_0 = 8.00452488687783*rotor_diameter
+        loss3_0 = 0.3558433011696253
+        x4_0 = 10.000000000000002*rotor_diameter
+        loss4_0 = 0.27837504998473545
+
+        # test no loss upstream
+        @test ff.wake_deficit_model([-1E-12, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) == 0.0
+
+        # test loss at x1 with no yaw
+        @test ff.wake_deficit_model([x1_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) ≈ loss1_0 rtol=rtol
+
+        deflection = [0.0, 0.0]
+        # test loss at x2 with no yaw
+        @test ff.wake_deficit_model([x2_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)  ≈ loss2_0 rtol=rtol
+
+        # test loss at x3 with no yaw
+        @test ff.wake_deficit_model([x3_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) ≈ loss3_0 rtol=rtol
+
+        # test loss at x4 with no yaw
+        @test ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)  ≈ loss4_0 rtol=rtol
+
+    end
 end
 
 @testset "Local Turbulence Intensity Models" begin
+
+    @testset "Niayifar wake spread based on ti" begin
+
+        ti = 0.077
+
+        k = ff._k_star_func(ti)
+
+        @test k == 0.3837*ti + 0.003678
+
+    end
 
     @testset "Niayifar Added TI Function" begin
 
