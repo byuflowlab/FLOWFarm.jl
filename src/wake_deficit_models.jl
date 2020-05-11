@@ -76,13 +76,12 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 """
 struct GaussYaw{TF} <: AbstractWakeDeficitModel
-    turbulence_intensity::TF
     horizontal_spread_rate::TF
     vertical_spread_rate::TF
     alpha_star::TF
     beta_star::TF
 end
-GaussYaw(x) = GaussYaw(x, 0.022, 0.022, 2.32, 0.154)
+GaussYaw() = GaussYaw(0.022, 0.022, 2.32, 0.154)
 
 """
     wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::JensenTopHat, windfarmstate::SingleWindFarmState)
@@ -241,11 +240,12 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
 
     # extract model parameters
     ks = model.k_star       # wake spread rate (k* in 2014 paper)
-    ti = model.turbulence_intensity
     ky = model.horizontal_spread_rate
     kz = model.vertical_spread_rate
     as = model.alpha_star
     bs = model.beta_star
+
+    ti = windfarmstate.turbine_local_ti[turbine_id]
 
     # calculate beta (paper eq: 6)
     beta = 0.5*(1.0+sqrt(1.0-ct))/sqrt(1.0-ct)
@@ -270,10 +270,10 @@ end
 
 Helper function for wake_deficit_model when using the GaussYaw model. Computes the length of the near wake potential core.
 """
-function _gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
+function _gauss_yaw_potential_core(d, yaw, ct, as, ti, bs)
     # from Bastankhah and Porte-Agel 2016 eqn 7.3
 
-    x0 = dt*(cos(yaw)*(1.0+sqrt(1.0-ct)))/(sqrt(2.0)*(as*ti+bs*(1.0-sqrt(1.0-ct))))
+    x0 = d*(cos(yaw)*(1.0+sqrt(1.0-ct)))/(sqrt(2.0)*(as*ti+bs*(1.0-sqrt(1.0-ct))))
 
     return x0
 end
@@ -313,7 +313,7 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
 
     # extract model parameters
     # ks = model.k_star       # wake spread rate (k* in 2014 paper)
-    ti = model.turbulence_intensity
+    ti = windfarmstate.turbine_local_ti[turbine_id]
     ky = model.horizontal_spread_rate
     kz = model.vertical_spread_rate
     as = model.alpha_star
