@@ -639,6 +639,19 @@ end
         # test value at point in wake 40 m downstream and with theta=15 degrees
         @test ff.wake_deficit_model([40., dy, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) == loss40attheta
 
+        # test with wec
+        model.wec_factor[1] = 1.0
+        loss0 = ff.wake_deficit_model([100.0, 50.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
+        model.wec_factor[1] = 3.0
+        loss1 = ff.wake_deficit_model([100.0, 50.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
+        @test loss0 < loss1
+
+        model.wec_factor[1] = 1.0
+        loss0 = ff.wake_deficit_model([100.0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
+        model.wec_factor[1] = 3.0
+        loss1 = ff.wake_deficit_model([100.0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
+        @test loss0 == loss1
+
     end
 
     @testset "Gauss Yaw Model" begin
@@ -734,7 +747,13 @@ end
         loss0 = ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
         model.wec_factor[1] = 3.0
         loss1 = ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
-        @test loss0 < loss1
+        @test loss0 ≈ loss1 rtol=1E-6
+
+        model.wec_factor[1] = 1.0
+        loss0 = ff.wake_deficit_model([x4_0, 2.0*rotor_diameter, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
+        model.wec_factor[1] = 3.0
+        loss1 = ff.wake_deficit_model([x4_0, 2.0*rotor_diameter, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
+        @test loss1 > 3.0*loss0
 
         # # test centerline loss 40 meters downstream (data from Jensen 1983)
         # @test ff.wake_deficit_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40

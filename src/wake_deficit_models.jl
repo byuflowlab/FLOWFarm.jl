@@ -22,12 +22,14 @@ Container for parameters related to the Jensen Cosine deficit model
 - `alpha::Float`: parameter controlling the wake deficit decay rate. Default value is 0.1
 - `beta::Float`: parameter controlling the width of the cosine function. Default value is 20.0 deg., given in radians.
 """
-struct JensenCosine{TF} <: AbstractWakeDeficitModel
+struct JensenCosine{TF,ATF} <: AbstractWakeDeficitModel
     alpha::TF
     beta::TF
+    wec_factor::ATF
 end
-JensenCosine() = JensenCosine(0.1, 20.0*pi/180.0)
-JensenCosine(x) = JensenCosine(x, 20.0*pi/180.0)
+JensenCosine() = JensenCosine(0.1, 20.0*pi/180.0, [1.0])
+JensenCosine(x) = JensenCosine(x, 20.0*pi/180.0, [1.0])
+JensenCosine(x, y) = JensenCosine(x, y, [1.0])
 
 """
     Multizone(me, ke, MU, aU, bU)
@@ -146,6 +148,9 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
     deflection_y = deflection[1]
     deflection_z = deflection[2]
 
+    # get wec factor (See Thomas and Ning 2018)
+    wec_factor = model.wec_factor[1]
+
     # find delta x, y, and z. dx is the downstream distance from the turbine to
     # the point of interest. dy and dz are the distances from the point of interest
     # and the wake center (in y and z)
@@ -159,7 +164,7 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
     if dx < 0.
         loss = 0.0 # no loss outside the wake
     else
-        d = r0/tan(model.beta) # distance from fulcrum of wake cone to wind turbine hub
+        d = wec_factor*r0/tan(model.beta) # distance from fulcrum of wake cone to wind turbine hub
         theta = atan(dy/(dx+d)) # angle from center of wake to point of interest
         if theta > model.beta # if you're outside the wake
             loss = 0.0
