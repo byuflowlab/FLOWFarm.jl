@@ -13,7 +13,7 @@ using PyPlot
         modelAEP = ff.calculate_aep(ms3, pd3,rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)/1e9
         paperAEP = 1889.3
         println(modelAEP/paperAEP)
-        @test modelAEP/paperAEP ≈ 1 atol=0.03
+        @test modelAEP/paperAEP ≈ 1 atol=0.05
         end
 
 end
@@ -192,14 +192,18 @@ end
     @testset "calculate_power() PowerModelConstantCP" begin
         generator_efficiency = 0.944
         air_density = 1.1716
-        rotor_area = pi*80.0^2/4
+        rotor_area = 0.25*pi*80.0^2
         cp = 0.8
-        v0 = 12.0
+        v0 = 8.0
+        cut_in_speed = 4.  # m/s
+        cut_out_speed = 25.  # m/s
+        rated_speed = 16.  # m/s
+        rated_power = 2.0E6  # W
 
         power_model = ff.PowerModelConstantCp(cp)
 
-        p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, power_model)
-        @test p ≈ 3.8425979093271587e6 atol=1E-6
+        p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, cut_in_speed, rated_speed, cut_out_speed, rated_power, power_model)
+        @test p ≈ 0.5*rotor_area*cp*air_density*generator_efficiency*v0^3 atol=1E-6
 
     end
 
@@ -207,6 +211,10 @@ end
         generator_efficiency = 0.944
         air_density = 1.1716
         rotor_area = pi*80.0^2/4
+        cut_in_speed = 4.  # m/s
+        cut_out_speed = 25.  # m/s
+        rated_speed = 16.  # m/s
+        rated_power = 2.0E6  # W
 
         # load data
         data = readdlm("inputfiles/NREL5MWCPCT.txt",  ' ', skipstart=1)
@@ -226,7 +234,7 @@ end
         power_model = ff.PowerModelCpPoints(velpoints, cppoints)
 
         # calculated power and test
-        p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, power_model)
+        p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, cut_in_speed, rated_speed, cut_out_speed, rated_power, power_model)
         @test p ≈ power atol=1E-6
 
     end
@@ -235,7 +243,10 @@ end
         generator_efficiency = 0.944
         air_density = 1.1716
         rotor_area = pi*80.0^2/4
-        cp = 0.8
+        cut_in_speed = 4.  # m/s
+        cut_out_speed = 25.  # m/s
+        rated_speed = 16.  # m/s
+        rated_power = 2.0E6  # W
 
         # vel and power for test based on input power curve
         v0 = 0.5*(6.9778601570742005 + 7.469669440862736)
@@ -252,7 +263,7 @@ end
         power_model = ff.PowerModelPowerPoints(velpoints, powpoints)
 
         # calc power
-        p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, power_model)
+        p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, cut_in_speed, rated_speed, cut_out_speed, rated_power, power_model)
 
         # test
         @test p ≈ p0 atol=1E-6
