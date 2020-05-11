@@ -644,7 +644,7 @@ end
         loss0 = ff.wake_deficit_model([100.0, 50.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
         model.wec_factor[1] = 3.0
         loss1 = ff.wake_deficit_model([100.0, 50.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
-        @test loss0 < loss1
+        @test loss1 > 3.0*loss0
 
         model.wec_factor[1] = 1.0
         loss0 = ff.wake_deficit_model([100.0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
