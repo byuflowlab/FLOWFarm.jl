@@ -729,6 +729,13 @@ end
         # test loss at x4 with no yaw
         @test ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)  ≈ loss4_0 rtol=rtol
 
+        # test with wec
+        model.wec_factor[1] = 1.0
+        loss0 = ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
+        model.wec_factor[1] = 3.0
+        loss1 = ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
+        @test loss0 < loss1
+
         # # test centerline loss 40 meters downstream (data from Jensen 1983)
         # @test ff.wake_deficit_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40
 
@@ -842,6 +849,13 @@ end
 
         # test loss at x4 with no yaw
         @test ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)  ≈ loss4_0 rtol=rtol
+
+        # test with wec
+        model.wec_factor[1] = 1.0
+        loss0 = ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
+        model.wec_factor[1] = 3.0
+        loss1 = ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
+        @test loss0 < loss1
 
     end
 end

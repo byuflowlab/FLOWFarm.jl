@@ -74,14 +74,15 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 - `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 """
-struct GaussYaw{TF} <: AbstractWakeDeficitModel
+struct GaussYaw{TF, ATF} <: AbstractWakeDeficitModel
     horizontal_spread_rate::TF
     vertical_spread_rate::TF
     alpha_star::TF
     beta_star::TF
+    wec_factor::ATF
 end
-GaussYaw() = GaussYaw(0.022, 0.022, 2.32, 0.154)
-
+GaussYaw() = GaussYaw(0.022, 0.022, 2.32, 0.154, [1.0])
+GaussYaw(a, b, c, d) = GaussYaw(a, b, c, d, [1.0])
 
 """
     GaussYawVariableSpread(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
@@ -92,11 +93,13 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 - `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 """
-struct GaussYawVariableSpread{TF} <: AbstractWakeDeficitModel
+struct GaussYawVariableSpread{TF, ATF} <: AbstractWakeDeficitModel
     alpha_star::TF
     beta_star::TF
+    wec_factor::ATF
 end
-GaussYaw() = GaussYaw(0.022, 0.022, 2.32, 0.154)
+GaussYawVariableSpread() = GaussYawVariableSpread(2.32, 0.154, [1.0])
+GaussYawVariableSpread(x, y) = GaussYawVariableSpread(x, y, [1.0])
 
 
 """
@@ -308,7 +311,7 @@ function _gauss_yaw_spread(dt, k, dx, x0, yaw)
 
 end
 
-function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz)
+function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, wf)
     if dx > 0.0 # loss in the wake
 
         # calculate the length of the potential core (paper eq: 7.3)
@@ -331,8 +334,8 @@ function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz)
         end 
 
         # calculate velocity deficit
-        ey = exp(-0.5*(dy/sigma_y)^2.0)
-        ez = exp(-0.5*(dz/sigma_z)^2.0)
+        ey = exp(-0.5*(dy/(wf*sigma_y))^2.0)
+        ez = exp(-0.5*(dz/(wf*sigma_z))^2.0)
 
         loss = (1.0-sqrt(1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2.0))))*ey*ez
 
@@ -371,8 +374,10 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
     kz = model.vertical_spread_rate
     as = model.alpha_star
     bs = model.beta_star
+    wec_factor = model.wec_factor[1]
 
-    loss = _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz)
+    loss = _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, wec_factor)
+
 
     return loss
     
@@ -405,8 +410,9 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
     
     as = model.alpha_star
     bs = model.beta_star
+    wec_factor = model.wec_factor[1]
 
-    loss = _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz)
+    loss = _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, wec_factor)
 
     return loss
 
