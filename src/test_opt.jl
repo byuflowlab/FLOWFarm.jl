@@ -67,9 +67,12 @@ function wind_farm_opt(x)
 
     boundary_con = boundary_wrapper(x)
     db_dx = ForwardDiff.jacobian(boundary_wrapper,x)
-
+    #
     c = [spacing_con;boundary_con]
     dcdx = [ds_dx;db_dx]
+
+    # c = boundary_con
+    # dcdx = db_dx
 
     fail = false
     return AEP, c, dAEP_dx, dcdx, fail

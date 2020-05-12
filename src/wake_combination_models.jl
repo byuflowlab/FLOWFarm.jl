@@ -36,8 +36,11 @@ end
 function wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model::SumOfSquaresFreestreamSuperposition)
     # Katic et al. 1986
 
-    new_deficit_sum = sqrt((old_deficit_sum^2 + (wind_speed*deltav)^2))
-
+    sq = old_deficit_sum^2 + (wind_speed*deltav)^2
+    # println("sq: ", sq)
+    # new_deficit_sum = sqrt(sq)
+    new_deficit_sum = sq^0.5
+    # println("new_deficit_sum: ", new_deficit_sum)
     if new_deficit_sum > wind_speed
         new_deficit_sum = wind_speed
     end

@@ -158,8 +158,8 @@ Jfor = ForwardDiff.jacobian(aep_wrapper,x)
 # out = similar(x)
 # cfg4 = ForwardDiff.GradientConfig(aep_wrapper, x, ForwardDiff.Chunk{1}())
 # Jfor = ForwardDiff.gradient!(out,aep_wrapper,x,cfg4)
-println("Forward time: ", time()-t1)
-# println("forward diff: ", J)
+# println("Forward time: ", time()-t1)
+# println("forward diff: ", Jfor)
 
 
 # include("model_set_3.jl")
@@ -170,8 +170,8 @@ println("Forward time: ", time()-t1)
 # println("reverse diff: ", J)
 
 
-#FD
-# include("model_set_3.jl")
+# FD
+include("model_set_3.jl")
 x = [copy(turbine_x);copy(turbine_y)]
 step = 1E-4
 grad = zeros(length(x))
@@ -187,7 +187,7 @@ for i = 1:length(x)
 end
 #
 # println(Jrev)
-println("FD: ", maximum((grad .- Jfor[:])./grad))
+println("FD: ", maximum((grad .- Jfor[:])./Jfor[:]))
 # println("RD: ", maximum((grad .- Jrev[:])./grad))
 
 # println(grad)

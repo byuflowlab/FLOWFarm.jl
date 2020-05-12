@@ -335,9 +335,11 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
         else # linear interpolation in the near wakes
             # calculate horizontal wake spread
             sigma_y = _gauss_yaw_spread(dt, ky, x0, x0, yaw)
+            sigma_y = typeof(windfarmstate.turbine_x[1])(1.0) * sigma_y
 
             # calculate vertical wake spread
             sigma_z = _gauss_yaw_spread(dt, kz, x0, x0, 0.0)
+            sigma_z = typeof(windfarmstate.turbine_x[1])(1.0) * sigma_z
         end
 
         # calculate velocity deficit
@@ -347,8 +349,13 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
         loss = (1.0-sqrt(1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2.0))))*ey*ez
 
     else # loss upstream of turbine
-        loss = 0.0
+        # loss = 0.0
+        loss = typeof(windfarmstate.turbine_x[1])(0.0)
+        # println("zero loss: ", loss)
 
     end
+
+    # println("loss: ", loss)
+    return loss
 
 end

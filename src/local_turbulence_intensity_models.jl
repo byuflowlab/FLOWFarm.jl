@@ -10,9 +10,6 @@ struct LocalTIModelMaxTI{TF} <: AbstractLocalTurbulenceIntensityModel
 end
 LocalTIModelMaxTI() = LocalTIModelMaxTI(2.32, 0.154)
 
-struct LocalTIModelGaussTI{TF} <: AbstractLocalTurbulenceIntensityModel
-    ti::TF
-end
 
 function calculate_local_ti(ambient_ti, windfarm, windfarmstate, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=1E-6)
     return ambient_ti
@@ -147,4 +144,57 @@ function calculate_local_ti(ambient_ti, windfarm, windfarmstate, ti_model::Local
 
     return ti_dst
 
+end
+
+
+function GaussianTI(loc,windfarm,windfarmstate,ambient_ti)
+
+    added_ti = 0.0
+    e = 1.0*ambient_ti^0.1
+    nturbines = length(windfarm.turbine_x)
+
+    for u=1:nturbines
+
+        # get index of upstream turbine
+        turb = windfarmstate.sorted_turbine_index[u]
+
+        # calculate downstream distance between wind turbines
+        dx = loc[1] - windfarmstate.turbine_x[turb]
+
+        tol = 1e-4
+        if dx > tol
+            turbine_type = windfarm.turbine_definition_ids[turb]
+            rotor_diameter = windfarm.turbine_definitions[turbine_type].rotor_diameter[1]
+            hub_height = windfarm.turbine_definitions[turbine_type].hub_height[1]
+            dy = loc[2] - windfarmstate.turbine_y[turb]
+            dz = loc[3] - hub_height
+            r = sqrt(dy^2 + dz^2)
+
+            ct = windfarmstate.turbine_ct[turb]
+            kstar = 0.11*ct^1.07*ambient_ti^0.2
+            epsilon = 0.23*ct^-0.25*ambient_ti^0.17
+            d = 2.3*ct^-1.2
+            f = 0.7*ct^-3.2*ambient_ti^-0.45
+            if r <= 0.5
+                k1 = cos(pi/2.0*(r/rotor_diameter-0.5))^2
+                k2 = cos(pi/2.0*(r/rotor_diameter+0.5))^2
+            else
+                k1 = 1.0
+                k2 = 0.0
+            end
+
+            sigma = kstar*dx + epsilon*rotor_diameter
+            if dz >= 0.0
+                delta = 0.0
+            else
+                delta = ambient_ti*sin(pi*dz/hub_height)^2
+            end
+
+            p1 = 1.0/(d + e*dx/rotor_diameter + f*(1.0+dx/rotor_diameter)^-2.0)
+            p2 = k1*exp(-(r-rotor_diameter/2.0)^2/(2.0*sigma^2)) + k2*exp(-(r+rotor_diameter/2.0)^2/(2.0*sigma^2))
+            dI = p1*p2 - delta
+            added_ti += dI
+        end
+    end
+    return ambient_ti + added_ti
 end

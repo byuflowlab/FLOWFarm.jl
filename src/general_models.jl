@@ -97,9 +97,11 @@ function point_velocity(loc, model_set::AbstractModelSet, problem_description::A
 
     # initialize deficit summation term to zero
     deficit_sum = 0.0
+    # deficit_sum = typeof(windfarmstate.turbine_x[downwind_turbine_id])(0.0)
 
     # initialize point velocity with shear to zero
     point_velocity_with_shear = 0.0
+    # point_velocity_with_shear = typeof(windfarmstate.turbine_x[downwind_turbine_id])(0.0)
 
     # loop through all turbines
     for u=1:nturbines
@@ -112,32 +114,33 @@ function point_velocity(loc, model_set::AbstractModelSet, problem_description::A
 
         # get turbine definition
         upwind_turbine = turbine_definitions[turbine_definition_ids[upwind_turb_id]]
-
         # downstream distance between upstream turbine and point
         x = loc[1] - turbine_x[upwind_turb_id]
 
         # set this iterations velocity deficit to 0
-        deltav = 0.0
+        # deltav = typeof(windfarmstate.turbine_x[downwind_turbine_id])(0.0)
+        # deltav = 0.0
 
         # check turbine relative locations
+        # println("______________________")
         if x > 0.0
-
             # calculate wake deflection of the current wake at the point of interest
             horizontal_deflection = wake_deflection_model(loc, upwind_turb_id, upwind_turbine, wakedeflectionmodel, windfarmstate)
             vertical_deflection = 0.0
 
             # velocity difference in the wake
             deltav = wake_deficit_model(loc, [horizontal_deflection, vertical_deflection], upwind_turb_id, upwind_turbine, wakedeficitmodel, windfarmstate)
-
             # combine deficits according to selected wake combination method
             turb_inflow = wtvelocities[upwind_turb_id]
             deficit_sum = wake_combination_model(deltav, wind_speed, turb_inflow, deficit_sum, wakecombinationmodel)
-
+            # println("horizontal_deflection: ", horizontal_deflection)
         end
 
         # find velocity at point without shear
         point_velocity_without_shear = wind_speed - deficit_sum
 
+
+        # println("deficit_sum: ", deficit_sum)
         # adjust sample point velocity for shear
         point_velocity_with_shear = adjust_for_wind_shear(loc, point_velocity_without_shear, reference_height, turbine_z[upwind_turb_id], wind_shear_model)
 
