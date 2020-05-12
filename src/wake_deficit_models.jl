@@ -22,12 +22,14 @@ Container for parameters related to the Jensen Cosine deficit model
 - `alpha::Float`: parameter controlling the wake deficit decay rate. Default value is 0.1
 - `beta::Float`: parameter controlling the width of the cosine function. Default value is 20.0 deg., given in radians.
 """
-struct JensenCosine{TF} <: AbstractWakeDeficitModel
+struct JensenCosine{TF,ATF} <: AbstractWakeDeficitModel
     alpha::TF
     beta::TF
+    wec_factor::ATF
 end
-JensenCosine() = JensenCosine(0.1, 20.0*pi/180.0)
-JensenCosine(x) = JensenCosine(x, 20.0*pi/180.0)
+JensenCosine() = JensenCosine(0.1, 20.0*pi/180.0, [1.0])
+JensenCosine(x) = JensenCosine(x, 20.0*pi/180.0, [1.0])
+JensenCosine(x, y) = JensenCosine(x, y, [1.0])
 
 """
     Multizone(me, ke, MU, aU, bU)
@@ -69,19 +71,38 @@ GaussianOriginal() = GaussOriginal(0.075)
 Container for parameters related to the Gaussian deficit model with yaw presented by Bastankhah and Porte-Agel 2016
 
 # Arguments
-- `turbulence_intensity::Float`: the ambient turbulence intensity. No default value is provided.
 - `horizontal_spread_rate::Float`: parameter controlling the horizontal spread of the deficit model. Default value is 0.022.
 - `vertical_spread_rate::Float`: parameter controlling the vertical spread of the deficit model. Default value is 0.022.
 - `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 """
-struct GaussYaw{TF} <: AbstractWakeDeficitModel
+struct GaussYaw{TF, ATF} <: AbstractWakeDeficitModel
     horizontal_spread_rate::TF
     vertical_spread_rate::TF
     alpha_star::TF
     beta_star::TF
+    wec_factor::ATF
 end
-GaussYaw() = GaussYaw(0.022, 0.022, 2.32, 0.154)
+GaussYaw() = GaussYaw(0.022, 0.022, 2.32, 0.154, [1.0])
+GaussYaw(a, b, c, d) = GaussYaw(a, b, c, d, [1.0])
+
+"""
+    GaussYawVariableSpread(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+
+Container for parameters related to the Gaussian deficit model with yaw presented by Bastankhah and Porte-Agel 2016
+
+# Arguments
+- `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
+- `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
+"""
+struct GaussYawVariableSpread{TF, ATF} <: AbstractWakeDeficitModel
+    alpha_star::TF
+    beta_star::TF
+    wec_factor::ATF
+end
+GaussYawVariableSpread() = GaussYawVariableSpread(2.32, 0.154, [1.0])
+GaussYawVariableSpread(x, y) = GaussYawVariableSpread(x, y, [1.0])
+
 
 """
     wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::JensenTopHat, windfarmstate::SingleWindFarmState)
@@ -127,6 +148,9 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
     deflection_y = deflection[1]
     deflection_z = deflection[2]
 
+    # get wec factor (See Thomas and Ning 2018)
+    wec_factor = model.wec_factor[1]
+
     # find delta x, y, and z. dx is the downstream distance from the turbine to
     # the point of interest. dy and dz are the distances from the point of interest
     # and the wake center (in y and z)
@@ -140,7 +164,7 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
     if dx < 0.
         loss = 0.0 # no loss outside the wake
     else
-        d = r0/tan(model.beta) # distance from fulcrum of wake cone to wind turbine hub
+        d = wec_factor*r0/tan(model.beta) # distance from fulcrum of wake cone to wind turbine hub
         theta = atan(dy/(dx+d)) # angle from center of wake to point of interest
         if theta > model.beta # if you're outside the wake
             loss = 0.0
@@ -292,6 +316,43 @@ function _gauss_yaw_spread(dt, k, dx, x0, yaw)
 
 end
 
+function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, wf)
+    if dx > 0.0 # loss in the wake
+
+        # calculate the length of the potential core (paper eq: 7.3)
+        x0 = _gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
+
+        # calculate wake spread
+        if dx > x0
+            # calculate horizontal wake spread (paper eq: 7.2)
+            sigma_y = _gauss_yaw_spread(dt, ky, dx, x0, yaw)
+
+            # calculate vertical wake spread (paper eq: 7.2)
+            sigma_z = _gauss_yaw_spread(dt, kz, dx, x0, 0.0)
+
+        else # linear interpolation in the near wakes
+            # calculate horizontal wake spread
+            sigma_y = _gauss_yaw_spread(dt, ky, x0, x0, yaw)
+
+            # calculate vertical wake spread
+            sigma_z = _gauss_yaw_spread(dt, kz, x0, x0, 0.0)
+        end
+
+        # calculate velocity deficit
+        ey = exp(-0.5*(dy/(wf*sigma_y))^2.0)
+        ez = exp(-0.5*(dz/(wf*sigma_z))^2.0)
+
+        loss = (1.0-sqrt(1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2.0))))*ey*ez
+
+    else # loss upstream of turbine
+        loss = 0.0
+
+    end
+
+    return loss
+
+end
+
 """
     wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::GaussYaw, windfarmstate::SingleWindFarmState)
 
@@ -318,42 +379,47 @@ function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::Tur
     kz = model.vertical_spread_rate
     as = model.alpha_star
     bs = model.beta_star
+    wec_factor = model.wec_factor[1]
 
-    if dx > 0.0 # loss in the wake
+    loss = _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, wec_factor)
 
-        # calculate the length of the potential core (paper eq: 7.3)
-        x0 = _gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
 
-        # calculate wake spread
-        if dx > x0
-            # calculate horizontal wake spread (paper eq: 7.2)
-            sigma_y = _gauss_yaw_spread(dt, ky, dx, x0, yaw)
+    return loss
 
-            # calculate vertical wake spread (paper eq: 7.2)
-            sigma_z = _gauss_yaw_spread(dt, kz, dx, x0, 0.0)
+end
 
-        else # linear interpolation in the near wakes
-            # calculate horizontal wake spread
-            sigma_y = _gauss_yaw_spread(dt, ky, x0, x0, yaw)
-            sigma_y = typeof(windfarmstate.turbine_x[1])(1.0) * sigma_y
+"""
+    wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::GaussYaw, windfarmstate::SingleWindFarmState)
 
-            # calculate vertical wake spread
-            sigma_z = _gauss_yaw_spread(dt, kz, x0, x0, 0.0)
-            sigma_z = typeof(windfarmstate.turbine_x[1])(1.0) * sigma_z
-        end
+Computes the wake deficit at a given location using the The Gaussian wake model presented by Bastankhah and Porte-Agel in the paper: "Experimental and theoretical study of wind turbine wakes in yawed conditions" (2016)
+The spread rate is adjusted based on local turbulence intensity as in Niayifar and Porte-Agel 2016
+"""
+function wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::GaussYawVariableSpread, windfarmstate::SingleWindFarmState)
 
-        # calculate velocity deficit
-        ey = exp(-0.5*(dy/sigma_y)^2.0)
-        ez = exp(-0.5*(dz/sigma_z)^2.0)
+    deflection_y = deflection[1]
+    deflection_z = deflection[2]
 
-        loss = (1.0-sqrt(1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2.0))))*ey*ez
+    dx = loc[1]-windfarmstate.turbine_x[turbine_id]
+    dy = loc[2]-(windfarmstate.turbine_y[turbine_id]+deflection_y)
+    dz = loc[3]-(windfarmstate.turbine_z[turbine_id]+turbine_definition.hub_height[1]+deflection_z)
 
-    else # loss upstream of turbine
-        # loss = 0.0
-        loss = typeof(windfarmstate.turbine_x[1])(0.0)
-        # println("zero loss: ", loss)
+    # extract turbine properties
+    dt = turbine_definition.rotor_diameter[1]
+    yaw = windfarmstate.turbine_yaw[turbine_id]
+    ct = windfarmstate.turbine_ct[turbine_id]
 
-    end
+    # extract model parameters
+    # ks = model.k_star       # wake spread rate (k* in 2014 paper)
+    ti = windfarmstate.turbine_local_ti[turbine_id]
+    ky = kz = _k_star_func(ti)
+
+    as = model.alpha_star
+    bs = model.beta_star
+    wec_factor = model.wec_factor[1]
+
+    loss = _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, wec_factor)
+
+    return loss
 
     # println("loss: ", loss)
     return loss
