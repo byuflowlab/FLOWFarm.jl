@@ -1,9 +1,9 @@
 import FlowFarm; const ff = FlowFarm
 
-rotor_diameter = 40.0
-hub_height = 90.0
+rotor_diameter = 0.57
+hub_height = 0.7
 yaw = 0.0
-ct = 0.7
+ct = 0.81
 cp = 0.8
 generator_efficiency = 0.944
 ai = 1.0/3.0

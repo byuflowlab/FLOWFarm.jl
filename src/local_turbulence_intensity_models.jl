@@ -161,8 +161,7 @@ function GaussianTI(loc,windfarm,windfarmstate,ambient_ti)
         # calculate downstream distance between wind turbines
         dx = loc[1] - windfarmstate.turbine_x[turb]
 
-        tol = 1e-4
-        if dx > tol
+        if dx > 1e-6
             turbine_type = windfarm.turbine_definition_ids[turb]
             rotor_diameter = windfarm.turbine_definitions[turbine_type].rotor_diameter[1]
             hub_height = windfarm.turbine_definitions[turbine_type].hub_height[1]
@@ -175,9 +174,11 @@ function GaussianTI(loc,windfarm,windfarmstate,ambient_ti)
             epsilon = 0.23*ct^-0.25*ambient_ti^0.17
             d = 2.3*ct^-1.2
             f = 0.7*ct^-3.2*ambient_ti^-0.45
-            if r <= 0.5
-                k1 = cos(pi/2.0*(r/rotor_diameter-0.5))^2
-                k2 = cos(pi/2.0*(r/rotor_diameter+0.5))^2
+
+            dist = 0.5
+            if r/rotor_diameter <= dist
+                k1 = cos(pi/2.0*(r/rotor_diameter-dist))^2
+                k2 = cos(pi/2.0*(r/rotor_diameter+dist))^2
             else
                 k1 = 1.0
                 k2 = 0.0
@@ -190,10 +191,14 @@ function GaussianTI(loc,windfarm,windfarmstate,ambient_ti)
                 delta = ambient_ti*sin(pi*dz/hub_height)^2
             end
 
+
+            sigma = sigma*1.0
             p1 = 1.0/(d + e*dx/rotor_diameter + f*(1.0+dx/rotor_diameter)^-2.0)
             p2 = k1*exp(-(r-rotor_diameter/2.0)^2/(2.0*sigma^2)) + k2*exp(-(r+rotor_diameter/2.0)^2/(2.0*sigma^2))
             dI = p1*p2 - delta
-            added_ti += dI
+            if r < rotor_diameter*4.0/5.0
+                added_ti += dI/1.5
+            end
         end
     end
     return ambient_ti + added_ti

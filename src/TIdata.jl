@@ -215,24 +215,24 @@ end
 end
 
 
-turb = "low"
-ws = 11.0
-sep = 4.0
-
-TI = get_TIdat(ws,turb,sep)
-x = range(-200.0,stop=200.0,length=length(TI))
-plot(x,TI)
-
-
-sep = 7.0
-
-TI = get_TIdat(ws,turb,sep)
-x = range(-200.0,stop=200.0,length=length(TI))
-plot(x,TI)
-
-
-sep = 10.0
-
-TI = get_TIdat(ws,turb,sep)
-x = range(-200.0,stop=200.0,length=length(TI))
-plot(x,TI)
+# turb = "low"
+# ws = 11.0
+# sep = 4.0
+#
+# TI = get_TIdat(ws,turb,sep)
+# x = range(-200.0,stop=200.0,length=length(TI))
+# plot(x,TI)
+#
+#
+# sep = 7.0
+#
+# TI = get_TIdat(ws,turb,sep)
+# x = range(-200.0,stop=200.0,length=length(TI))
+# plot(x,TI)
+#
+#
+# sep = 10.0
+#
+# TI = get_TIdat(ws,turb,sep)
+# x = range(-200.0,stop=200.0,length=length(TI))
+# plot(x,TI)

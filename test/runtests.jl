@@ -29,27 +29,27 @@ end
         wake_center_y = 0.0
 
         # test no overlap
-        overlap = ff.overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y, 
+        overlap = ff.overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y,
             wake_center_z, wake_diameter)
         @test overlap == 0.0
 
         # test partial overlap
         turbine_y = 0.8079455*rotor_diameter/2.0
-        overlap = ff.overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y, 
+        overlap = ff.overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y,
             wake_center_z, wake_diameter)
         @test overlap ≈ 0.5*0.25*pi*rotor_diameter^2 atol=1E-4
 
         # test full overlap larger wake
         turbine_y = 0.0
         wake_diameter = 90.0
-        overlap = ff.overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y, 
+        overlap = ff.overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y,
             wake_center_z, wake_diameter)
         @test overlap ≈ 0.25*pi*rotor_diameter^2 atol=1E-6
 
         # test full overlap larger rotor
         turbine_y = 0.0
         wake_diameter = 70.0
-        overlap = ff.overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y, 
+        overlap = ff.overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y,
             wake_center_z, wake_diameter)
         @test overlap ≈ 0.25*pi*wake_diameter^2 atol=1E-6
 
@@ -79,9 +79,9 @@ end
 
     @testset "Turbine spacing calculation" begin
 
-        testing_x = [0,0,500,500,7481]
-        testing_y = [0,500,0,500,-43891]
-        turbine_separation = [500,500,707.1067811865476,44523.9850193129,707.1067811865476,500,45016.95505029189,500,44442.70741077775,44936.56909466943]
+        testing_x = [0.0,0.0,500.0,500.0,7481.0]
+        testing_y = [0.0,500.0,0.0,500.0,-43891.0]
+        turbine_separation = [500.0,500.0,707.1067811865476,44523.9850193129,707.1067811865476,500.0,45016.95505029189,500.0,44442.70741077775,44936.56909466943]
 
         @test ff.turbine_spacing(testing_x,testing_y) == turbine_separation
 
@@ -481,7 +481,7 @@ end
         rated_power = 1.0176371581904552e6
         ambient_ti = 0.1
 
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0], [ambient_ti])
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, turbine_inflow_velcity, [0.0], [ambient_ti],sorted_turbine_index)
         ct_model = ff.ThrustModelConstantCt(ct)
         power_model = ff.PowerModelConstantCp([cp])
 
@@ -692,7 +692,7 @@ end
 
         deflection = [0.0, 0.0]
 
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0], [ambient_ti])
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, turbine_inflow_velcity, [0.0], [ambient_ti],sorted_turbine_index)
         ct_model = ff.ThrustModelConstantCt(ct)
         power_model = ff.PowerModelConstantCp([cp])
 
@@ -819,7 +819,7 @@ end
 
         deflection = [0.0, 0.0]
 
-        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcity, [0.0], [ambient_ti])
+        windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, turbine_inflow_velcity, [0.0], [ambient_ti],sorted_turbine_index)
         ct_model = ff.ThrustModelConstantCt(ct)
         power_model = ff.PowerModelConstantCp([cp])
 
@@ -915,7 +915,7 @@ end
         ti_ust = 0.077
 
         ti, ti_ratio = ff._niayifar_added_ti_function(x, rotor_diameter, rotor_diameter, wake_height, turbine_height, ct, ky, deltay, ti, ti_ust, ti_dst_in, ti_area_ratio_in; s=700.0)
-        
+
         @test ti ≈ 0.1476 atol=tol
 
     end
@@ -935,7 +935,7 @@ end
 
         # freestream
         ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(1+ 4*10), tol=1E-6)
-        @test ti_dst  == data[1,2] 
+        @test ti_dst  == data[1,2]
 
         # row 2
         ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(2+ 4*10), tol=1E-6)
@@ -972,27 +972,59 @@ end
 
         # freestream
         ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(1+ 4*10), tol=1E-6)
-        @test ti_dst == ambient_ti 
+        @test ti_dst == ambient_ti
 
         # row 2
         ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(2+ 4*10), tol=1E-6)
-        @test ti_dst == ambient_ti 
+        @test ti_dst == ambient_ti
 
         # row 3
         ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(3+ 4*10), tol=1E-6)
-        @test ti_dst == ambient_ti 
+        @test ti_dst == ambient_ti
 
         # row 4
         ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(4+ 4*10), tol=1E-6)
-        @test ti_dst == ambient_ti 
+        @test ti_dst == ambient_ti
 
         # row 5
         ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(5+ 4*10), tol=1E-6)
-        @test ti_dst == ambient_ti 
+        @test ti_dst == ambient_ti
 
         # row 6
         ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(6+ 4*10), tol=1E-6)
-        @test ti_dst == ambient_ti 
+        @test ti_dst == ambient_ti
+
+    end
+
+    @testset "Gaussian TI" begin
+#
+            include("model_sets/model_set_5.jl")
+            ambient_ti = 0.137
+
+            x = [2.959e-2,            2.219e-1,            4.290e-1,            6.805e-1,
+            9.467e-1,            1.287e+0,            1.701e+0,            2.101e+0,
+            2.441e+0,            2.811e+0,            3.092e+0,            3.388e+0,
+            3.683e+0,            3.979e+0,            4.364e+0,            4.852e+0,
+            5.237e+0,            5.740e+0,            6.139e+0,            6.686e+0,
+            7.411e+0,            8.166e+0,            8.861e+0,            9.408e+0,
+            9.970e+0] .* rotor_diameter
+
+            """paper data from "A new Gaussian-based analytical wake model for wind turbines
+            considering ambiend turbulence intensities and thrust coefficient effects" by Ishihara and
+            Qian"""
+            paper_data = [1.625e-1, 1.841e-1, 2.023e-1, 2.114e-1, 2.149e-1, 2.149e-1, 2.081e-1, 1.991e-1,
+                 1.900e-1, 1.821e-1, 1.753e-1, 1.697e-1, 1.629e-1, 1.573e-1, 1.505e-1, 1.426e-1,
+                 1.370e-1, 1.302e-1, 1.234e-1, 1.189e-1, 1.111e-1, 1.032e-1, 9.760e-2, 9.425e-2,
+                 9.090e-2]
+
+            TI = zeros(length(x))
+            for i = 1:length(x)
+                    loc = [x[i],0.0,hub_height+rotor_diameter/2.0]
+                    TI[i] = ff.GaussianTI(loc,windfarm,windfarmstate,ambient_ti)
+            end
+
+            tol = 1E-2
+            @test TI.-ambient_ti ≈ paper_data atol=tol
 
     end
 

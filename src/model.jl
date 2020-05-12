@@ -74,13 +74,14 @@ wind_speed = 12.
 air_density = 1.225  # kg/m^3
 nturbines = 2
 # turbine_y = zeros(nturbines)
+
 turbine_y = [0.,-rotor_diameter/2.]
 turbine_z = zeros(nturbines)
 turbine_yaw = zeros(nturbines)
 turbine_ct = zeros(nturbines) .+ ct
 turbine_ai = zeros(nturbines) .+ ai
 winddirections = [270.0*pi/180.0]
-ambient_ti = ones(length(winddirections)) .* 0.11
+ambient_ti = ones(length(winddirections)) .* 0.046
 windspeeds = [wind_speed]
 windprobabilities = [1.0]
 measurementheight = [hub_height]
@@ -96,7 +97,7 @@ power_model = ff.PowerModelConstantCp(cp)
 wind_shear_model = ff.PowerLawWindShear(shearexponent)
 
 # turbine = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [ct_model], [power_model])
-turbine = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], power_model)
+turbine = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], ct_model, power_model)
 # turbine_definitions = [turbine for i in 1:nturbines]
 turbine_definitions = [turbine]
 sorted_turbine_index = [i for i  in 1:nturbines]

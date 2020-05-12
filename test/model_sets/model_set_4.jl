@@ -15,9 +15,9 @@ wind_speed = 8.0
 air_density = 1.1716  # kg/m^3
 ambient_ti = 0.077
 data = readdlm("inputfiles/horns_rev_locations.txt",  ',', skipstart=1)
-turbine_x = data[:, 1].*rotor_diameter 
+turbine_x = data[:, 1].*rotor_diameter
 nturbines = length(turbine_x)
-turbine_y = data[:, 2].*rotor_diameter 
+turbine_y = data[:, 2].*rotor_diameter
 turbine_z = zeros(nturbines)
 turbine_yaw = zeros(nturbines)
 turbine_ct = zeros(nturbines) .+ ct
@@ -30,7 +30,7 @@ ambient_tis = [ambient_ti]
 shearexponent = 0.15
 turbine_inflow_velcities = zeros(nturbines) .+ wind_speed
 
-# rotor sample points 
+# rotor sample points
 rotor_points_y = [0.0]
 rotor_points_z = [0.0]
 
@@ -61,7 +61,7 @@ sorted_turbine_index = sortperm(turbine_x)
 turbine_definition_ids = ones(Int, nturbines)
 
 windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definition_ids, turbine_definitions)
-windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, zeros(nturbines), (zeros(nturbines).+ambient_ti))
+windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, turbine_inflow_velcities, zeros(nturbines), (zeros(nturbines).+ambient_ti),sorted_turbine_index)
 windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, [wind_shear_model])
 
 wakedeficitmodel = ff.GaussYaw()

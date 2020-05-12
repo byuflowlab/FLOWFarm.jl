@@ -4,11 +4,11 @@
 include("model.jl")
 # include("model_set_2.jl")
 
-function turbulence_function(loc)
+function turbulence_function(loc,windfarm,windfarmstate,ambient_ti)
     r = sqrt(loc[2]^2+(loc[3]-90.0)^2)
     if loc[1] > 10.0
-        if r < 80.0
-            return 0.14
+        if r < 70.0
+            return 0.17
         else
             return 0.046
         end
@@ -22,7 +22,7 @@ turb = "low"
 ws = 11.0
 TI_free = 0.046
 
-sep = 7.0
+sep = 4.0
 
 ka = 0.38
 kb = 0.004
@@ -80,7 +80,6 @@ pitch_func = Akima(speeds, pitches)
 tilt = deg2rad(5.0)
 rho = 1.225
 
-diff_vel = 0.0
 nCycles = 1000
 # naz = 4
 # az_arr = range(0.0,stop=2.0*pi-2.0*pi/naz,length=naz)
@@ -106,7 +105,7 @@ for k=1:length(off)
     turbine_y = [0.0,offset]
     windspeeds = [ws]
     windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definition_ids, turbine_definitions)
-    windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, init_inflow_velcities, zeros(nturbines),zeros(nturbines).+ambient_ti)
+    windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, init_inflow_velcities, zeros(nturbines),zeros(nturbines).+ambient_ti,sorted_turbine_index)
     windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_ti, [wind_shear_model])
     pd = ff.WindFarmProblemDescription(windfarm, windresource, [windfarmstate])
 
@@ -118,8 +117,11 @@ for k=1:length(off)
     # # state_damage = get_single_state_damage(ms,pd,1,nCycles,az_arr,
     # #     turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_function,r,rotor,sections,Rhub,Rtip)
     t1 = time()
+    # total_damage = ff.get_total_farm_damage(ms,pd,nCycles,az_arr,
+    #     turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_function,r,rotor,sections,Rhub,Rtip,precone,tilt,rho)
     total_damage = ff.get_total_farm_damage(ms,pd,nCycles,az_arr,
-        turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_function,r,rotor,sections,Rhub,Rtip,precone,tilt,rho)
+        turb_samples,points_x,points_y,omega_func,pitch_func,ff.GaussianTI,r,rotor,sections,Rhub,Rtip,precone,tilt,rho)
+
     t1_damage[k] = total_damage[1]
     t2_damage[k] = total_damage[2]
     println(time()-t1)
@@ -130,12 +132,12 @@ end
 
 
 
-scatter(off,t1_damage)
-scatter(off,t2_damage)
+scatter(off,t1_damage,color="red")
+scatter(off,t2_damage,color="blue")
 
  include("FAST_data.jl")
 FS,FD = fastdata(turb,ws,sep)
-scatter(FS,FD)
+scatter(FS,FD,color="black")
 #
 xlabel("offset")
 ylabel("damage")

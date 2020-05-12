@@ -480,10 +480,12 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
             TI_arr = zeros(length(r))
             for k = 1:length(r)
                 loc = [x_locs[k],y_locs[k],z_locs[k]]
-                TI_arr[k] = turbulence_func(loc)
+                TI_arr[k] = turbulence_func(loc,windfarm,windfarmstate,ambient_tis[state_ID])
             end
             # TI_inst = sum(TI_arr)/length(TI_arr)
             TI_inst = sum(TI_arr.*r)/sum(r)
+            # TI_inst = TI_inst/2.0
+            # println(TI_inst)
             # TI_inst = 0.16
             """"""
 

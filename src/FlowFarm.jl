@@ -2,7 +2,7 @@ module FlowFarm
 
 # using CCBlade
 # using PyPlot
-using FLOWMath: linear
+using FLOWMath: linear,trapz
 # using Statistics
 
 include("utilities.jl")

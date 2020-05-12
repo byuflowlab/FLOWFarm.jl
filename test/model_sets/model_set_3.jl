@@ -65,14 +65,14 @@ turbine_definition_ids = ones(Int, nturbines)
 windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definition_ids, turbine_definitions)
 windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, [wind_shear_model])
 
-windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, zeros(nturbines), (zeros(nturbines).+ambient_ti))
+windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, turbine_inflow_velcities, zeros(nturbines), (zeros(nturbines).+ambient_ti),sorted_turbine_index)
 windfarmstate_array = [windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,
                             windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,
                             windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,
                             windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate,windfarmstate]
 
 for i = 1:length(winddirections)
-              windfarmstate_array[i] = ff.SingleWindFarmState(i, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, sorted_turbine_index, turbine_inflow_velcities, zeros(nturbines), (zeros(nturbines).+ambient_ti))
+              windfarmstate_array[i] = ff.SingleWindFarmState(i, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, turbine_inflow_velcities, zeros(nturbines), (zeros(nturbines).+ambient_ti),sorted_turbine_index)
 end
 #
 alpha = 0.04
