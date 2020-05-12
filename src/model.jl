@@ -70,12 +70,13 @@ rated_power = 5e6
 
 generator_efficiency = 0.944
 ai = 1.0/3.0
-wind_speed = 12.
+wind_speed = 11.
 air_density = 1.225  # kg/m^3
-nturbines = 2
+nturbines = 1
 # turbine_y = zeros(nturbines)
 
-turbine_y = [0.,-rotor_diameter/2.]
+turbine_x = [0.0]
+turbine_y = [0.0]
 turbine_z = zeros(nturbines)
 turbine_yaw = zeros(nturbines)
 turbine_ct = zeros(nturbines) .+ ct
