@@ -1,7 +1,7 @@
 
 include("model2.jl")
 
-sep = 4.0
+sep = 10.0
 x = rotor_diameter*sep
 x_vec = range(turbine_x[1],stop = turbine_x[1]+10.0*rotor_diameter,length=100)
 y_vec = range(-2.0*rotor_diameter,stop = 2.0*rotor_diameter,length=100)
@@ -14,7 +14,7 @@ for i = 1:length(TI)
            loc = [x,y_vec[i],z]
            # loc = [x_vec[i],0.0,z]
            # loc = [4.0*rotor_diameter,0.0,z_vec[i]]
-           TI[i] = FlowFarm.GaussianTI(loc,windfarm,windfarmstate,ambient_ti[1])
+           TI[i] = FlowFarm.GaussianTI_stanley(loc,windfarm,windfarmstate,ambient_ti[1])
 end
 
 figure(1)
@@ -25,6 +25,10 @@ dat = get_TIdat(11.0,"low",sep)
 println(dat)
 x_TI = range(-200.0/rotor_diameter,stop=200.0/rotor_diameter,length=length(dat))
 scatter(x_TI,dat)
+
+
+
+
 # plot((z_vec.-turbine_x[1])./rotor_diameter,TI.-ambient_ti)
 
 # figure(2)

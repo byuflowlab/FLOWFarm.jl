@@ -18,22 +18,23 @@ function turbulence_function(loc,windfarm,windfarmstate,ambient_ti)
 end
 
 
-turb = "low"
+turb = "high"
 ws = 11.0
-TI_free = 0.046
+TI_free = 0.1
 
-sep = 4.0
+sep = 7.0
 
-ka = 0.38
-kb = 0.004
+# ka = 0.38
+# kb = 0.004
 
-initial = 0.313
-constant = 1.931
-ai = 0.435
-downstream = -0.855
-alpha_star = 2.32
-beta_star = 0.154
-turb_index = 2
+# initial = 0.313
+# constant = 1.931
+# ai = 0.435
+# downstream = -0.855
+# alpha_star = 2.32
+# beta_star = 0.154
+# turb_index = 2
+
 
 points_x = [0.69,0,-0.69,0]
 points_y = [0,0.69,0,-0.69]
@@ -62,12 +63,19 @@ dams = zeros(length(off))
 
 
 # println(ky)
-turbulence_intensity = 0.046
-ky = 0.025
-kz = 0.025
+turbulence_intensity = 0.05
+ky = 0.015
+kz = 0.015
+alpha_star = 5.0
+beta_star = 0.3
+
+alpha_star = 1.0
+beta_star = 0.3
 horizontal_spread_rate = ky
 vertical_spread_rate = kz
-wakedeficitmodel = ff.GaussYaw(turbulence_intensity,horizontal_spread_rate,vertical_spread_rate,alpha_star,beta_star)
+# wakedeficitmodel = ff.GaussYaw(turbulence_intensity,horizontal_spread_rate,vertical_spread_rate,alpha_star,beta_star)
+# wakedeficitmodel = ff.GaussYaw(horizontal_spread_rate,vertical_spread_rate,alpha_star,beta_star,1.0)
+wakedeficitmodel = ff.GaussYawVariableSpread(alpha_star,beta_star,1.0)
 wakedeflectionmodel = ff.JiminezYawDeflection(horizontal_spread_rate)
 ms = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel,local_ti_model)
 
@@ -120,7 +128,7 @@ for k=1:length(off)
     # total_damage = ff.get_total_farm_damage(ms,pd,nCycles,az_arr,
     #     turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_function,r,rotor,sections,Rhub,Rtip,precone,tilt,rho)
     total_damage = ff.get_total_farm_damage(ms,pd,nCycles,az_arr,
-        turb_samples,points_x,points_y,omega_func,pitch_func,ff.GaussianTI,r,rotor,sections,Rhub,Rtip,precone,tilt,rho)
+        turb_samples,points_x,points_y,omega_func,pitch_func,ff.GaussianTI_stanley,r,rotor,sections,Rhub,Rtip,precone,tilt,rho)
 
     t1_damage[k] = total_damage[1]
     t2_damage[k] = total_damage[2]

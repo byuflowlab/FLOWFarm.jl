@@ -52,7 +52,7 @@ speeds = range(3.,stop=25.,length=23)
 omegas = [6.972,7.183,7.506,7.942,8.469,9.156,10.296,11.431,11.89,
                     12.1,12.1,12.1,12.1,12.1,12.1,12.1,12.1,12.1,12.1,12.1,
                     12.1,12.1,12.1]
-pitches = -1.0.*[0.,0.,0.,0.,0.,0.,0.,0.,0.,3.823,6.602,8.668,10.45,12.055,
+pitches = 1.0.*[0.,0.,0.,0.,0.,0.,0.,0.,0.,3.823,6.602,8.668,10.45,12.055,
                         13.536,14.92,16.226,17.473,18.699,19.941,21.177,22.347,
                         23.469]
 
@@ -70,7 +70,7 @@ rated_power = 5e6
 
 generator_efficiency = 0.944
 ai = 1.0/3.0
-wind_speed = 11.
+
 air_density = 1.225  # kg/m^3
 nturbines = 1
 # turbine_y = zeros(nturbines)
@@ -82,7 +82,8 @@ turbine_yaw = zeros(nturbines)
 turbine_ct = zeros(nturbines) .+ ct
 turbine_ai = zeros(nturbines) .+ ai
 winddirections = [270.0*pi/180.0]
-ambient_ti = ones(length(winddirections)) .* 0.046
+wind_speed = 11.
+ambient_ti = ones(length(winddirections)) .* 0.11
 windspeeds = [wind_speed]
 windprobabilities = [1.0]
 measurementheight = [hub_height]

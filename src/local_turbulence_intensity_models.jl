@@ -21,6 +21,11 @@ function _k_star_func(ti_ust)
     # calculate wake spread parameter from Niayifar and Porte Agel (2015, 2016)
     k_star_ust = 0.3837*ti_ust + 0.003678
 
+    # k_star_ust = 0.3*ti_ust + 0.003
+    # println(k_star_ust)
+
+    return k_star_ust
+
 end
 
 function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, kstar_ust, delta_y, ti_amb, ti_ust, ti_dst, ti_area_ratio_in; s=700.0)
@@ -196,9 +201,70 @@ function GaussianTI(loc,windfarm,windfarmstate,ambient_ti)
             p1 = 1.0/(d + e*dx/rotor_diameter + f*(1.0+dx/rotor_diameter)^-2.0)
             p2 = k1*exp(-(r-rotor_diameter/2.0)^2/(2.0*sigma^2)) + k2*exp(-(r+rotor_diameter/2.0)^2/(2.0*sigma^2))
             dI = p1*p2 - delta
-            if r < rotor_diameter*4.0/5.0
-                added_ti += dI/1.5
+            # if r < rotor_diameter*4.0/5.0
+                added_ti += dI
+            # end
+        end
+    end
+    return ambient_ti + added_ti
+end
+
+
+function GaussianTI_stanley(loc,windfarm,windfarmstate,ambient_ti)
+
+    added_ti = 0.0
+    e = 1.0*ambient_ti^0.1
+    nturbines = length(windfarm.turbine_x)
+
+    for u=1:nturbines
+
+        # get index of upstream turbine
+        turb = windfarmstate.sorted_turbine_index[u]
+
+        # calculate downstream distance between wind turbines
+        dx = loc[1] - windfarmstate.turbine_x[turb]
+
+        if dx > 1e-6
+            turbine_type = windfarm.turbine_definition_ids[turb]
+            rotor_diameter = windfarm.turbine_definitions[turbine_type].rotor_diameter[1]
+            hub_height = windfarm.turbine_definitions[turbine_type].hub_height[1]
+            dy = loc[2] - windfarmstate.turbine_y[turb]
+            dz = loc[3] - hub_height
+            r = sqrt(dy^2 + dz^2)
+
+            ct = windfarmstate.turbine_ct[turb]
+            kstar = 0.11*ct^1.07*ambient_ti^0.2
+            epsilon = 0.23*ct^-0.25*ambient_ti^0.17
+            d = 2.3*ct^-1.2
+            f = 0.7*ct^-3.2*ambient_ti^-0.45
+
+            # dist = 0.0
+            # if r/rotor_diameter <= dist
+            #     k1 = cos(pi/2.0*(r/rotor_diameter-dist))^2
+            #     k2 = cos(pi/2.0*(r/rotor_diameter+dist))^2
+            # else
+            #     k1 = 1.0
+            #     k2 = 0.0
+            # end
+            k1 = 1.0
+            k2 = 0.0
+
+            sigma = kstar*dx + epsilon*rotor_diameter
+            if dz >= 0.0
+                delta = 0.0
+            else
+                delta = ambient_ti*sin(pi*dz/hub_height)^2
             end
+
+
+            sigma = sigma*0.5
+            p1 = 1.0/(d + e*dx/rotor_diameter + f*(1.0+dx/rotor_diameter)^-2.0)
+            # p2 = k1*exp(-(r-rotor_diameter/2.0)^2/(2.0*sigma^2)) + k2*exp(-(r+rotor_diameter/2.0)^2/(2.0*sigma^2))
+            p2 = exp(-(r/2.0)^2/(2.0*sigma^2))
+            dI = p1*p2 - delta
+            # if r < rotor_diameter*4.0/5.0
+            added_ti += dI
+            # end
         end
     end
     return ambient_ti + added_ti

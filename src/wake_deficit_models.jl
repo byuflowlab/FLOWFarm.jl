@@ -298,6 +298,7 @@ function _gauss_yaw_potential_core(d, yaw, ct, as, ti, bs)
     # from Bastankhah and Porte-Agel 2016 eqn 7.3
 
     x0 = d*(cos(yaw)*(1.0+sqrt(1.0-ct)))/(sqrt(2.0)*(as*ti+bs*(1.0-sqrt(1.0-ct))))
+    # println(x0)
 
     return x0
 end
@@ -309,7 +310,6 @@ Helper function for wake_deficit_model when using the GaussYaw model. Computes t
 """
 function _gauss_yaw_spread(dt, k, dx, x0, yaw)
     # from Bastankhah and Porte-Agel 2016 eqn 7.2
-
     sigma = dt*(k*(dx-x0)/dt+cos(yaw)/sqrt(8.0))
 
     return sigma
