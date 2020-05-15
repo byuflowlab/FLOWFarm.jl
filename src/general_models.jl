@@ -204,6 +204,9 @@ function turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_p
         # update thrust coefficient for downstream turbine
         windfarmstate.turbine_ct[downwind_turbine_id] = calculate_ct(wind_turbine_velocity, downwind_turbine.ct_model)
 
+        # update axial induction for downstream turbine
+        windfarmstate.turbine_ai[downwind_turbine_id] = _ct_to_axial_ind_func(windfarmstate.turbine_ct[downwind_turbine_id])
+
         # update local turbulence intensity for downstream turbine
         ambient_ti = problem_description.wind_resource.ambient_tis[wind_farm_state_id]
         windfarmstate.turbine_local_ti[downwind_turbine_id] = calculate_local_ti(ambient_ti, windfarm, windfarmstate, model_set.local_ti_model, turbine_id=downwind_turbine_id)

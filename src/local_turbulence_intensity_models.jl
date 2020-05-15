@@ -19,10 +19,9 @@ end
 function _k_star_func(ti_ust)
 
     # calculate wake spread parameter from Niayifar and Porte Agel (2015, 2016)
-    # k_star_ust = 0.3837*ti_ust + 0.003678
+    k_star_ust = 0.3837*ti_ust + 0.003678
 
-    k_star_ust = 0.2*ti_ust + 0.003
-    # println(k_star_ust)
+    # k_star_ust = 0.2*ti_ust + 0.003
 
     return k_star_ust
 

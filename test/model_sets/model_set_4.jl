@@ -11,6 +11,7 @@ rated_power = 2.0E6  # W
 generator_efficiency = 0.944
 
 ai = 1.0/3.0
+ct = 0.689
 wind_speed = 8.0
 air_density = 1.1716  # kg/m^3
 ambient_ti = 0.077
