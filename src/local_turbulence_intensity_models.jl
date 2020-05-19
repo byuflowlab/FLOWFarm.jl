@@ -167,14 +167,19 @@ function GaussianTI(loc,windfarm,windfarmstate,ambient_ti)
         dx = loc[1] - windfarmstate.turbine_x[turb]
 
         if dx > 1e-6
+
             turbine_type = windfarm.turbine_definition_ids[turb]
             rotor_diameter = windfarm.turbine_definitions[turbine_type].rotor_diameter[1]
+            # dx = 8.0 * rotor_diameter
             hub_height = windfarm.turbine_definitions[turbine_type].hub_height[1]
             dy = loc[2] - windfarmstate.turbine_y[turb]
             dz = loc[3] - hub_height
             r = sqrt(dy^2 + dz^2)
-
             ct = windfarmstate.turbine_ct[turb]
+            # println("windfarmstate.turbine_inflow_velcities[turb]: ", windfarmstate.turbine_inflow_velcities[turb])
+            # ct = ff.calculate_ct(windfarmstate.turbine_inflow_velcities[turb], windfarm.turbine_definitions[windfarm.turbine_definition_ids[turb]].ct_model)
+            # println("ct: ", ct)
+            # println(ct)
             kstar = 0.11*ct^1.07*ambient_ti^0.2
             epsilon = 0.23*ct^-0.25*ambient_ti^0.17
             d = 2.3*ct^-1.2
@@ -196,14 +201,19 @@ function GaussianTI(loc,windfarm,windfarmstate,ambient_ti)
                 delta = ambient_ti*sin(pi*dz/hub_height)^2
             end
 
+            #tuned for low TI
+            # sigma = sigma/2.5
+            #tuned for high TI
+            sigma = sigma/2.0
 
-            sigma = sigma*1.0
-            p1 = 1.0/(d + e*dx/rotor_diameter + f*(1.0+dx/rotor_diameter)^-2.0)
+            new_ex = -2.0 #orig -2.0
+            p1 = 1.0/(d + e*dx/rotor_diameter + f*(1.0+dx/rotor_diameter)^new_ex)
             p2 = k1*exp(-(r-rotor_diameter/2.0)^2/(2.0*sigma^2)) + k2*exp(-(r+rotor_diameter/2.0)^2/(2.0*sigma^2))
             dI = p1*p2 - delta
-            # if r < rotor_diameter*4.0/5.0
-                added_ti += dI
-            # end
+            #tuned for low TI
+            # added_ti += dI/1.2
+            #tuned for high TI
+            added_ti += dI/1.2
         end
     end
     return ambient_ti + added_ti

@@ -72,11 +72,11 @@ generator_efficiency = 0.944
 ai = 1.0/3.0
 
 air_density = 1.225  # kg/m^3
-nturbines = 1
-# turbine_y = zeros(nturbines)
+nturbines = 2
+turbine_y = zeros(nturbines)
 
-turbine_x = [0.0]
-turbine_y = [0.0]
+# turbine_x = [0.0]
+# turbine_y = [0.0]
 turbine_z = zeros(nturbines)
 turbine_yaw = zeros(nturbines)
 turbine_ct = zeros(nturbines) .+ ct
