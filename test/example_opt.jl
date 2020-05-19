@@ -4,8 +4,6 @@ using PyPlot
 import ForwardDiff
 import ReverseDiff
 
-
-
 function boundary_wrapper(x)
     global boundary_center
     global boundary_radius
@@ -138,3 +136,5 @@ plt.gcf().gca().add_artist(plt.Circle((boundary_center[1],boundary_center[2]), b
 axis("square")
 xlim(-boundary_radius-200,boundary_radius+200)
 ylim(-boundary_radius-200,boundary_radius+200)
+
+#testing a change
