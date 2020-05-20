@@ -52,7 +52,7 @@ speeds = range(3.,stop=25.,length=23)
 omegas = [6.972,7.183,7.506,7.942,8.469,9.156,10.296,11.431,11.89,
                     12.1,12.1,12.1,12.1,12.1,12.1,12.1,12.1,12.1,12.1,12.1,
                     12.1,12.1,12.1]
-pitches = 1.0.*[0.,0.,0.,0.,0.,0.,0.,0.,0.,3.823,6.602,8.668,10.45,12.055,
+pitches = -1.0.*[0.,0.,0.,0.,0.,0.,0.,0.,0.,3.823,6.602,8.668,10.45,12.055,
                         13.536,14.92,16.226,17.473,18.699,19.941,21.177,22.347,
                         23.469]
 
@@ -60,7 +60,6 @@ pitches = 1.0.*[0.,0.,0.,0.,0.,0.,0.,0.,0.,3.823,6.602,8.668,10.45,12.055,
 rotor_diameter = 126.4
 hub_height = 90.0
 yaw = 0.0
-ct = 8.0/9.0
 cp = 0.42
 
 cut_in_speed = 3.0
@@ -70,24 +69,18 @@ rated_power = 5e6
 
 generator_efficiency = 0.944
 ai = 1.0/3.0
-
+wind_speed = 11.
 air_density = 1.225  # kg/m^3
-
-
-
-nturbines = 2
-turbine_y = zeros(nturbines)
-# nturbines = 1
-# turbine_x = [0.0]
-# turbine_y = [0.0]
+nturbines = 1
+# turbine_y = zeros(nturbines)
+turbine_x = [0.0]
+turbine_y = [0.0]
 turbine_z = zeros(nturbines)
 turbine_yaw = zeros(nturbines)
-turbine_ct = zeros(nturbines) .+ ct
 turbine_ai = zeros(nturbines) .+ ai
 winddirections = [270.0*pi/180.0]
-wind_speed = 11.
-ambient_ti = ones(length(winddirections)) .* 0.046
-# ambient_ti = ones(length(winddirections)) .* 0.08
+# ambient_ti = ones(length(winddirections)) .* 0.046
+ambient_ti = ones(length(winddirections)) .* 0.08
 windspeeds = [wind_speed]
 windprobabilities = [1.0]
 measurementheight = [hub_height]
@@ -104,6 +97,8 @@ ctpoints = ctdata[:,3]
 
 # initialize thurst model
 ct_model = ff.ThrustModelCtPoints(velpoints, ctpoints)
+ct = ff.calculate_ct(wind_speed,ct_model)
+
 # ct_model = ff.ThrustModelConstantCt(ct)
 power_model = ff.PowerModelConstantCp(cp)
 wind_shear_model = ff.PowerLawWindShear(shearexponent)
@@ -121,3 +116,8 @@ windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobab
 wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
 
 local_ti_model = ff.LocalTIModelNoLocalTI()
+
+windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definition_ids, turbine_definitions)
+init_inflow_velcities = zeros(nturbines).+wind_speed
+turbine_ct = zeros(nturbines).+ct
+windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, init_inflow_velcities, zeros(nturbines),zeros(nturbines).+ambient_ti,sorted_turbine_index)

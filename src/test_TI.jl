@@ -1,7 +1,7 @@
 
 include("model2.jl")
 
-sep = 7.0
+sep = 10.0
 ws = 11
 ti = "high"
 x = rotor_diameter*sep

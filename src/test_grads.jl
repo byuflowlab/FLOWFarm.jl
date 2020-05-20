@@ -173,7 +173,7 @@ Jfor = ForwardDiff.jacobian(aep_wrapper,x)
 # FD
 include("model_set_3.jl")
 x = [copy(turbine_x);copy(turbine_y)]
-step = 1E-4
+step = 1E-6
 grad = zeros(length(x))
 t1 = time()
 AEP_orig = aep_wrapper(x)
