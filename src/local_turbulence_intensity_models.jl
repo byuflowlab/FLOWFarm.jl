@@ -176,6 +176,7 @@ function GaussianTI(loc,windfarm,windfarmstate,ambient_ti)
             dz = loc[3] - hub_height
             r = sqrt(dy^2 + dz^2)
             ct = windfarmstate.turbine_ct[turb]
+            # println("ct: ", ct)
             # println("windfarmstate.turbine_inflow_velcities[turb]: ", windfarmstate.turbine_inflow_velcities[turb])
             # ct = ff.calculate_ct(windfarmstate.turbine_inflow_velcities[turb], windfarm.turbine_definitions[windfarm.turbine_definition_ids[turb]].ct_model)
             # println("ct: ", ct)
