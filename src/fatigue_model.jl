@@ -480,67 +480,11 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
         ff.turbine_velocities_one_direction!(points_x, points_y, model_set, temp_pd)
 
         wfs_temp = temp_pd.wind_farm_states[1]
-
         for i = 1:nCycles*naz
             az = az_arr[(i+1)%naz+1]
 
             """need to figure this out"""
             x_locs, y_locs, z_locs = ff.find_xyz_simple(turbine_x[turbine_ID],turbine_y[turbine_ID],turbine_z[turbine_ID].+hub_height,r,yaw,az)
-            # TI_arr = zeros(length(r))
-            # for k = 1:length(r)
-            #     loc = [x_locs[k],y_locs[k],z_locs[k]]
-            #     TI_arr[k] = turbulence_func(loc,windfarm,windfarmstate,ambient_tis[state_ID])
-            # end
-            # # TI_inst = sum(TI_arr.*r)/sum(r)
-            # # println("1: ", TI_inst)
-            # # TI_inst = sum(TI_arr)/length(TI_arr)
-            # # TI_inst = sum(TI_arr.*r.^(0.1))/sum(r.^(0.1))
-            # # TI_inst = TI_inst/2.0
-            # # println(TI_inst)
-            # # TI_inst = 0.16
-            # TI_inst = 0.0
-            # for k = 1:length(r)
-            #     # if k == length(r)
-            #     #     TI_inst += (Rtip^2-r[end]^2)*TI_arr[end]/Rtip^2
-            #     # else
-            #     #     TI_inst += (r[k+1]^2-r[k]^2)*TI_arr[k]/Rtip^2
-            #     # end
-            #     if k == length(r)
-            #         TI_inst += (Rtip-r[end])*TI_arr[end]/Rtip
-            #     else
-            #         TI_inst += (r[k+1]-r[k])*TI_arr[k]/Rtip
-            #     end
-            # end
-            # println("2: ", TI_inst)
-            """"""
-
-            # windspeeds = ws + turb_samples[i]*TI_inst*ws
-            # turbine_inflow_velcities = zeros(nturbines) .+ windspeeds
-            # temp_resource = ff.DiscretizedWindResource([3*pi/2], [windspeeds], [1.0], measurementheight, air_density,ambient_tis, wind_shear_model)
-            # temp_pd = ff.WindFarmProblemDescription(windfarm, temp_resource, [windfarmstate])
-
-            # ff.turbine_velocities_one_direction!(points_x, points_y, model_set, temp_pd)
-            # turbine_inflow_velcities = temp_pd.wind_farm_states[state_ID].turbine_inflow_velcities
-            # Omega_rpm = omega_func(turbine_inflow_velcities[turbine_ID]) #in rpm
-            # Omega = Omega_rpm*0.10471975512 #convert to rad/s
-            # pitch_deg = pitch_func(turbine_inflow_velcities[turbine_ID]) #in degrees
-            # pitch = pitch_deg*pi/180.0 #convert to rad
-            # U = get_speeds(turbine_x,turbine_y,turbine_ID,hub_height,r,yaw,az,model_set,temp_pd)
-            # op = distributed_velocity_op.(U, Omega, r, precone, yaw, tilt, az, rho)
-            # out = CCBlade.solve.(Ref(rotor), sections, op)
-            # flap[i],edge[i] = ff.get_moments(out,Rhub,Rtip,r,az,precone,tilt)
-            # oms[i] = Omega
-
-
-
-
-            # windspeeds = ws
-            # turbine_inflow_velcities = zeros(nturbines) .+ windspeeds
-            # temp_resource = ff.DiscretizedWindResource([3*pi/2], [windspeeds], [1.0], measurementheight, air_density,ambient_tis, wind_shear_model)
-            # temp_pd = ff.WindFarmProblemDescription(windfarm, temp_resource, [windfarmstate])
-            # ff.turbine_velocities_one_direction!(points_x, points_y, model_set, temp_pd)
-
-
 
             TI_arr = zeros(length(r))
             for k = 1:length(r)
@@ -551,19 +495,12 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
 
             TI_inst = 0.0
             for k = 1:length(r)
-                # if k == length(r)
-                #     TI_inst += (Rtip^2-r[end]^2)*TI_arr[end]/Rtip^2
-                # else
-                #     TI_inst += (r[k+1]^2-r[k]^2)*TI_arr[k]/Rtip^2
-                # end
                 if k == length(r)
                     TI_inst += (Rtip-r[end])*TI_arr[end]/Rtip
                 else
                     TI_inst += (r[k+1]-r[k])*TI_arr[k]/Rtip
                 end
             end
-
-
 
 
             turbine_inflow_velcities = temp_pd.wind_farm_states[state_ID].turbine_inflow_velcities
@@ -578,6 +515,7 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
             out = CCBlade.solve.(Ref(rotor), sections, op)
             flap[i],edge[i] = ff.get_moments(out,Rhub,Rtip,r,az,precone,tilt)
             oms[i] = Omega
+
 
         end
 
@@ -626,7 +564,6 @@ function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCy
                 ind = i
             end
         end
-
         # println("angle: ", rad2deg.(angles[ind]))
         return damage
 end

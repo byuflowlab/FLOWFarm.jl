@@ -202,18 +202,18 @@ function GaussianTI(loc,windfarm,windfarmstate,ambient_ti)
             end
 
             #tuned for low TI
-            # sigma = sigma/2.5
+            sigma = sigma/2.5
             #tuned for high TI
-            sigma = sigma/2.0
+            # sigma = sigma/2.0
 
             new_ex = -2.0 #orig -2.0
             p1 = 1.0/(d + e*dx/rotor_diameter + f*(1.0+dx/rotor_diameter)^new_ex)
             p2 = k1*exp(-(r-rotor_diameter/2.0)^2/(2.0*sigma^2)) + k2*exp(-(r+rotor_diameter/2.0)^2/(2.0*sigma^2))
             dI = p1*p2 - delta
             #tuned for low TI
-            # added_ti += dI/1.2
-            #tuned for high TI
             added_ti += dI/1.2
+            #tuned for high TI
+            # added_ti += dI/2.0
         end
     end
     return ambient_ti + added_ti
