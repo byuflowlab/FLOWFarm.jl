@@ -12,7 +12,7 @@ LocalTIModelMaxTI() = LocalTIModelMaxTI(2.32, 0.154)
 
 
 function calculate_local_ti(turbine_x, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                    turbine_inflow_velcities, ct_model, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=1E-6, k1=0.2, k2=0.003)
+                    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=1E-6, k1=0.2, k2=0.003)
     return ambient_ti
 end
 
@@ -71,7 +71,7 @@ end
 
 
 function calculate_local_ti(turbine_x, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                    turbine_inflow_velcities, ct_model, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6, k1=0.2, k2=0.003)
+                    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6, k1=0.2, k2=0.003)
 
     # calculate local turbulence intensity at turbI
 
@@ -105,10 +105,7 @@ function calculate_local_ti(turbine_x, ambient_ti, rotor_diameter, hub_height, t
             h_ust = hub_height[turb]
             yaw_ust = turbine_yaw[turb]
             ti_ust = turbine_local_ti[turb]
-
-            # calculate ct at the current upstream turbine
-            ct_model_ind = ct_model[turb]
-            ct_ust = calculate_ct(turbine_inflow_velcities[turb], ct_model_ind)
+            ct_ust = turbine_ct[turb]
 
             # determine the far-wake onset location
             astar = ti_model.astar
