@@ -54,9 +54,9 @@ end
 
 
 """
-    windfarm_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_y)
+    convex_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_y)
 
-calculate the distance from each turbine to a circular boundary. Negative means the
+calculate the distance from each turbine to a possibly non-circular, but convex boundary. Negative means the
 turbine is inside the boundary
 
 # Arguments
@@ -67,7 +67,7 @@ turbine is inside the boundary
 - `turbine_x::Array{Float}`: turbine x locations
 - `turbine_y::Array{Float}`: turbine y locations
 """
-function windfarm_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_y)
+function convex_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_y)
         nturbines = length(turbine_x)
         nVertices = size(boundary_vertices)[1]
         # initialize array to hold distances from each point to each face
