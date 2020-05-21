@@ -34,21 +34,21 @@ JiminezYawDeflection() = JiminezYawDeflection(0.1)
 
 """
     wake_deflection_model(loc, turbine_id, turbine_definition::TurbineDefinition, model::JiminezYawDeflection, windfarmstate::SingleWindFarmState)
-    
+
     Calculates the horizontal deflection of the wind turbine wake
 
     Based on:
     [1] Jiminez 2010 "Wake defl ection of a wind turbine in yaw"
     [2] Gebraad 2014 "Wind plant optimization by yaw control using a parametric wake model"
-    this version ignores the corrections made to the yaw model for rotor rotation as described in [2] and 
+    this version ignores the corrections made to the yaw model for rotor rotation as described in [2] and
     [3] Thomas 2017 "Improving the FLORIS wind plant model for compatibility with gradient-based optimization"
 """
-function wake_deflection_model(loc, turbine_id, turbine_definition::TurbineDefinition, model::JiminezYawDeflection, windfarmstate::SingleWindFarmState)
+function wake_deflection_model(loc, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::JiminezYawDeflection)
 
-    dx = loc[1]-windfarmstate.turbine_x[turbine_id]
-    yaw = -windfarmstate.turbine_yaw[turbine_id] # Jiminez used opposite rotation convention, hence (-) sign
-    ct = windfarmstate.turbine_ct[turbine_id]
-    diam = turbine_definition.rotor_diameter[1]
+    dx = loc[1]-turbine_x[turbine_id]
+    yaw = -turbine_yaw[turbine_id] # Jiminez used opposite rotation convention, hence (-) sign
+    ct = turbine_ct[turbine_id]
+    diam = rotor_diameter[turbine_id]
 
     kd = model.horizontal_spread_rate
 
@@ -85,20 +85,20 @@ end
 
 """
     wake_deflection_model(loc, turbine_id, turbine_definition::TurbineDefinition, model::GaussYawDeflection, windfarmstate::SingleWindFarmState)
-    
+
     Calculates the horizontal deflection of the wind turbine wake
 
     Based on:
     [1] Bastankhah and Porte-Agel 2016 "Experimental and theoretical study of
     wind turbine wakes in yawed conditions"
 """
-function wake_deflection_model(loc, turbine_id, turbine_definition::TurbineDefinition, model::GaussYawDeflection, windfarmstate::SingleWindFarmState)
+function wake_deflection_model(loc, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::GaussYawDeflection)
 
-    dx = loc[1]-windfarmstate.turbine_x[turbine_id]
-    yaw = windfarmstate.turbine_yaw[turbine_id]
-    ct = windfarmstate.turbine_ct[turbine_id]
-    diam = turbine_definition.rotor_diameter[1]
-    ti = windfarmstate.turbine_local_ti[turbine_id]
+    dx = loc[1]-turbine_x[turbine_id]
+    yaw = turbine_yaw[turbine_id]
+    ct = turbine_ct[turbine_id]
+    diam = rotor_diameter[turbine_id]
+    ti = turbine_local_ti[turbine_id]
 
     as = model.alpha_star
     bs = model.beta_star
