@@ -1,6 +1,5 @@
 using FlowFarm
 using CCBlade
-using PyPlot
 
 const ff=FlowFarm
 
