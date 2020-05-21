@@ -14,9 +14,31 @@ turbine_yaw = [yaw]
 ambient_ti = 0.1
 turbine_local_ti = [ambient_ti]
 
+sorted_turbine_index = [1]
+
+
+
+
+
+wind_speed = 8.1
+air_density = 1.1716  # kg/m^3
+winddirections = [270.0*pi/180.0]
+windspeeds = [wind_speed]
+windprobabilities = [1.0]
+measurementheights = [hub_height[1]]
+shearexponent = 0.15
+wtvelocities = [wind_speed]
+ambient_tis = [ambient_ti]
+wind_shear_model = ff.PowerLawWindShear(shearexponent)
+windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheights, air_density, ambient_tis, wind_shear_model)
 
 alpha = 0.1
 wakedeficitmodel = ff.JensenTopHat(alpha)
+horizontal_spread_rate = alpha
+wakedeflectionmodel = ff.JiminezYawDeflection(horizontal_spread_rate)
+wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
+localtimodel = ff.LocalTIModelNoLocalTI()
+model_set = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
 
 
 
@@ -51,7 +73,7 @@ wakedeficitmodel = ff.JensenTopHat(alpha)
 # turbine1 = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], ct_model, power_model)
 # turbine_definitions = [turbine1]
 # turbine_definition_ids = [1]
-# sorted_turbine_index = [1]
+#
 #
 # windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definition_ids, turbine_definitions)
 # windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, turbine_inflow_velcities, [0.0], [ambient_ti],sorted_turbine_index)
@@ -63,5 +85,5 @@ wakedeficitmodel = ff.JensenTopHat(alpha)
 # wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
 # localtimodel = ff.LocalTIModelNoLocalTI()
 #
-# ms1 = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
+#
 # pd1 = ff.WindFarmProblemDescription(windfarm, windresource, [windfarmstate])

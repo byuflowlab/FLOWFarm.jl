@@ -272,7 +272,7 @@ Calculate wind farm AEP
 function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             hub_height, turbine_yaw, turbine_ai, ct_model, generator_efficiency, cut_in_speed,
             cut_out_speed, rated_speed, rated_power, wind_resource, power_model::AbstractPowerModel, model_set::AbstractModelSet;
-            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], k1=0.2, k2=0.003)
+            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], k1=0.3837,k2=0.003678)
 
     wind_probabilities = wind_resource.wind_probabilities
 

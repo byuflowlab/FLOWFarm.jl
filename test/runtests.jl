@@ -854,21 +854,20 @@ end
         # # test loss at x2 with no yaw
         @test ff.wake_deficit_model([x2_0, 0.0, hub_height], turbine_x, turbine_y, turbine_z, deflection, turbine_id, [hub_height], [rotor_diameter], turbine_ai, [ambient_ti], turbine_ct, turbine_yaw, model) ≈ loss2_0 rtol=rtol
 
-        """need to fix these?"""
         # # test loss at x3 with no yaw
-        # @test ff.wake_deficit_model([x3_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate) ≈ loss3_0 rtol=rtol
-        # @test ff.wake_deficit_model([x3_0, 0.0, hub_height], turbine_x, turbine_y, turbine_z, deflection, turbine_id, [hub_height], [rotor_diameter], turbine_ai, [ambient_ti], turbine_ct, turbine_yaw, model) ≈ loss3_0 rtol=rtol
+        @test ff.wake_deficit_model([x3_0, 0.0, hub_height], turbine_x, turbine_y, turbine_z, deflection, turbine_id, [hub_height], [rotor_diameter], turbine_ai, [ambient_ti], turbine_ct, turbine_yaw, model) ≈ loss3_0 rtol=rtol
         #
         # # test loss at x4 with no yaw
-        # @test ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)  ≈ loss4_0 rtol=rtol
-        # @test ff.wake_deficit_model([x4_0, 0.0, hub_height], turbine_x, turbine_y, turbine_z, deflection, turbine_id, [hub_height], [rotor_diameter], turbine_ai, [ambient_ti], turbine_ct, turbine_yaw, model) ≈ loss4_0 rtol=rtol
+        @test ff.wake_deficit_model([x4_0, 0.0, hub_height], turbine_x, turbine_y, turbine_z, deflection, turbine_id, [hub_height], [rotor_diameter], turbine_ai, [ambient_ti], turbine_ct, turbine_yaw, model) ≈ loss4_0 rtol=rtol
         #
         # # test with wec
-        # model.wec_factor[1] = 1.0
-        # loss0 = ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
-        # model.wec_factor[1] = 3.0
-        # loss1 = ff.wake_deficit_model([x4_0, 0.0, hub_height], deflection, turbine_id, turbine_definition, model, windfarmstate)
-        # @test loss0 < loss1
+        wec_factor = 1.0
+        model = ff.GaussYawVariableSpread(alpha_star, beta_star, wec_factor)
+        loss0 = ff.wake_deficit_model([x4_0, 0.0, hub_height], turbine_x, turbine_y, turbine_z, deflection, turbine_id, [hub_height], [rotor_diameter], turbine_ai, [ambient_ti], turbine_ct, turbine_yaw, model)
+        wec_factor = 3.0
+        model = ff.GaussYawVariableSpread(alpha_star, beta_star, wec_factor)
+        loss1 = ff.wake_deficit_model([x4_0, 0.0, hub_height], turbine_x, turbine_y, turbine_z, deflection, turbine_id, [hub_height], [rotor_diameter], turbine_ai, [ambient_ti], turbine_ct, turbine_yaw, model)
+        @test loss0 < loss1
 
     end
 end
@@ -878,12 +877,12 @@ end
     @testset "Niayifar wake spread based on ti" begin
 
         ti = 0.077
-        k1 = 0.22
-        k2
+        k1 = 0.3837
+        k2 = 0.003678
 
-        k = ff._k_star_func(ti)
+        k = ff._k_star_func(ti,k1=k1,k2=k2)
 
-        @test k == 0.3837*ti + 0.003678
+        @test k == k1*ti + k2
 
     end
 
@@ -924,33 +923,42 @@ end
         include("./model_sets/model_set_4.jl")
 
         # calculate turbine inflow velocities
-        ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, ms4, pd4)
+        turbine_velocities, turbine_ct, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+                            turbine_ai, sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, windresource,
+                            model_set)
+
 
         # load horns rev ti ata
         data = readdlm("inputfiles/horns_rev_ti_by_row_niayifar.txt", ',', skipstart=1)
 
         # freestream
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(1+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                            turbine_inflow_velcities, turbine_ct, localtimodel; turbine_id=(1+ 4*10), tol=1E-6)
         @test ti_dst  == data[1,2]
 
         # row 2
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(2+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                            turbine_inflow_velcities, turbine_ct, localtimodel; turbine_id=(2+ 4*10), tol=1E-6)
         @test ti_dst  ≈ data[2,2] atol=atol
 
         # row 3
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(3+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                            turbine_inflow_velcities, turbine_ct, localtimodel; turbine_id=(3+ 4*10), tol=1E-6)
         @test ti_dst  ≈ data[3,2] atol=atol
 
         # row 4
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(4+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                            turbine_inflow_velcities, turbine_ct, localtimodel; turbine_id=(4+ 4*10), tol=1E-6)
         @test ti_dst  ≈ data[4,2] atol=atol
 
         # row 5
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(5+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                            turbine_inflow_velcities, turbine_ct, localtimodel; turbine_id=(5+ 4*10), tol=1E-6)
         @test ti_dst  ≈ data[5,2] atol=atol
 
         # row 6
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(6+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                            turbine_inflow_velcities, turbine_ct, localtimodel; turbine_id=(6+ 4*10), tol=1E-6)
         @test ti_dst  ≈ data[6,2] atol=atol
 
     end
@@ -961,40 +969,56 @@ end
         include("./model_sets/model_set_2.jl")
 
         # calculate turbine inflow velocities
-        ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, ms2, pd2)
+        turbine_velocities, turbine_ct, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+                            turbine_ai, sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, windresource,
+                            model_set)
 
         # load horns rev ti ata
         data = readdlm("inputfiles/horns_rev_ti_by_row_niayifar.txt", ',', skipstart=1)
 
         # freestream
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(1+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                            turbine_inflow_velcities, turbine_ct, localtimodel; turbine_id=(1+ 4*10), tol=1E-6)
         @test ti_dst == ambient_ti
 
         # row 2
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(2+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                            turbine_inflow_velcities, turbine_ct, localtimodel; turbine_id=(2+ 4*10), tol=1E-6)
         @test ti_dst == ambient_ti
 
         # row 3
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(3+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                            turbine_inflow_velcities, turbine_ct, localtimodel; turbine_id=(3+ 4*10), tol=1E-6)
         @test ti_dst == ambient_ti
 
         # row 4
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(4+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                            turbine_inflow_velcities, turbine_ct, localtimodel; turbine_id=(4+ 4*10), tol=1E-6)
         @test ti_dst == ambient_ti
 
         # row 5
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(5+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                            turbine_inflow_velcities, turbine_ct, localtimodel; turbine_id=(5+ 4*10), tol=1E-6)
         @test ti_dst == ambient_ti
 
         # row 6
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(6+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                            turbine_inflow_velcities, turbine_ct, localtimodel; turbine_id=(6+ 4*10), tol=1E-6)
         @test ti_dst == ambient_ti
 
     end
 
     @testset "Gaussian TI" begin
-#
-            include("model_sets/model_set_5.jl")
+
+            turbine_x = [0.0]
+            turbine_y = [0.0]
+            turbine_z = [0.0]
+            rotor_diameter = [0.57]
+            hub_height = [0.7]
+            ct = 0.81
+            turbine_ct = [ct]
+            sorted_turbine_index = [1]
+
             ambient_ti = 0.137
 
             x = [2.959e-2,            2.219e-1,            4.290e-1,            6.805e-1,
@@ -1003,7 +1027,7 @@ end
             3.683e+0,            3.979e+0,            4.364e+0,            4.852e+0,
             5.237e+0,            5.740e+0,            6.139e+0,            6.686e+0,
             7.411e+0,            8.166e+0,            8.861e+0,            9.408e+0,
-            9.970e+0] .* rotor_diameter
+            9.970e+0] .* rotor_diameter[1]
 
             """paper data from "A new Gaussian-based analytical wake model for wind turbines
             considering ambiend turbulence intensities and thrust coefficient effects" by Ishihara and
@@ -1015,8 +1039,8 @@ end
 
             TI = zeros(length(x))
             for i = 1:length(x)
-                    loc = [x[i],0.0,hub_height+rotor_diameter/2.0]
-                    TI[i] = ff.GaussianTI(loc,windfarm,windfarmstate,ambient_ti)
+                    loc = [x[i],0.0,hub_height[1]+rotor_diameter[1]/2.0]
+                    TI[i] = ff.GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, sorted_turbine_index, ambient_ti; div_sigma=1.0, div_ti=1.0)
             end
 
             tol = 1E-2
@@ -1025,53 +1049,61 @@ end
     end
 
 end
-#
-#
-# @testset "General Models" begin
-#
-#     @testset "Coordinate rotation" begin
-#         atol = 1E-15
-#
-#         xlocs = [-1.0 1.0]
-#         ylocs = [0.0 0.0]
-#
-#         wind_direction_met = 0.0
-#         xnew, ynew = ff.rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
-#         @test xnew ≈ [0.0 0.0] atol=atol
-#         @test ynew ≈ [-1.0 1.0] atol=atol
-#
-#         wind_direction_met = 3*pi/2
-#         xnew, ynew = ff.rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
-#         @test xnew ≈ [-1.0 1.0] atol=atol
-#         @test ynew ≈ [0.0 0.0] atol=atol
-#     end
-#
-#     @testset "Point velocity" begin
-#
-#         rtol = 1E-6
-#
-#         include("./model_sets/model_set_1.jl")
-#
-#         # test no loss upstream (data from Jensen 1983)
-#         expected_velocity = wind_speed
-#         loc = [-0.1, 0.0, hub_height]
-#         @test ff.point_velocity(loc, ms1, pd1, wind_farm_state_id=1, downwind_turbine_id=0) == expected_velocity
-#
-#         # test max loss at turbine (data from Jensen 1983)
-#         expected_velocity = wind_speed*(1.0 - (2. * 1/3.0))
-#         loc = [1E-6, 0.0, hub_height]
-#         @test ff.point_velocity(loc, ms1, pd1, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity rtol=rtol
-#
-#         # test centerline loss 40 meters downstream (data from Jensen 1983)
-#         expected_velocity = wind_speed*(4.35/8.1)
-#         loc = [40.0, 0.0, hub_height]
-#         @test ff.point_velocity(loc, ms1, pd1, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity rtol=rtol
-#
-#         # test centerline loss 100 meters downstream (data from Jensen 1983)
-#         expected_velocity = wind_speed*(5.7/8.1)
-#         loc = [100.0, 0.0, hub_height]
-#         @test ff.point_velocity(loc, ms1, pd1, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity  rtol=rtol
-#     end
+
+
+@testset "General Models" begin
+
+    @testset "Coordinate rotation" begin
+        atol = 1E-15
+
+        xlocs = [-1.0 1.0]
+        ylocs = [0.0 0.0]
+
+        wind_direction_met = 0.0
+        xnew, ynew = ff.rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
+        @test xnew ≈ [0.0 0.0] atol=atol
+        @test ynew ≈ [-1.0 1.0] atol=atol
+
+        wind_direction_met = 3*pi/2
+        xnew, ynew = ff.rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
+        @test xnew ≈ [-1.0 1.0] atol=atol
+        @test ynew ≈ [0.0 0.0] atol=atol
+    end
+
+    @testset "Point velocity" begin
+
+        rtol = 1E-6
+
+        include("./model_sets/model_set_1.jl")
+
+        # test no loss upstream (data from Jensen 1983)
+        expected_velocity = wind_speed
+        loc = [-0.1, 0.0, hub_height[1]]
+        @test ff.point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+                            rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
+                            windresource, model_set,  wind_farm_state_id=1, downwind_turbine_id=0) == expected_velocity
+
+        # test max loss at turbine (data from Jensen 1983)
+        expected_velocity = wind_speed*(1.0 - (2. * 1/3.0))
+        loc = [1E-6, 0.0, hub_height[1]]
+        @test ff.point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+                            rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
+                            windresource, model_set,  wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity rtol=rtol
+
+        # test centerline loss 40 meters downstream (data from Jensen 1983)
+        expected_velocity = wind_speed*(4.35/8.1)
+        loc = [40.0, 0.0, hub_height[1]]
+        @test ff.point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+                            rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
+                            windresource, model_set,  wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity rtol=rtol
+
+        # test centerline loss 100 meters downstream (data from Jensen 1983)
+        expected_velocity = wind_speed*(5.7/8.1)
+        loc = [100.0, 0.0, hub_height[1]]
+        @test ff.point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+                            rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
+                            windresource, model_set,  wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity  rtol=rtol
+    end
 #
 #     # @testset "Turbine Inflow Velocities one direction" begin
 #     #     # test based on:
@@ -1159,7 +1191,7 @@ end
 #
 #     end
 #
-# end
+end
 
 
 println("finished tests")

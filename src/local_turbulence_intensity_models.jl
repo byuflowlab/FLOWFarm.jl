@@ -11,14 +11,13 @@ end
 LocalTIModelMaxTI() = LocalTIModelMaxTI(2.32, 0.154)
 
 
-function calculate_local_ti(turbine_x, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=1E-6, k1=0.2, k2=0.003)
+function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=1E-6, k1=0.3837,k2=0.003678)
     return ambient_ti
 end
 
 # compute wake spread parameter based on local turbulence intensity
-function _k_star_func(ti_ust;k1=0.2,k2=0.003)
-
+function _k_star_func(ti_ust;k1=0.3837,k2=0.003678)
     # calculate wake spread parameter from Niayifar and Porte Agel (2015, 2016)
     k_star_ust = k1*ti_ust + k2
 
@@ -70,8 +69,8 @@ function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, ksta
 end
 
 
-function calculate_local_ti(turbine_x, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6, k1=0.2, k2=0.003)
+function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6, k1=0.3837,k2=0.003678)
 
     # calculate local turbulence intensity at turbI
 
@@ -128,7 +127,7 @@ function calculate_local_ti(turbine_x, ambient_ti, rotor_diameter, hub_height, t
             wake_offset = _bpa_deflection(d_ust, ct_ust, yaw_ust, kstar_ust, kstar_ust, sigmay, sigmaz, theta0, x0)
 
             # cross wind distance from point location to upstream turbine wake center
-            delta_y = windfarmstate.turbine_y[turbine_id]  - (windfarmstate.turbine_y[turb] + wake_offset)
+            delta_y = turbine_y[turbine_id]  - (turbine_y[turb] + wake_offset)
 
             # save ti_area_ratio and ti_dst to new memory locations to avoid
             # aliasing during differentiation
@@ -162,12 +161,8 @@ function GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbin
         dx = loc[1] - turbine_x[turb]
 
         if dx > 1e-6
-
-            turbine_type = windfarm.turbine_definition_ids[turb]
-            rotor_diameter = rotor_diameter[turb]
-            hub_height = hub_height[turb]
             dy = loc[2] - turbine_y[turb]
-            dz = loc[3] - hub_height
+            dz = loc[3] - hub_height[turb]
             r = sqrt(dy^2 + dz^2)
             ct = turbine_ct[turb]
 
@@ -177,27 +172,27 @@ function GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbin
             f = 0.7*ct^-3.2*ambient_ti^-0.45
 
             dist = 0.5
-            if r/rotor_diameter <= dist
-                k1 = cos(pi/2.0*(r/rotor_diameter-dist))^2
-                k2 = cos(pi/2.0*(r/rotor_diameter+dist))^2
+            if r/rotor_diameter[turb] <= dist
+                k1 = cos(pi/2.0*(r/rotor_diameter[turb]-dist))^2
+                k2 = cos(pi/2.0*(r/rotor_diameter[turb]+dist))^2
             else
                 k1 = 1.0
                 k2 = 0.0
             end
 
-            sigma = kstar*dx + epsilon*rotor_diameter
+            sigma = kstar*dx + epsilon*rotor_diameter[turb]
             if dz >= 0.0
                 delta = 0.0
             else
-                delta = ambient_ti*sin(pi*dz/hub_height)^2
+                delta = ambient_ti*sin(pi*dz/hub_height[turb])^2
             end
 
             #2.5 for low TI 2.0 for high TI
             sigma = sigma/div_sigma
 
             new_ex = -2.0 #orig -2.0
-            p1 = 1.0/(d + e*dx/rotor_diameter + f*(1.0+dx/rotor_diameter)^new_ex)
-            p2 = k1*exp(-(r-rotor_diameter/2.0)^2/(2.0*sigma^2)) + k2*exp(-(r+rotor_diameter/2.0)^2/(2.0*sigma^2))
+            p1 = 1.0/(d + e*dx/rotor_diameter[turb] + f*(1.0+dx/rotor_diameter[turb])^new_ex)
+            p2 = k1*exp(-(r-rotor_diameter[turb]/2.0)^2/(2.0*sigma^2)) + k2*exp(-(r+rotor_diameter[turb]/2.0)^2/(2.0*sigma^2))
             dI = p1*p2 - delta
             #1.2 for low TI 2.0 for high TI
             added_ti += dI/div_ti
