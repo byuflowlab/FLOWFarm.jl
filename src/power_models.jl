@@ -155,9 +155,11 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
         # calculated wind turbine power
         if wt_velocity < cut_in_speed
             power = 0.0
+            return power
         elseif wt_velocity < rated_speed
             # use power value corresponding to lowest provided velocity point
             power = linear([cut_in_speed, power_model.vel_points[1]], [0.0, power_model.power_points[1]], wt_velocity)
+            return power
         end
 
     # use power points where provided
@@ -165,21 +167,19 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
 
         # calculate power
         power = linear(power_model.vel_points, power_model.power_points, wt_velocity)
-
+        return power
     # use specs if above vel_points max
     else
 
         if wt_velocity <= cut_out_speed
             # use power corresponding to highest wind speed provided
             power = power_model.power_points[end]
+            return power
         elseif wt_velocity > cut_out_speed
             power = 0.0
+            return power
         end
-
     end
-
-    return power
-
 end
 
 """
@@ -245,7 +245,10 @@ function turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_ou
 
     # get number of turbines and rotor sample point
     nturbines = length(rotor_diameter)
-    wt_power = zeros(nturbines)
+
+    arr_type = promote_type(typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),
+                            typeof(rated_power[1]),typeof(rotor_diameter[1]),typeof(turbine_inflow_velcities[1]))
+    wt_power = zeros(arr_type, nturbines)
 
     for d=1:nturbines
         wt_power[d] = calculate_turbine_power(generator_efficiency[d], cut_in_speed[d], cut_out_speed[d], rated_speed[d], rated_power[d], rotor_diameter[d], turbine_inflow_velcities[d], power_model, air_density)
@@ -280,7 +283,9 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
     hours_per_year = 365.25*24.0
 
     # state_energy = Vector{typeof(wind_farm.turbine_x[1])}(undef,nstates)
-    state_energy = zeros(nstates)
+    arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),typeof(hub_height[1]),typeof(turbine_yaw[1]),
+                typeof(turbine_ai[1]),typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),typeof(rated_power[1]))
+    state_energy = zeros(arr_type,nstates)
     for i = 1:nstates
 
         rot_x, rot_y = rotate_to_wind_direction(turbine_x, turbine_y, wind_resource.wind_directions[i])

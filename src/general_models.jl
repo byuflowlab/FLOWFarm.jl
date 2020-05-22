@@ -115,9 +115,11 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
     n_turbines = length(turbine_x)
     n_rotor_sample_points = length(rotor_sample_points_y)
 
-    turbine_velocities = zeros(n_turbines)
-    turbine_ct = zeros(n_turbines)
-    turbine_local_ti = zeros(n_turbines)
+    arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
+                            typeof(hub_height[1]),typeof(turbine_yaw[1]),typeof(turbine_ai[1]))
+    turbine_velocities = zeros(arr_type, n_turbines)
+    turbine_ct = zeros(arr_type, n_turbines)
+    turbine_local_ti = zeros(arr_type, n_turbines)
 
     for d=1:n_turbines
 
@@ -125,8 +127,10 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         downwind_turbine_id = Int(sorted_turbine_index[d])
 
         # initialize downstream wind turbine velocity to zero
-        # wind_turbine_velocity = typeof(windfarmstate.turbine_x[downwind_turbine_id])(0.0)
+        # println("start array: ", turbine_velocities[downwind_turbine_id])
+        # wind_turbine_velocity = typeof(turbine_velocities[downwind_turbine_id])(0.0)
         wind_turbine_velocity = 0.0
+        # turbine_velocities[downwind_turbine_id] = 0.0
 
         for p=1:n_rotor_sample_points
 
@@ -135,20 +139,13 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
             local_rotor_sample_point_y = rotor_sample_points_y[p]*0.5*rotor_diameter[downwind_turbine_id]
             local_rotor_sample_point_z = rotor_sample_points_z[p]*0.5*rotor_diameter[downwind_turbine_id]
 
-            # move sample points to correct height and yaw location in wind farm state reference frame
-            # loc = zeros(typeof(windfarmstate.turbine_x[downwind_turbine_id]),3)
-            # loc[1] = windfarmstate.turbine_x[downwind_turbine_id] .+ local_rotor_sample_point_y*sin(windfarmstate.turbine_yaw[downwind_turbine_id])
-            # loc[2] = windfarmstate.turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y*cos(windfarmstate.turbine_yaw[downwind_turbine_id])
-            # loc[3] = windfarmstate.turbine_z[downwind_turbine_id] .+ downwind_turbine.hub_height[1] + local_rotor_sample_point_z
-
             loc = [turbine_x[downwind_turbine_id] .+ local_rotor_sample_point_y*sin(turbine_yaw[downwind_turbine_id]),
                     turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y*cos(turbine_yaw[downwind_turbine_id]),
                     turbine_z[downwind_turbine_id] .+ hub_height[downwind_turbine_id] + local_rotor_sample_point_z]
             # calculate the velocity at given point
-
             point_velocity_with_shear = point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
                                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, turbine_velocities,
-                                    wind_resource, model_set::AbstractModelSet;
+                                    wind_resource, model_set,
                                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=downwind_turbine_id)
 
             # add sample point velocity to turbine velocity to be averaged later
@@ -159,10 +156,10 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         # final velocity calculation for downstream turbine (average equally across all points)
         wind_turbine_velocity /= n_rotor_sample_points
 
-        turbine_velocities[downwind_turbine_id] = deepcopy(wind_turbine_velocity)
+        turbine_velocities[downwind_turbine_id] = wind_turbine_velocity
 
         # update thrust coefficient for downstream turbine
-        turbine_ct[downwind_turbine_id] = calculate_ct(wind_turbine_velocity, ct_model[downwind_turbine_id])
+        turbine_ct[downwind_turbine_id] = calculate_ct(turbine_velocities[downwind_turbine_id], ct_model[downwind_turbine_id])
 
         # update local turbulence intensity for downstream turbine
         ambient_ti = wind_resource.ambient_tis[wind_farm_state_id]

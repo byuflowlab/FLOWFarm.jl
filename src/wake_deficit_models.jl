@@ -298,8 +298,7 @@ function _gauss_yaw_potential_core(d, yaw, ct, as, ti, bs)
     # from Bastankhah and Porte-Agel 2016 eqn 7.3
 
     x0 = d*(cos(yaw)*(1.0+sqrt(1.0-ct)))/(sqrt(2.0)*(as*ti+bs*(1.0-sqrt(1.0-ct))))
-    # println(x0)
-
+    
     return x0
 end
 
@@ -317,6 +316,7 @@ function _gauss_yaw_spread(dt, k, dx, x0, yaw)
 end
 
 function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, wf)
+
     if dx > 0.0 # loss in the wake
 
         # calculate the length of the potential core (paper eq: 7.3)
@@ -346,8 +346,8 @@ function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, w
 
     else # loss upstream of turbine
         loss = 0.0
-
     end
+
 
     return loss
 
