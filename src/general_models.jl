@@ -109,7 +109,7 @@ end
 
 function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
                     turbine_ai, sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                    model_set::AbstractModelSet; wind_farm_state_id=1, k1=0.3837,k2=0.003678)
+                    model_set::AbstractModelSet; wind_farm_state_id=1)
 
     # get number of turbines and rotor sample point
     n_turbines = length(turbine_x)
@@ -164,7 +164,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         # update local turbulence intensity for downstream turbine
         ambient_ti = wind_resource.ambient_tis[wind_farm_state_id]
         turbine_local_ti[downwind_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                            turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=1E-6, k1=k1, k2=k2)
+                            turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=1E-6)
 
     end
 

@@ -98,6 +98,8 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 struct GaussYawVariableSpread{TF, ATF} <: AbstractWakeDeficitModel
     alpha_star::TF
     beta_star::TF
+    k1::TF
+    k2::TF
     wec_factor::ATF
 end
 GaussYawVariableSpread() = GaussYawVariableSpread(2.32, 0.154, [1.0])
@@ -296,9 +298,7 @@ Helper function for wake_deficit_model when using the GaussYaw model. Computes t
 """
 function _gauss_yaw_potential_core(d, yaw, ct, as, ti, bs)
     # from Bastankhah and Porte-Agel 2016 eqn 7.3
-
     x0 = d*(cos(yaw)*(1.0+sqrt(1.0-ct)))/(sqrt(2.0)*(as*ti+bs*(1.0-sqrt(1.0-ct))))
-    
     return x0
 end
 
@@ -411,7 +411,7 @@ function wake_deficit_model(loc, turbine_x, turbine_y, turbine_z, deflection, tu
     # extract model parameters
     # ks = model.k_star       # wake spread rate (k* in 2014 paper)
     ti = turbine_local_ti[turbine_id]
-    ky = kz = _k_star_func(ti)
+    ky = kz = _k_star_func(ti,model.k1,model.k2)
 
     as = model.alpha_star
     bs = model.beta_star

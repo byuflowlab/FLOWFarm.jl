@@ -249,7 +249,6 @@ function turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_ou
     arr_type = promote_type(typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),
                             typeof(rated_power[1]),typeof(rotor_diameter[1]),typeof(turbine_inflow_velcities[1]))
     wt_power = zeros(arr_type, nturbines)
-
     for d=1:nturbines
         wt_power[d] = calculate_turbine_power(generator_efficiency[d], cut_in_speed[d], cut_out_speed[d], rated_speed[d], rated_power[d], rotor_diameter[d], turbine_inflow_velcities[d], power_model, air_density)
     end
@@ -275,7 +274,7 @@ Calculate wind farm AEP
 function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             hub_height, turbine_yaw, turbine_ai, ct_model, generator_efficiency, cut_in_speed,
             cut_out_speed, rated_speed, rated_power, wind_resource, power_model::AbstractPowerModel, model_set::AbstractModelSet;
-            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], k1=0.3837,k2=0.003678)
+            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0])
 
     wind_probabilities = wind_resource.wind_probabilities
 
@@ -292,9 +291,9 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
 
         sorted_turbine_index = sortperm(rot_x)
 
-        turbine_velocities, turbine_ct, turbine_local_ti = turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+        turbine_velocities, turbine_ct, turbine_local_ti = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
                             turbine_ai, sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                            model_set; wind_farm_state_id=i, k1=k1, k2=k2)
+                            model_set, wind_farm_state_id=i)
 
         wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                             rated_power, rotor_diameter, turbine_velocities, wind_resource.air_density, power_model)

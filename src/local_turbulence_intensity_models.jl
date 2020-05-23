@@ -7,17 +7,20 @@ end
 struct LocalTIModelMaxTI{TF} <: AbstractLocalTurbulenceIntensityModel
     astar::TF
     bstar::TF
+    k1::TF
+    k2::TF
 end
+
 LocalTIModelMaxTI() = LocalTIModelMaxTI(2.32, 0.154)
 
 
 function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=1E-6, k1=0.3837,k2=0.003678)
+                    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=1E-6)
     return ambient_ti
 end
 
 # compute wake spread parameter based on local turbulence intensity
-function _k_star_func(ti_ust;k1=0.3837,k2=0.003678)
+function _k_star_func(ti_ust,k1,k2)
     # calculate wake spread parameter from Niayifar and Porte Agel (2015, 2016)
     k_star_ust = k1*ti_ust + k2
 
@@ -70,7 +73,7 @@ end
 
 
 function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6, k1=0.3837,k2=0.003678)
+                    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6)
 
     # calculate local turbulence intensity at turbI
 
@@ -115,7 +118,7 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
             deltax0 = x - x0
 
             # calculate wake spread rate for current upstream turbine
-            kstar_ust = _k_star_func(ti_ust,k1=k1,k2=k2)
+            kstar_ust = _k_star_func(ti_ust,ti_model.k1,ti_model.k2)
 
             # calculate horizontal and vertical spread standard deviations
             sigmay = sigmaz = _gauss_yaw_spread(x, x0, kstar_ust, d_ust, yaw_ust)
