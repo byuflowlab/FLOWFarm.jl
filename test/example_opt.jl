@@ -1,8 +1,8 @@
 using Snopt
 using DelimitedFiles 
 using PyPlot
-import ForwardDiff
-import ReverseDiff
+using ForwardDiff
+using DiffResults
 
 function boundary_wrapper(x)
     global boundary_center
@@ -53,20 +53,34 @@ function aep_wrapper(x)
 
     pd3 = ff.WindFarmProblemDescription(windfarm, windresource, windfarmstate_array)
     AEP = ff.calculate_aep(ms6, pd6, rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)/1e11
-    return [AEP]
+    return -AEP
 end
 
 function wind_farm_opt(x)
+    # set up diff result for gradient and value
+    result = DiffResults.GradientResult(x)
+    result = ForwardDiff.gradient!(result, aep_wrapper, x)
 
-    AEP = -aep_wrapper(x)[1]
-    dAEP_dx = -ForwardDiff.jacobian(aep_wrapper,x)
-    # println("objective gradient: ", dAEP_dx)
-    spacing_con = spacing_wrapper(x)
-    ds_dx = ForwardDiff.jacobian(spacing_wrapper,x)
+    # extract objective value and objective gradient
+    AEP = DiffResults.value(result)
+    dAEP_dx = DiffResults.gradient(result)
 
-    boundary_con = boundary_wrapper(x)
-    db_dx = ForwardDiff.jacobian(boundary_wrapper,x)
-    #
+    # set up diff result for spacing constraint value and gradient
+    result = DiffResults.JacobianResult(x)
+    result = ForwardDiff.jacobian!(result, spacing_wrapper, x)
+
+    # extract spacing constraint value and objective gradient
+    spacing_con = DiffResults.value(result)
+    ds_dx = DiffResults.jacobian(result)
+
+    # set up diff result for boundary constraint value and gradient
+    result = DiffResults.JacobianResult(x)
+    result = ForwardDiff.jacobian!(result, boundary_wrapper, x)
+
+    # extract spacing constraint value and objective gradient
+    boundary_con = DiffResults.value(result)
+    db_dx = DiffResults.jacobian(result)
+
     c = [spacing_con;boundary_con]
     dcdx = [ds_dx;db_dx]
 
@@ -118,7 +132,7 @@ options["Print file"] = "print.out"
 
 t1 = time()
 xopt, fopt, info = snopt(wind_farm_opt, x, lb, ub, options)
-println("Finished in : ", time()-t1, "s")
+println("Finished in : ", time()-t1, " (s)")
 # println("xopt: ", xopt)
 # println("fopt: ", fopt)
 println("info: ", info)
@@ -136,5 +150,3 @@ plt.gcf().gca().add_artist(plt.Circle((boundary_center[1],boundary_center[2]), b
 axis("square")
 xlim(-boundary_radius-200,boundary_radius+200)
 ylim(-boundary_radius-200,boundary_radius+200)
-
-#testing a change
