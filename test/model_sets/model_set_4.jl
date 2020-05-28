@@ -26,6 +26,7 @@ rotor_diameter = zeros(nturbines) .+ 80.0
 hub_height = zeros(nturbines) .+ 70.0
 sorted_turbine_index = sortperm(turbine_x)
 turbine_ct = zeros(nturbines)
+turbine_ai = zeros(nturbines)
 turbine_inflow_velcities = zeros(nturbines)
 turbine_local_ti = zeros(nturbines)
 turbine_yaw = zeros(nturbines)

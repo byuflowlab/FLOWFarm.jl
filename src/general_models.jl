@@ -119,6 +119,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
                             typeof(hub_height[1]),typeof(turbine_yaw[1]),typeof(turbine_ai[1]))
     turbine_velocities = zeros(arr_type, n_turbines)
     turbine_ct = zeros(arr_type, n_turbines)
+    turbine_ai = zeros(arr_type, n_turbines)
     turbine_local_ti = zeros(arr_type, n_turbines)
 
     for d=1:n_turbines
@@ -162,7 +163,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         turbine_ct[downwind_turbine_id] = calculate_ct(turbine_velocities[downwind_turbine_id], ct_model[downwind_turbine_id])
 
         # update axial induction for downstream turbine
-        windfarmstate.turbine_ai[downwind_turbine_id] = _ct_to_axial_ind_func(windfarmstate.turbine_ct[downwind_turbine_id])
+        turbine_ai[downwind_turbine_id] = _ct_to_axial_ind_func(turbine_ct[downwind_turbine_id])
 
         # update local turbulence intensity for downstream turbine
         ambient_ti = wind_resource.ambient_tis[wind_farm_state_id]
@@ -171,7 +172,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
 
     end
 
-    return turbine_velocities, turbine_ct, turbine_local_ti
+    return turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti
 
 end
 

@@ -102,8 +102,9 @@ struct GaussYawVariableSpread{TF, ATF} <: AbstractWakeDeficitModel
     k2::TF
     wec_factor::ATF
 end
-GaussYawVariableSpread() = GaussYawVariableSpread(2.32, 0.154, [1.0])
-GaussYawVariableSpread(x, y) = GaussYawVariableSpread(x, y, [1.0])
+GaussYawVariableSpread() = GaussYawVariableSpread(2.32, 0.154, 0.3837, 0.003678, [1.0])
+GaussYawVariableSpread(x, y) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, [1.0])
+GaussYawVariableSpread(x, y, z) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, z)
 
 
 """
@@ -382,7 +383,7 @@ function wake_deficit_model(loc, turbine_x, turbine_y, turbine_z, deflection, tu
     kz = model.vertical_spread_rate
     as = model.alpha_star
     bs = model.beta_star
-    wec_factor = model.wec_factor
+    wec_factor = model.wec_factor[1]
 
     loss = _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, wec_factor)
 
@@ -418,7 +419,7 @@ function wake_deficit_model(loc, turbine_x, turbine_y, turbine_z, deflection, tu
 
     as = model.alpha_star
     bs = model.beta_star
-    wec_factor = model.wec_factor
+    wec_factor = model.wec_factor[1]
 
     loss = _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, wec_factor)
 
