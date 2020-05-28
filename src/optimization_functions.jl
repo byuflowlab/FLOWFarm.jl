@@ -71,7 +71,7 @@ function windfarm_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_
         nturbines = length(turbine_x)
         nVertices = size(boundary_vertices)[1]
         # initialize array to hold distances from each point to each face
-        face_distance = zeros(nturbines, nVertices)
+        face_distance = zeros(typeof(turbine_x[1]),(nturbines, nVertices))
 
         # loop through points and find distance to each face
         for i = 1:nturbines
@@ -85,5 +85,6 @@ function windfarm_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_
                         face_distance[i, j] = -sum(d_vec .* boundary_normals[j,:])
                 end
         end
-        return face_distance
+
+        return vcat(face_distance...)
 end

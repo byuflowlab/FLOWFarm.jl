@@ -7,25 +7,28 @@ end
 struct LocalTIModelMaxTI{TF} <: AbstractLocalTurbulenceIntensityModel
     astar::TF
     bstar::TF
+    k1::TF
+    k2::TF
 end
-LocalTIModelMaxTI() = LocalTIModelMaxTI(2.32, 0.154)
+LocalTIModelMaxTI(x, y) = LocalTIModelMaxTI(x, y, 0.3837, 0.003678)
+LocalTIModelMaxTI() = LocalTIModelMaxTI(2.32, 0.154, 0.3837, 0.003678)
 
 
-function calculate_local_ti(ambient_ti, windfarm, windfarmstate, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=1E-6)
+function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=1E-6)
     return ambient_ti
 end
 
 # compute wake spread parameter based on local turbulence intensity
-function _k_star_func(ti_ust)
-
+function _k_star_func(ti_ust,k1,k2)
     # calculate wake spread parameter from Niayifar and Porte Agel (2015, 2016)
-    k_star_ust = 0.3837*ti_ust + 0.003678
-
-    # k_star_ust = 0.2*ti_ust + 0.003
+ 
+    k_star_ust = k1*ti_ust + k2
 
     return k_star_ust
 
 end
+_k_star_func(x) = _k_star_func(x, 0.3837, 0.003678)
 
 function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, kstar_ust, delta_y, ti_amb, ti_ust, ti_dst, ti_area_ratio_in; s=700.0)
     # Niayifar and Porte Agel 2015, 2016 using smooth max on area TI ratio
@@ -70,46 +73,43 @@ function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, ksta
 
 end
 
-function calculate_local_ti(ambient_ti, windfarm, windfarmstate, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6)
+
+function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6)
 
     # calculate local turbulence intensity at turbI
 
     # initialize the ri_dst and ti_area_ratio to 0.0 for current turbine
     ti_area_ratio = 0.0
-    ti_dst = windfarmstate.turbine_local_ti[turbine_id]
+    ti_dst = copy(ambient_ti)
 
     # extract downstream turbine information
-    dst_def_id = windfarm.turbine_definition_ids[turbine_id]
-    d_dst = windfarm.turbine_definitions[dst_def_id].rotor_diameter[1]
-    h_dst = windfarm.turbine_definitions[dst_def_id].hub_height[1]
+    d_dst = rotor_diameter[turbine_id]
+    h_dst = hub_height[turbine_id]
 
     # extract the number of turbines
-    nturbines = length(windfarm.turbine_x)
+    nturbines = length(rotor_diameter)
 
     # loop over upstream turbines
     for u=1:nturbines
 
         # get index of upstream turbine
-        turb = windfarmstate.sorted_turbine_index[u]
+        turb = sorted_turbine_index[u]
 
         # skip turbine's influence on itself
         if turb == turbine_id; continue; end
 
         # calculate downstream distance between wind turbines
-        x = windfarmstate.turbine_x[turbine_id] - windfarmstate.turbine_x[turb]
+        x = turbine_x[turbine_id] - turbine_x[turb]
 
         if x > tol
 
             # extract state and design info for current upstream turbine
-            ust_def_id = windfarm.turbine_definition_ids[turb]
-            d_ust = windfarm.turbine_definitions[ust_def_id].rotor_diameter[1]
-            h_ust = windfarm.turbine_definitions[ust_def_id].hub_height[1]
-            yaw_ust = windfarmstate.turbine_yaw[turb]
-            ti_ust = windfarmstate.turbine_local_ti[turb]
-
-            # calculate ct at the current upstream turbine
-            ct_model = windfarm.turbine_definitions[ust_def_id].ct_model
-            ct_ust = calculate_ct(windfarmstate.turbine_inflow_velcities[turb], ct_model)
+            d_ust = rotor_diameter[turb]
+            h_ust = hub_height[turb]
+            yaw_ust = turbine_yaw[turb]
+            ti_ust = turbine_local_ti[turb]
+            ct_ust = turbine_ct[turb]
 
             # determine the far-wake onset location
             astar = ti_model.astar
@@ -120,7 +120,7 @@ function calculate_local_ti(ambient_ti, windfarm, windfarmstate, ti_model::Local
             deltax0 = x - x0
 
             # calculate wake spread rate for current upstream turbine
-            kstar_ust = _k_star_func(ti_ust)
+            kstar_ust = _k_star_func(ti_ust,ti_model.k1,ti_model.k2)
 
             # calculate horizontal and vertical spread standard deviations
             sigmay = sigmaz = _gauss_yaw_spread(x, x0, kstar_ust, d_ust, yaw_ust)
@@ -132,7 +132,7 @@ function calculate_local_ti(ambient_ti, windfarm, windfarmstate, ti_model::Local
             wake_offset = _bpa_deflection(d_ust, ct_ust, yaw_ust, kstar_ust, kstar_ust, sigmay, sigmaz, theta0, x0)
 
             # cross wind distance from point location to upstream turbine wake center
-            delta_y = windfarmstate.turbine_y[turbine_id]  - (windfarmstate.turbine_y[turb] + wake_offset)
+            delta_y = turbine_y[turbine_id]  - (turbine_y[turb] + wake_offset)
 
             # save ti_area_ratio and ti_dst to new memory locations to avoid
             # aliasing during differentiation
@@ -151,120 +151,118 @@ function calculate_local_ti(ambient_ti, windfarm, windfarmstate, ti_model::Local
 end
 
 
-function GaussianTI(loc,windfarm,windfarmstate,ambient_ti)
+function GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, sorted_turbine_index, ambient_ti; div_sigma=2.5, div_ti=1.2)
 
     added_ti = 0.0
     e = 1.0*ambient_ti^0.1
-    nturbines = length(windfarm.turbine_x)
+    nturbines = length(turbine_x)
 
     for u=1:nturbines
 
         # get index of upstream turbine
-        turb = windfarmstate.sorted_turbine_index[u]
+        turb = sorted_turbine_index[u]
 
         # calculate downstream distance between wind turbines
-        dx = loc[1] - windfarmstate.turbine_x[turb]
+        dx = loc[1] - turbine_x[turb]
 
         if dx > 1e-6
-            turbine_type = windfarm.turbine_definition_ids[turb]
-            rotor_diameter = windfarm.turbine_definitions[turbine_type].rotor_diameter[1]
-            hub_height = windfarm.turbine_definitions[turbine_type].hub_height[1]
-            dy = loc[2] - windfarmstate.turbine_y[turb]
-            dz = loc[3] - hub_height
+            dy = loc[2] - turbine_y[turb]
+            dz = loc[3] - hub_height[turb]
             r = sqrt(dy^2 + dz^2)
+            ct = turbine_ct[turb]
 
-            ct = windfarmstate.turbine_ct[turb]
             kstar = 0.11*ct^1.07*ambient_ti^0.2
             epsilon = 0.23*ct^-0.25*ambient_ti^0.17
             d = 2.3*ct^-1.2
             f = 0.7*ct^-3.2*ambient_ti^-0.45
 
             dist = 0.5
-            if r/rotor_diameter <= dist
-                k1 = cos(pi/2.0*(r/rotor_diameter-dist))^2
-                k2 = cos(pi/2.0*(r/rotor_diameter+dist))^2
+            if r/rotor_diameter[turb] <= dist
+                k1 = cos(pi/2.0*(r/rotor_diameter[turb]-dist))^2
+                k2 = cos(pi/2.0*(r/rotor_diameter[turb]+dist))^2
             else
                 k1 = 1.0
                 k2 = 0.0
             end
 
-            sigma = kstar*dx + epsilon*rotor_diameter
+            sigma = kstar*dx + epsilon*rotor_diameter[turb]
             if dz >= 0.0
                 delta = 0.0
             else
-                delta = ambient_ti*sin(pi*dz/hub_height)^2
+                delta = ambient_ti*sin(pi*dz/hub_height[turb])^2
             end
 
+            #2.5 for low TI 2.0 for high TI
+            sigma = sigma/div_sigma
 
-            sigma = sigma*1.0
-            p1 = 1.0/(d + e*dx/rotor_diameter + f*(1.0+dx/rotor_diameter)^-2.0)
-            p2 = k1*exp(-(r-rotor_diameter/2.0)^2/(2.0*sigma^2)) + k2*exp(-(r+rotor_diameter/2.0)^2/(2.0*sigma^2))
+            new_ex = -2.0 #orig -2.0
+            p1 = 1.0/(d + e*dx/rotor_diameter[turb] + f*(1.0+dx/rotor_diameter[turb])^new_ex)
+            p2 = k1*exp(-(r-rotor_diameter[turb]/2.0)^2/(2.0*sigma^2)) + k2*exp(-(r+rotor_diameter[turb]/2.0)^2/(2.0*sigma^2))
             dI = p1*p2 - delta
-            # if r < rotor_diameter*4.0/5.0
-                added_ti += dI
-            # end
+            #1.2 for low TI 2.0 for high TI
+            added_ti += dI/div_ti
         end
     end
     return ambient_ti + added_ti
 end
 
 
-function GaussianTI_stanley(loc,windfarm,windfarmstate,ambient_ti)
-
-    added_ti = 0.0
-    e = 1.0*ambient_ti^0.1
-    nturbines = length(windfarm.turbine_x)
-
-    for u=1:nturbines
-
-        # get index of upstream turbine
-        turb = windfarmstate.sorted_turbine_index[u]
-
-        # calculate downstream distance between wind turbines
-        dx = loc[1] - windfarmstate.turbine_x[turb]
-
-        if dx > 1e-6
-            turbine_type = windfarm.turbine_definition_ids[turb]
-            rotor_diameter = windfarm.turbine_definitions[turbine_type].rotor_diameter[1]
-            hub_height = windfarm.turbine_definitions[turbine_type].hub_height[1]
-            dy = loc[2] - windfarmstate.turbine_y[turb]
-            dz = loc[3] - hub_height
-            r = sqrt(dy^2 + dz^2)
-
-            ct = windfarmstate.turbine_ct[turb]
-            kstar = 0.11*ct^1.07*ambient_ti^0.2
-            epsilon = 0.23*ct^-0.25*ambient_ti^0.17
-            d = 2.3*ct^-1.2
-            f = 0.7*ct^-3.2*ambient_ti^-0.45
-
-            # dist = 0.0
-            # if r/rotor_diameter <= dist
-            #     k1 = cos(pi/2.0*(r/rotor_diameter-dist))^2
-            #     k2 = cos(pi/2.0*(r/rotor_diameter+dist))^2
-            # else
-            #     k1 = 1.0
-            #     k2 = 0.0
-            # end
-            k1 = 1.0
-            k2 = 0.0
-
-            sigma = kstar*dx + epsilon*rotor_diameter
-            if dz >= 0.0
-                delta = 0.0
-            else
-                delta = ambient_ti*sin(pi*dz/hub_height)^2
-            end
-
-
-            sigma = sigma*0.5
-            p1 = 1.0/(d + e*dx/rotor_diameter + f*(1.0+dx/rotor_diameter)^-2.0)
-            # p2 = k1*exp(-(r-rotor_diameter/2.0)^2/(2.0*sigma^2)) + k2*exp(-(r+rotor_diameter/2.0)^2/(2.0*sigma^2))
-            p2 = exp(-(r/2.0)^2/(2.0*sigma^2))
-            dI = p1*p2 - delta
-            # if r < rotor_diameter*4.0/5.0
-            added_ti += dI
-            # end
-        end
-    end
-    return ambient_ti + added_ti
-end
+# function GaussianTI_stanley(loc,windfarm,windfarmstate,ambient_ti)
+#
+#     added_ti = 0.0
+#     e = 1.0*ambient_ti^0.1
+#     nturbines = length(windfarm.turbine_x)
+#
+#     for u=1:nturbines
+#
+#         # get index of upstream turbine
+#         turb = windfarmstate.sorted_turbine_index[u]
+#
+#         # calculate downstream distance between wind turbines
+#         dx = loc[1] - windfarmstate.turbine_x[turb]
+#
+#         if dx > 1e-6
+#             turbine_type = windfarm.turbine_definition_ids[turb]
+#             rotor_diameter = windfarm.turbine_definitions[turbine_type].rotor_diameter[1]
+#             hub_height = windfarm.turbine_definitions[turbine_type].hub_height[1]
+#             dy = loc[2] - windfarmstate.turbine_y[turb]
+#             dz = loc[3] - hub_height
+#             r = sqrt(dy^2 + dz^2)
+#
+#             ct = windfarmstate.turbine_ct[turb]
+#             kstar = 0.11*ct^1.07*ambient_ti^0.2
+#             epsilon = 0.23*ct^-0.25*ambient_ti^0.17
+#             d = 2.3*ct^-1.2
+#             f = 0.7*ct^-3.2*ambient_ti^-0.45
+#
+#             # dist = 0.0
+#             # if r/rotor_diameter <= dist
+#             #     k1 = cos(pi/2.0*(r/rotor_diameter-dist))^2
+#             #     k2 = cos(pi/2.0*(r/rotor_diameter+dist))^2
+#             # else
+#             #     k1 = 1.0
+#             #     k2 = 0.0
+#             # end
+#             k1 = 1.0
+#             k2 = 0.0
+#
+#             sigma = kstar*dx + epsilon*rotor_diameter
+#             if dz >= 0.0
+#                 delta = 0.0
+#             else
+#                 delta = ambient_ti*sin(pi*dz/hub_height)^2
+#             end
+#
+#
+#             sigma = sigma*0.5
+#             p1 = 1.0/(d + e*dx/rotor_diameter + f*(1.0+dx/rotor_diameter)^-2.0)
+#             # p2 = k1*exp(-(r-rotor_diameter/2.0)^2/(2.0*sigma^2)) + k2*exp(-(r+rotor_diameter/2.0)^2/(2.0*sigma^2))
+#             p2 = exp(-(r/2.0)^2/(2.0*sigma^2))
+#             dI = p1*p2 - delta
+#             # if r < rotor_diameter*4.0/5.0
+#             added_ti += dI
+#             # end
+#         end
+#     end
+#     return ambient_ti + added_ti
+# end
