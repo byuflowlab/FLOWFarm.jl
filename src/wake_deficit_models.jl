@@ -342,8 +342,11 @@ function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, w
         ey = exp(-0.5*(dy/(wf*sigma_y))^2.0)
         ez = exp(-0.5*(dz/(wf*sigma_z))^2.0)
 
-        loss = (1.0-sqrt(1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2.0))))*ey*ez
-
+        if (1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2.0))) >= 1e-8
+            loss = (1.0-sqrt(1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2.0))))*ey*ez
+        else
+            loss = ey*ez
+        end
     else # loss upstream of turbine
         loss = 0.0
     end
