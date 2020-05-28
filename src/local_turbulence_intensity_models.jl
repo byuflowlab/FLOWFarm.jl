@@ -10,8 +10,8 @@ struct LocalTIModelMaxTI{TF} <: AbstractLocalTurbulenceIntensityModel
     k1::TF
     k2::TF
 end
-
-LocalTIModelMaxTI() = LocalTIModelMaxTI(2.32, 0.154)
+LocalTIModelMaxTI(x, y) = LocalTIModelMaxTI(x, y, 0.3837, 0.003678)
+LocalTIModelMaxTI() = LocalTIModelMaxTI(2.32, 0.154, 0.3837, 0.003678)
 
 
 function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
