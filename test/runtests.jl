@@ -126,7 +126,7 @@ end
     test_values[6,2] = 100
     test_values[6,4] = -600
 
-    @test ff.concave_boundary(v,n,testing_x,testing_y) == test_values
+    @test ff.convex_boundary(v,n,testing_x,testing_y) == test_values
     end
 
 end
