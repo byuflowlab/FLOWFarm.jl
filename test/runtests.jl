@@ -11,7 +11,7 @@ using PyPlot
         include("model_sets/model_set_3.jl")
         println(sum(windprobabilities))
         modelAEP = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
-        hub_height, turbine_yaw, turbine_ai, ct_model, generator_efficiency, cut_in_speed,
+        hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
         cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set, 
         rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)/1e9
         paperAEP = 1889.3
@@ -927,7 +927,7 @@ end
 
         # calculate turbine inflow velocities
         turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
-        turbine_ai, sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, windresource,
+        sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, windresource,
         model_set)
 
         # load horns rev ti ata
@@ -971,33 +971,41 @@ end
         include("./model_sets/model_set_2.jl")
 
         # calculate turbine inflow velocities
-        ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, ms2, pd2)
+        turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+        sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, windresource,
+        model_set)
 
         # load horns rev ti ata
         data = readdlm("inputfiles/horns_rev_ti_by_row_niayifar.txt", ',', skipstart=1)
 
         # freestream
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(1+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+        turbine_inflow_velcities, turbine_ct, localtimodel, turbine_id=(1+ 4*10), tol=1E-6)
         @test ti_dst == ambient_ti
 
         # row 2
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(2+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+        turbine_inflow_velcities, turbine_ct, localtimodel, turbine_id=(2+ 4*10), tol=1E-6)
         @test ti_dst == ambient_ti
 
         # row 3
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(3+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+        turbine_inflow_velcities, turbine_ct, localtimodel, turbine_id=(3+ 4*10), tol=1E-6)
         @test ti_dst == ambient_ti
 
         # row 4
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(4+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+        turbine_inflow_velcities, turbine_ct, localtimodel, turbine_id=(4+ 4*10), tol=1E-6)
         @test ti_dst == ambient_ti
 
         # row 5
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(5+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+        turbine_inflow_velcities, turbine_ct, localtimodel, turbine_id=(5+ 4*10), tol=1E-6)
         @test ti_dst == ambient_ti
 
         # row 6
-        ti_dst = ff.calculate_local_ti(ambient_ti, windfarm, windfarmstate, localtimodel, turbine_id=(6+ 4*10), tol=1E-6)
+        ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+        turbine_inflow_velcities, turbine_ct, localtimodel, turbine_id=(6+ 4*10), tol=1E-6)
         @test ti_dst == ambient_ti
 
     end
