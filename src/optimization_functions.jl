@@ -17,19 +17,28 @@ same location, this function leaves the square root in the calculations.
 - `turbine_x::Array{Float}`: turbine x locations
 - `turbine_y::Array{Float}`: turbine y locations
 """
-function turbine_spacing(turbine_x,turbine_y)
-        nturbines = length(turbine_x)
-        spacing_vec = zeros(typeof(turbine_x[1]),Int((nturbines)*(nturbines-1)/2))
-        k = 1
-        for i = 1:nturbines
-                for j = i+1:nturbines
-                        spacing_vec[k] = sqrt((turbine_x[j]-turbine_x[i])^2+(turbine_y[j]-turbine_y[i])^2)
-                        k += 1
-                end
+function turbine_spacing(turbine_x, turbine_y)
+    nturbines = length(turbine_x)
+    spacing_vec =
+        zeros(typeof(turbine_x[1]), Int((nturbines) * (nturbines - 1) / 2))
+    k = 1
+    for i in 1:nturbines
+        for j in i+1:nturbines
+            spacing_vec[k] = sqrt(
+                (turbine_x[j] - turbine_x[i])^2 +
+                (turbine_y[j] - turbine_y[i])^2,
+            )
+            k += 1
         end
-        return spacing_vec
+    end
+    return spacing_vec
 end
 
+
+function splined_boundary_spacing(turbine_x, turbine_y, spline_list, corner_x, corner_y)
+
+        
+end
 
 """
     circle_boundary(center,radius,turbine_x,turbine_y)
@@ -43,13 +52,15 @@ turbine is inside the boundary
 - `turbine_x::Array{Float}`: turbine x locations
 - `turbine_y::Array{Float}`: turbine y locations
 """
-function circle_boundary(center,radius,turbine_x,turbine_y)
-        nturbines = length(turbine_x)
-        boundary_vec = zeros(typeof(turbine_x[1]),nturbines)
-        for i = 1:nturbines
-                boundary_vec[i] = sqrt((center[1]-turbine_x[i])^2 + (center[2]-turbine_y[i])^2) - radius
-        end
-        return boundary_vec
+function circle_boundary(center, radius, turbine_x, turbine_y)
+    nturbines = length(turbine_x)
+    boundary_vec = zeros(typeof(turbine_x[1]), nturbines)
+    for i in 1:nturbines
+        boundary_vec[i] =
+            sqrt((center[1] - turbine_x[i])^2 + (center[2] - turbine_y[i])^2) -
+            radius
+    end
+    return boundary_vec
 end
 
 
@@ -67,23 +78,61 @@ turbine is inside the boundary
 - `turbine_x::Array{Float}`: turbine x locations
 - `turbine_y::Array{Float}`: turbine y locations
 """
-function convex_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_y)
-        nturbines = length(turbine_x)
-        nVertices = size(boundary_vertices)[1]
-        # initialize array to hold distances from each point to each face
-        face_distance = zeros(nturbines, nVertices)
+function convex_boundary(
+    boundary_vertices,
+    boundary_normals,
+    turbine_x,
+    turbine_y,
+)
+    nturbines = length(turbine_x)
+    nVertices = size(boundary_vertices)[1]
+    # initialize array to hold distances from each point to each face
+    face_distance = zeros(nturbines, nVertices)
 
-        # loop through points and find distance to each face
-        for i = 1:nturbines
-                # determine if point is inside or outside of each face, and distance from each face
-                for j = 1:nVertices
-                        # define the vector from the point of interest to the first point of the face
-                        pa = [boundary_vertices[j, 1]-turbine_x[i], boundary_vertices[j, 2]-turbine_y[i]]
-                        # find perpendicular distance from point to current surface (vector projection)
-                        d_vec = sum(pa .* boundary_normals[j,:]) .* boundary_normals[j,:]
-                        # calculate the sign of perpendicular distance from point to current face (- is inside, + is outside)
-                        face_distance[i, j] = -sum(d_vec .* boundary_normals[j,:])
-                end
+    # loop through points and find distance to each face
+    for i in 1:nturbines
+        # determine if point is inside or outside of each face, and distance from each face
+        for j in 1:nVertices
+            # define the vector from the point of interest to the first point of the face
+            pa = [
+                boundary_vertices[j, 1] - turbine_x[i],
+                boundary_vertices[j, 2] - turbine_y[i],
+            ]
+            # find perpendicular distance from point to current surface (vector projection)
+            d_vec = sum(pa .* boundary_normals[j, :]) .* boundary_normals[j, :]
+            # calculate the sign of perpendicular distance from point to current face (- is inside, + is outside)
+            face_distance[i, j] = -sum(d_vec .* boundary_normals[j, :])
         end
-        return face_distance
+    end
+    return face_distance
+end
+
+
+"""
+    concave_boundary(boundary_vertices,turbine_x,turbine_y)
+
+calculate the distance from each turbine to a boundary with one or more reflex
+angles. Boundary will have three or four selected "corners", such that the
+"sides" between corners (that will be splined) are injective functions.
+Negative means the turbine is inside the boundary
+
+# Arguments
+- `boundary_vertices::Array{Float,2}`: vertices of the concave hull CCW in 
+        order s.t. boundaryVertices[0] is the NE corner of boundary
+- `boundary_corners::Array{Float}`: An array of 3 or 4 indicies in boundary_vertices
+        that correspond to the four "corners" used between splined "sides"
+- `turbine_x::Array{Float}`: turbine x locations
+- `turbine_y::Array{Float}`: turbine y locations
+"""
+function concave_boundary(
+    boundary_vertices,
+    boundary_corners,
+    turbine_x,
+    turbine_y,
+)
+    nturbines = length(turbine_x)
+    nVertices = size(boundary_vertices)[1]
+
+    # Spline sides
+    # Use UpDwnYVals()
 end
