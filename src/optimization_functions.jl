@@ -85,26 +85,24 @@ function convex_boundary(
     turbine_y,
 )
     nturbines = length(turbine_x)
-    nVertices = size(boundary_vertices)[1]
-    # initialize array to hold distances from each point to each face
-    face_distance = zeros(nturbines, nVertices)
+        nVertices = size(boundary_vertices)[1]
+        # initialize array to hold distances from each point to each face
+        face_distance = zeros(typeof(turbine_x[1]),(nturbines, nVertices))
 
-    # loop through points and find distance to each face
-    for i in 1:nturbines
-        # determine if point is inside or outside of each face, and distance from each face
-        for j in 1:nVertices
-            # define the vector from the point of interest to the first point of the face
-            pa = [
-                boundary_vertices[j, 1] - turbine_x[i],
-                boundary_vertices[j, 2] - turbine_y[i],
-            ]
-            # find perpendicular distance from point to current surface (vector projection)
-            d_vec = sum(pa .* boundary_normals[j, :]) .* boundary_normals[j, :]
-            # calculate the sign of perpendicular distance from point to current face (- is inside, + is outside)
-            face_distance[i, j] = -sum(d_vec .* boundary_normals[j, :])
+        # loop through points and find distance to each face
+        for i = 1:nturbines
+                # determine if point is inside or outside of each face, and distance from each face
+                for j = 1:nVertices
+                        # define the vector from the point of interest to the first point of the face
+                        pa = [boundary_vertices[j, 1]-turbine_x[i], boundary_vertices[j, 2]-turbine_y[i]]
+                        # find perpendicular distance from point to current surface (vector projection)
+                        d_vec = sum(pa .* boundary_normals[j,:]) .* boundary_normals[j,:]
+                        # calculate the sign of perpendicular distance from point to current face (- is inside, + is outside)
+                        face_distance[i, j] = -sum(d_vec .* boundary_normals[j,:])
+                end
         end
-    end
-    return face_distance
+
+        return vcat(face_distance...)
 end
 
 
@@ -135,4 +133,5 @@ function concave_boundary(
 
     # Spline sides
     # Use UpDwnYVals()
+
 end
