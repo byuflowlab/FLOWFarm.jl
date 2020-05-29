@@ -415,7 +415,7 @@ function wake_deficit_model(loc, turbine_x, turbine_y, turbine_z, deflection, tu
     # extract model parameters
     # ks = model.k_star       # wake spread rate (k* in 2014 paper)
     ti = turbine_local_ti[turbine_id]
-    ky = kz = _k_star_func(ti,model.k1,model.k2)
+    ky = kz = _k_star_func(ti, model.k1, model.k2)
 
     as = model.alpha_star
     bs = model.beta_star

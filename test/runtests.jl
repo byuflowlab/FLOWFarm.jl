@@ -2,20 +2,19 @@ using FlowFarm; const ff = FlowFarm
 using Test
 using DelimitedFiles
 using LinearAlgebra
-using PyPlot
 
 @testset "AEP function" begin
 
     @testset "Test AEP" begin
 
         include("model_sets/model_set_3.jl")
-        println(sum(windprobabilities))
+        # println(sum(windprobabilities))
         modelAEP = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
         hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
         cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set, 
         rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)/1e9
         paperAEP = 1889.3
-        println(modelAEP/paperAEP)
+        # println(modelAEP/paperAEP)
         @test modelAEP/paperAEP ≈ 1 atol=0.1
         end
 
@@ -811,7 +810,7 @@ end
         sorted_turbine_index = [1]
         turbine_inflow_velcity = [8.0]
         ambient_ti = (k_star - 0.003678)/0.3837
-        println(ambient_ti)
+        # println(ambient_ti)
         turbine_id = 1
         turbine_definition_id = 1
 
@@ -1010,37 +1009,37 @@ end
 
     end
 
-    @testset "Gaussian TI" begin
-#
-            include("model_sets/model_set_5.jl")
-            ambient_ti = 0.137
+#     @testset "Gaussian TI" begin
+# #
+#             include("model_sets/model_set_5.jl")
+#             ambient_ti = 0.137
 
-            x = [2.959e-2,            2.219e-1,            4.290e-1,            6.805e-1,
-            9.467e-1,            1.287e+0,            1.701e+0,            2.101e+0,
-            2.441e+0,            2.811e+0,            3.092e+0,            3.388e+0,
-            3.683e+0,            3.979e+0,            4.364e+0,            4.852e+0,
-            5.237e+0,            5.740e+0,            6.139e+0,            6.686e+0,
-            7.411e+0,            8.166e+0,            8.861e+0,            9.408e+0,
-            9.970e+0] .* rotor_diameter
+#             x = [2.959e-2,            2.219e-1,            4.290e-1,            6.805e-1,
+#             9.467e-1,            1.287e+0,            1.701e+0,            2.101e+0,
+#             2.441e+0,            2.811e+0,            3.092e+0,            3.388e+0,
+#             3.683e+0,            3.979e+0,            4.364e+0,            4.852e+0,
+#             5.237e+0,            5.740e+0,            6.139e+0,            6.686e+0,
+#             7.411e+0,            8.166e+0,            8.861e+0,            9.408e+0,
+#             9.970e+0] .* rotor_diameter
 
-            """paper data from "A new Gaussian-based analytical wake model for wind turbines
-            considering ambiend turbulence intensities and thrust coefficient effects" by Ishihara and
-            Qian"""
-            paper_data = [1.625e-1, 1.841e-1, 2.023e-1, 2.114e-1, 2.149e-1, 2.149e-1, 2.081e-1, 1.991e-1,
-                 1.900e-1, 1.821e-1, 1.753e-1, 1.697e-1, 1.629e-1, 1.573e-1, 1.505e-1, 1.426e-1,
-                 1.370e-1, 1.302e-1, 1.234e-1, 1.189e-1, 1.111e-1, 1.032e-1, 9.760e-2, 9.425e-2,
-                 9.090e-2]
+#             """paper data from "A new Gaussian-based analytical wake model for wind turbines
+#             considering ambiend turbulence intensities and thrust coefficient effects" by Ishihara and
+#             Qian"""
+#             paper_data = [1.625e-1, 1.841e-1, 2.023e-1, 2.114e-1, 2.149e-1, 2.149e-1, 2.081e-1, 1.991e-1,
+#                  1.900e-1, 1.821e-1, 1.753e-1, 1.697e-1, 1.629e-1, 1.573e-1, 1.505e-1, 1.426e-1,
+#                  1.370e-1, 1.302e-1, 1.234e-1, 1.189e-1, 1.111e-1, 1.032e-1, 9.760e-2, 9.425e-2,
+#                  9.090e-2]
 
-            TI = zeros(length(x))
-            for i = 1:length(x)
-                    loc = [x[i],0.0,hub_height+rotor_diameter/2.0]
-                    TI[i] = ff.GaussianTI(loc,windfarm,windfarmstate,ambient_ti)
-            end
+#             TI = zeros(length(x))
+#             for i = 1:length(x)
+#                     loc = [x[i],0.0,hub_height+rotor_diameter/2.0]
+#                     TI[i] = ff.GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, sorted_turbine_index, ambient_ti; div_sigma=2.5, div_ti=1.2)
+#             end
 
-            tol = 1E-2
-            @test TI.-ambient_ti ≈ paper_data atol=tol
+#             tol = 1E-2
+#             @test TI.-ambient_ti ≈ paper_data atol=tol
 
-    end
+#     end
 
 end
 
@@ -1072,23 +1071,31 @@ end
 
         # test no loss upstream (data from Jensen 1983)
         expected_velocity = wind_speed
-        loc = [-0.1, 0.0, hub_height]
-        @test ff.point_velocity(loc, ms1, pd1, wind_farm_state_id=1, downwind_turbine_id=0) == expected_velocity
+        loc = [-0.1, 0.0, hub_height[1]]
+        @test ff.point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+        rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
+        windresource, model_set, wind_farm_state_id=1, downwind_turbine_id=0) == expected_velocity
 
         # test max loss at turbine (data from Jensen 1983)
         expected_velocity = wind_speed*(1.0 - (2. * 1/3.0))
-        loc = [1E-6, 0.0, hub_height]
-        @test ff.point_velocity(loc, ms1, pd1, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity rtol=rtol
+        loc = [1E-6, 0.0, hub_height[1]]
+        @test ff.point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+        rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
+        windresource, model_set, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity rtol=rtol
 
         # test centerline loss 40 meters downstream (data from Jensen 1983)
         expected_velocity = wind_speed*(4.35/8.1)
-        loc = [40.0, 0.0, hub_height]
-        @test ff.point_velocity(loc, ms1, pd1, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity rtol=rtol
+        loc = [40.0, 0.0, hub_height[1]]
+        @test ff.point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+        rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
+        windresource, model_set, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity rtol=rtol
 
         # test centerline loss 100 meters downstream (data from Jensen 1983)
         expected_velocity = wind_speed*(5.7/8.1)
-        loc = [100.0, 0.0, hub_height]
-        @test ff.point_velocity(loc, ms1, pd1, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity  rtol=rtol
+        loc = [100.0, 0.0, hub_height[1]]
+        @test ff.point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+        rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
+        windresource, model_set, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity  rtol=rtol
     end
 
     # @testset "Turbine Inflow Velocities one direction" begin
@@ -1130,51 +1137,5 @@ end
     #     @test windfarmstate.turbine_generators_powers ≈ wind_speed*data[:, 2] rtol=rtol
     #
     # end
-
-    @testset "Calculate flow field" begin
-        # test based on:
-        # [1] An Aero-acoustic Noise Distribution Prediction Methodology for Offshore Wind Farms
-        # by Jiufa Cao, Weijun Zhu, Xinbo Wu, Tongguang Wang, and Haoran Xu
-
-        rtol = 1E-6
-
-
-        data = readdlm("inputfiles/velocity_def_row_of_10_turbs.txt",  ',', skipstart=4)
-
-        include("./model_sets/model_set_2.jl")
-
-        ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, ms2, pd2)
-        ff.turbine_powers_one_direction!(rotor_points_y, rotor_points_z, pd2)
-
-        stepsize = 10
-        xrange = 1:stepsize:10*rotor_diameter*nturbines
-        yrange = -1*rotor_diameter*nturbines:stepsize:1*rotor_diameter*nturbines
-        zrange = hub_height:stepsize:hub_height
-        points = [[x y z] for x in xrange for y in yrange for z in zrange]
-        println("size: ", size(points[:]))
-        println(points[1][1])
-        println(pd2.wind_farm_states[1].turbine_inflow_velcities)
-
-        velh = ff.calculate_flow_field(1, xrange, yrange, zrange, rotor_points_y, rotor_points_z, ms2, pd2)
-        # yrange = 0:stepsize:0
-        # zrange = 0:stepsize:2*hub_height
-        # velv = ff.calculate_flow_field(1, xrange, yrange, zrange, rotor_points_y, rotor_points_z, windfarm, windfarmstate, windresource, windshearmodel, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel)
-
-        # println(vel)
-
-        # Plots.pyplot()
-        # points = permutedims(reshape(hcat(points...), (length(points[1]), length(points))))
-        # println(size(points[:][1]))
-        # println(size(points[:][2]))
-        # println(size(vel))
-        # println(size(vel), length(xrange), length(yrange))
-        # cmap = Colormap("Blues_r", 100)
-        # flowfieldplot = contourf(xrange, yrange, vel, cmap="Blues_r")
-        flowfieldplot = imshow(velh, cmap="Blues_r")
-        # flowfieldplot = imshow(velv, cmap="Blues_r")
-        # x = range(-5, stop = 5, length = 40)
-        # flowfieldplot = plot(points[:, 1], points[:, 2], vel, show=true, st=:contourf)
-
-    end
 
 end

@@ -10,6 +10,7 @@ nturbines = length(turbine_x)
 turbine_y = zeros(nturbines)
 turbine_z = zeros(nturbines)
 
+ambient_ti = 0.1
 ct = 0.689
 ai = 1.0/3.0
 turbine_ct = zeros(nturbines) .+ ct

@@ -70,4 +70,3 @@ wakecombinationmodel = ff.LinearLocalVelocitySuperposition()
 localtimodel = ff.LocalTIModelMaxTI()
 
 ms6 = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
-pd6 = ff.WindFarmProblemDescription(windfarm, windresource, [windfarmstate, windfarmstate, windfarmstate])

@@ -180,40 +180,43 @@ end
 # model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1)
 
 
-# function calculate_flow_field(direction_id, xrange, yrange, zrange, rotor_sample_points_y, rotor_sample_points_z,
-#     model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem;
-#     wind_farm_state_id=1)
-#
-#     windresource = problem_description.wind_resource
-#
-#     xlen = length(xrange)
-#     ylen = length(yrange)
-#     zlen = length(zrange)
-#     npoints = xlen*ylen*zlen
-#     point_velocities = zeros(npoints)
-#     point_velocities = reshape(point_velocities, (zlen, ylen, xlen))
-#
-#     for zi in 1:zlen
-#         for yi in 1:ylen
-#             for xi in 1:xlen
-#                 loc = [xrange[xi], yrange[yi], zrange[zi]]
-#                 loc[1], loc[2] = rotate_to_wind_direction(loc[1], loc[2], windresource.wind_directions[direction_id])
-#
-#                 point_velocities[zi, yi, xi] = point_velocity(loc, model_set, problem_description, wind_farm_state_id=wind_farm_state_id)
-#
-#             end
-#         end
-#     end
-#
-#     if zlen == 1
-#         return point_velocities[1,1:ylen,1:xlen]
-#     elseif ylen == 1
-#         return point_velocities[1:zlen,1,1:xlen]
-#     elseif xlen == 1
-#         return point_velocities[1:zlen,1:ylen,1]
-#     end
-#
-# end
+function calculate_flow_field(xrange, yrange, zrange,
+    model_set::AbstractModelSet, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+    rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
+    wind_resource;
+    wind_farm_state_id=1)
+
+    xlen = length(xrange)
+    ylen = length(yrange)
+    zlen = length(zrange)
+    npoints = xlen*ylen*zlen
+    point_velocities = zeros(npoints)
+    point_velocities = reshape(point_velocities, (zlen, ylen, xlen))
+
+    for zi in 1:zlen
+        for yi in 1:ylen
+            for xi in 1:xlen
+                loc = [xrange[xi], yrange[yi], zrange[zi]]
+                loc[1], loc[2] = rotate_to_wind_direction(loc[1], loc[2], wind_resource.wind_directions[wind_farm_state_id])
+
+                point_velocities[zi, yi, xi] = point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+                    rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
+                    wind_resource, model_set,
+                    wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=0)
+
+            end
+        end
+    end
+
+    if zlen == 1
+        return point_velocities[1,1:ylen,1:xlen]
+    elseif ylen == 1
+        return point_velocities[1:zlen,1,1:xlen]
+    elseif xlen == 1
+        return point_velocities[1:zlen,1:ylen,1]
+    end
+
+end
 
 
 function hermite_spline(x, x0, x1, y0, dy0, y1, dy1)
