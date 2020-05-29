@@ -30,8 +30,8 @@ rated_speed = zeros(nturbines).+16.  # m/s
 rated_power = zeros(nturbines).+2.0E6  # W
 air_density = 1.1716  # kg/m^3
 
-cp = 0.8
-power_model = ff.PowerModelConstantCp(cp)
+constcp = 0.8
+power_model = ff.PowerModelConstantCp(constcp)
 
 ct_model1 = ff.ThrustModelConstantCt(ct)
 ct_model = Vector{typeof(ct_model1)}(undef, nturbines)

@@ -4,7 +4,7 @@ rotor_diameter = 0.57
 hub_height = 0.7
 yaw = 0.0
 ct = 0.81
-cp = 0.8
+constcp = 0.8
 generator_efficiency = 0.944
 ai = 1.0/3.0
 wind_speed = 8.1
@@ -26,7 +26,7 @@ ambient_tis = [ambient_ti]
 nturbines = 1
 
 ct_model = ff.ThrustModelConstantCt(ct)
-power_model = ff.PowerModelConstantCp(cp)
+power_model = ff.PowerModelConstantCp(constcp)
 wind_shear_model = [ff.PowerLawWindShear(shearexponent)]
 
 cut_in_speed = 0.0

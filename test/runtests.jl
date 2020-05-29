@@ -185,10 +185,10 @@ using LinearAlgebra
             generator_efficiency = 0.944
             air_density = 1.1716
             rotor_area = pi*80.0^2/4
-            cp = 0.8
+            constcp = 0.8
             v0 = 12.0
 
-            p = ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, v0)
+            p = ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, constcp, v0)
             @test p ≈ 3.8425979093271587e6 atol=1E-6
 
         end
@@ -197,17 +197,17 @@ using LinearAlgebra
             generator_efficiency = 0.944
             air_density = 1.1716
             rotor_area = 0.25*pi*80.0^2
-            cp = 0.8
+            constcp = 0.8
             v0 = 8.0
             cut_in_speed = 4.  # m/s
             cut_out_speed = 25.  # m/s
             rated_speed = 16.  # m/s
             rated_power = 2.0E6  # W
 
-            power_model = ff.PowerModelConstantCp(cp)
+            power_model = ff.PowerModelConstantCp(constcp)
 
             p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, cut_in_speed, rated_speed, cut_out_speed, rated_power, power_model)
-            @test p ≈ 0.5*rotor_area*cp*air_density*generator_efficiency*v0^3 atol=1E-6
+            @test p ≈ 0.5*rotor_area*constcp*air_density*generator_efficiency*v0^3 atol=1E-6
 
         end
 
@@ -288,7 +288,7 @@ using LinearAlgebra
             v0 = wt_velocity = 8.0
             p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
             rotor_area = pi*0.25*rotor_diameter[1]^2
-            @test p ≈ 0.5*cp*air_density*rotor_area*generator_efficiency[1]*v0^3 atol=1E-6
+            @test p ≈ 0.5*constcp*air_density*rotor_area*generator_efficiency[1]*v0^3 atol=1E-6
 
             # above rated
             wt_velocity = 20.0
@@ -407,7 +407,7 @@ using LinearAlgebra
             hub_height = 0.125
             yaw_20 = 20.0*pi/180.0
             ct = 0.8 # [1] fig. 8
-            cp = 0.8
+            constcp = 0.8
             generator_efficiency = 0.944
 
             wind_farm_state_id = 1
@@ -431,7 +431,7 @@ using LinearAlgebra
             horizontal_spread_rate = k_star
 
             ct_model = ff.ThrustModelConstantCt(ct)
-            power_model = ff.PowerModelConstantCp(cp)
+            power_model = ff.PowerModelConstantCp(constcp)
 
             turbine1 = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
             model = ff.JiminezYawDeflection(horizontal_spread_rate)
@@ -464,7 +464,7 @@ using LinearAlgebra
             hub_height = 0.125 #[1] p. 509
             yaw_20 = 20.0*pi/180.0
             ct = 0.82 # [1] fig. 8
-            cp = 0.8
+            constcp = 0.8
             generator_efficiency = 0.944
 
             wind_farm_state_id = 1
@@ -485,7 +485,7 @@ using LinearAlgebra
             ambient_ti = 0.1
 
             ct_model = ff.ThrustModelConstantCt(ct)
-            power_model = ff.PowerModelConstantCp([cp])
+            power_model = ff.PowerModelConstantCp([constcp])
 
             turbine_definition = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
 
@@ -564,7 +564,7 @@ using LinearAlgebra
             aI = 1.0/3.0
             yaw = 0.0
             ct = 0.7
-            cp = 0.8
+            constcp = 0.8
             generator_efficiency = 0.944
 
             wind_farm_state_id = 1
@@ -587,7 +587,7 @@ using LinearAlgebra
             deflection = [0.0, 0.0]
 
             ct_model = ff.ThrustModelConstantCt(ct)
-            power_model = ff.PowerModelConstantCp([cp])
+            power_model = ff.PowerModelConstantCp([constcp])
 
             turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
             model = ff.JensenCosine(alpha, beta)
@@ -668,7 +668,7 @@ using LinearAlgebra
             rated_power = 1.0176371581904552e6
             yaw = 0.0
             ct = 0.82 # [1] fig. 2
-            cp = 0.8
+            constcp = 0.8
             generator_efficiency = 0.944
 
             k_star = 0.022 # [1]  p. 525
@@ -693,7 +693,7 @@ using LinearAlgebra
 
             windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, turbine_inflow_velcity, [0.0], [ambient_ti],sorted_turbine_index)
             ct_model = ff.ThrustModelConstantCt(ct)
-            power_model = ff.PowerModelConstantCp([cp])
+            power_model = ff.PowerModelConstantCp([constcp])
 
             turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
 
@@ -820,7 +820,7 @@ using LinearAlgebra
 
             windfarmstate = ff.SingleWindFarmState(wind_farm_state_id, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, turbine_inflow_velcity, [0.0], [ambient_ti],sorted_turbine_index)
             ct_model = ff.ThrustModelConstantCt(ct)
-            power_model = ff.PowerModelConstantCp([cp])
+            power_model = ff.PowerModelConstantCp([constcp])
 
             turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
 
