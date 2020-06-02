@@ -91,7 +91,7 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
 
     # use specs if inflow wind speed is less than the wind speeds provided in the power curve
     if wt_velocity < power_model.vel_points[1]
-        
+
         # calculated wind turbine power
         if wt_velocity < cut_in_speed
             power = 0.0
@@ -99,7 +99,7 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
             # use cp value corresponding to lowest provided velocity point
             cp = power_model.cp_points[1]
             # calculate power
-            power = calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity) 
+            power = calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity)
         end
 
     # use cp points where provided
@@ -109,8 +109,8 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
         cp = linear(power_model.vel_points, power_model.cp_points, wt_velocity)
 
         # calculate power
-        power = calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity) 
-        
+        power = calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity)
+
     # use specs if above vel_points max
     else
 
@@ -118,7 +118,7 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
             # use cp value corresponding to highest provided velocity point
             cp = power_model.cp_points[end]
             # calculate power
-            power = calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity) 
+            power = calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity)
         elseif wt_velocity > cut_out_speed
             power = 0.0
         end
@@ -151,13 +151,15 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
 
     # use specs if inflow wind speed is less than the wind speeds provided in the power curve
     if wt_velocity < power_model.vel_points[1]
-        
+
         # calculated wind turbine power
         if wt_velocity < cut_in_speed
             power = 0.0
+            return power
         elseif wt_velocity < rated_speed
             # use power value corresponding to lowest provided velocity point
             power = linear([cut_in_speed, power_model.vel_points[1]], [0.0, power_model.power_points[1]], wt_velocity)
+            return power
         end
 
     # use power points where provided
@@ -165,21 +167,19 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
 
         # calculate power
         power = linear(power_model.vel_points, power_model.power_points, wt_velocity)
-        
+        return power
     # use specs if above vel_points max
     else
 
         if wt_velocity <= cut_out_speed
             # use power corresponding to highest wind speed provided
             power = power_model.power_points[end]
+            return power
         elseif wt_velocity > cut_out_speed
             power = 0.0
+            return power
         end
-
     end
-
-    return power
-
 end
 
 """
@@ -200,12 +200,13 @@ Calculates wind turbine power using a cubic estimation based on turbine specific
 - `power_model::PowerModelPowerCurveCubic`: Empty struct
 """
 function calculate_power(generator_efficiency, air_density, rotor_area, wt_velocity, cut_in_speed, rated_speed, cut_out_speed, rated_power, power_model::PowerModelPowerCurveCubic)
-        
-    
+
+
     if wt_velocity < cut_in_speed
         power = 0.0
     elseif wt_velocity < rated_speed
-        power = rated_power*((wt_velocity - cut_in_speed)/(rated_speed - cut_in_speed))^3
+        # power = rated_power*((wt_velocity - cut_in_speed)/(rated_speed - cut_in_speed))^3
+        power = rated_power*((wt_velocity)/(rated_speed))^3
     elseif wt_velocity < cut_out_speed
         power = rated_power
     elseif wt_velocity > cut_out_speed
@@ -229,27 +230,10 @@ Calculate the power for a wind turbine based on a pre-determined power curve wit
 - `farmstate::SingleWindFarmState`: Struct contatining the current wind farm state, including correct inflow velocities
 - `wind_model::AbstractWindResourceModel`: Struct defining the wind resource
 """
-function calculate_turbine_power(turbine_id, turbine_definition::TurbineDefinition, farmstate::SingleWindFarmState, wind_model::AbstractWindResourceModel)
-
-    # extract turbine design information
-    generator_efficiency = turbine_definition.generator_efficiency[1]
-    cut_in_speed = turbine_definition.cut_in_speed[1]
-    cut_out_speed = turbine_definition.cut_out_speed[1]
-    rated_speed = turbine_definition.rated_speed[1]
-    rated_power = turbine_definition.rated_power[1]
-    rotor_diameter = turbine_definition.rotor_diameter[1]
+function calculate_turbine_power(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, rotor_diameter, wt_velocity, power_model::AbstractPowerModel, air_density)
 
     # calculated wind turbine rotor-swept area
     rotor_area = pi*(rotor_diameter^2)/4.0
-
-    # extract wind resource information
-    air_density = wind_model.air_density
-
-    # extract wind turbine inflow velocity
-    wt_velocity = farmstate.turbine_inflow_velcities[turbine_id]
-
-    # extract wind turbine power model
-    power_model = turbine_definition.power_model
 
     wt_power = calculate_power(generator_efficiency, air_density, rotor_area, wt_velocity, cut_in_speed, rated_speed, cut_out_speed, rated_power, power_model)
 
@@ -257,21 +241,18 @@ function calculate_turbine_power(turbine_id, turbine_definition::TurbineDefiniti
 end
 
 
-function turbine_powers_one_direction!(rotor_sample_points_y, rotor_sample_points_z,
-    problem_description::AbstractWindFarmProblem; wind_farm_state_id=1)
-
-    windfarm = problem_description.wind_farm
-    wind_model = problem_description.wind_resource
-    farmstate = problem_description.wind_farm_states[wind_farm_state_id]
+function turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, rotor_diameter, turbine_inflow_velcities, air_density, power_model::AbstractPowerModel)
 
     # get number of turbines and rotor sample point
-    n_turbines = length(farmstate.turbine_x)
+    nturbines = length(rotor_diameter)
 
-    for d=1:n_turbines
-        turbine = windfarm.turbine_definitions[windfarm.turbine_definition_ids[d]]
-        wt_power = calculate_turbine_power(d, turbine, farmstate, wind_model)
-        farmstate.turbine_generators_powers[d] = wt_power
+    arr_type = promote_type(typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),
+                            typeof(rated_power[1]),typeof(rotor_diameter[1]),typeof(turbine_inflow_velcities[1]))
+    wt_power = zeros(arr_type, nturbines)
+    for d=1:nturbines
+        wt_power[d] = calculate_turbine_power(generator_efficiency[d], cut_in_speed[d], cut_out_speed[d], rated_speed[d], rated_power[d], rotor_diameter[d], turbine_inflow_velcities[d], power_model, air_density)
     end
+    return wt_power
 end
 
 
@@ -288,31 +269,36 @@ Calculate wind farm AEP
 - `farmstate::SingleWindFarmState`: Struct contatining the current wind farm state, including correct inflow velocities
 - `wind_model::AbstractWindResourceModel`: Struct defining the wind resource
 """
-function calculate_aep(model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem;
+
+
+function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
+            hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+            cut_out_speed, rated_speed, rated_power, wind_resource, power_model::AbstractPowerModel, model_set::AbstractModelSet;
             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0])
 
-    """NEED TESTS"""
-    wind_farm = problem_description.wind_farm
-    wind_resource = problem_description.wind_resource
     wind_probabilities = wind_resource.wind_probabilities
 
-    nstates = length(problem_description.wind_farm_states)
+    nstates = length(wind_probabilities)
     hours_per_year = 365.25*24.0
 
-    state_energy = zeros(nstates)
+    # state_energy = Vector{typeof(wind_farm.turbine_x[1])}(undef,nstates)
+    arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),typeof(hub_height[1]),typeof(turbine_yaw[1]),
+                typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),typeof(rated_power[1]))
+    state_energy = zeros(arr_type,nstates)
     for i = 1:nstates
-        problem_description.wind_farm_states[i].turbine_x[:],problem_description.wind_farm_states[i].turbine_y[:] =
-                rotate_to_wind_direction(wind_farm.turbine_x, wind_farm.turbine_y, wind_resource.wind_directions[i])
 
-        problem_description.wind_farm_states[i].sorted_turbine_index[:] = sortperm(problem_description.wind_farm_states[i].turbine_x)
+        rot_x, rot_y = rotate_to_wind_direction(turbine_x, turbine_y, wind_resource.wind_directions[i])
 
-        turbine_velocities_one_direction!(rotor_sample_points_y, rotor_sample_points_z,
-            model_set, problem_description, wind_farm_state_id=i)
+        sorted_turbine_index = sortperm(rot_x)
 
-        turbine_powers_one_direction!(rotor_sample_points_y, rotor_sample_points_z,
-            problem_description, wind_farm_state_id=i)
+        turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+                            sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+                            model_set, wind_farm_state_id=i)
 
-        state_power = sum(problem_description.wind_farm_states[i].turbine_generators_powers)
+        wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
+                            rated_power, rotor_diameter, turbine_velocities, wind_resource.air_density, power_model)
+
+        state_power = sum(wt_power)
         state_energy[i] = state_power*hours_per_year*wind_probabilities[i]
     end
 

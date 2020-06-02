@@ -19,7 +19,7 @@ same location, this function leaves the square root in the calculations.
 """
 function turbine_spacing(turbine_x,turbine_y)
         nturbines = length(turbine_x)
-        spacing_vec = zeros(Int((nturbines)*(nturbines-1)/2))
+        spacing_vec = zeros(typeof(turbine_x[1]),Int((nturbines)*(nturbines-1)/2))
         k = 1
         for i = 1:nturbines
                 for j = i+1:nturbines
@@ -45,7 +45,7 @@ turbine is inside the boundary
 """
 function circle_boundary(center,radius,turbine_x,turbine_y)
         nturbines = length(turbine_x)
-        boundary_vec = zeros(nturbines)
+        boundary_vec = zeros(typeof(turbine_x[1]),nturbines)
         for i = 1:nturbines
                 boundary_vec[i] = sqrt((center[1]-turbine_x[i])^2 + (center[2]-turbine_y[i])^2) - radius
         end
@@ -71,7 +71,7 @@ function windfarm_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_
         nturbines = length(turbine_x)
         nVertices = size(boundary_vertices)[1]
         # initialize array to hold distances from each point to each face
-        face_distance = zeros(nturbines, nVertices)
+        face_distance = zeros(typeof(turbine_x[1]),(nturbines, nVertices))
 
         # loop through points and find distance to each face
         for i = 1:nturbines
@@ -85,5 +85,6 @@ function windfarm_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_
                         face_distance[i, j] = -sum(d_vec .* boundary_normals[j,:])
                 end
         end
-        return face_distance
+
+        return vcat(face_distance...)
 end

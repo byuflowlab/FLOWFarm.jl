@@ -44,7 +44,7 @@ end
 """
     calculate_ct(inflow_velocity, thrust_model::ThrustModelCtPoints)
 
-    Calculate the thrust coefficient for a wind turbine based on a pre-determined ct curve 
+    Calculate the thrust coefficient for a wind turbine based on a pre-determined ct curve
         with linear interpolation.
 
 # Arguments
@@ -65,7 +65,7 @@ function calculate_ct(inflow_velocity, thrust_model::ThrustModelCtPoints)
     else
         ct = maxct
     end
-    
+
     return ct
 end
 
@@ -81,7 +81,7 @@ function _ct_to_axial_ind_func(ct)
     else
         axial_induction = 0.5*(1.0 - sqrt(1.0 - ct))
     end
-    
+
     return axial_induction
 
 end
