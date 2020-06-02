@@ -43,7 +43,6 @@ function aep_wrapper(x)
     global rotor_diameter
     global hub_height
     global turbine_yaw
-    global turbine_ai
     global ct_model
     global generator_efficiency
     global cut_in_speed
@@ -172,5 +171,4 @@ plt.gcf().gca().add_artist(plt.Circle((boundary_center[1],boundary_center[2]), b
 axis("square")
 xlim(-boundary_radius-200,boundary_radius+200)
 ylim(-boundary_radius-200,boundary_radius+200)
-plt.legend([h1, h2])
 plt.show()
