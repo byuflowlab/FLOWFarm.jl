@@ -1,32 +1,44 @@
 using Snopt
 using DelimitedFiles 
-import PyPlot
-using ForwardDiff
-using DiffResults
-
-using Snopt
+using PyPlot
 import ForwardDiff
 
+# set up boundary constraint wrapper function
 function boundary_wrapper(x)
+    # include relevant globals
     global boundary_center
     global boundary_radius
-    global scale
+
+    # get number of turbines
     nturbines = Int(length(x)/2)
-    turbine_x = x[1:nturbines].*scale
-    turbine_y = x[nturbines+1:end].*scale
+    
+    # extract x and y locations of turbines from design variables vector
+    turbine_x = x[1:nturbines]
+    turbine_y = x[nturbines+1:end]
+
+    # get and return boundary distances
     return ff.circle_boundary(boundary_center, boundary_radius, turbine_x, turbine_y)
 end
 
+# set up spacing constraint wrapper function
 function spacing_wrapper(x)
+    # include relevant globals
     global rotor_diameter
-    global scale
+
+    # get number of turbines
     nturbines = Int(length(x)/2)
-    turbine_x = x[1:nturbines].*scale
-    turbine_y = x[nturbines+1:end].*scale
+
+    # extract x and y locations of turbines from design variables vector
+    turbine_x = x[1:nturbines]
+    turbine_y = x[nturbines+1:end]
+
+    # get and return spacing distances
     return 2.0*rotor_diameter[1] .- ff.turbine_spacing(turbine_x,turbine_y)
 end
 
+# set up objective wrapper function
 function aep_wrapper(x)
+    # include relevant globals
     global turbine_z
     global rotor_diameter
     global hub_height
@@ -43,78 +55,88 @@ function aep_wrapper(x)
     global model_set
     global rotor_points_y
     global rotor_points_z
+    global obj_scale
 
+    # get number of turbines
     nturbines = Int(length(x)/2)
-    turbine_x = x[1:nturbines] .* scale
-    turbine_y = x[nturbines+1:end] .* scale
-    turbine_inflow_velcities = zeros(typeof(turbine_x[1]),nturbines)
 
-    AEP = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
+    # extract x and y locations of turbines from design variables vector
+    turbine_x = x[1:nturbines] 
+    turbine_y = x[nturbines+1:end]
+
+    # calculate AEP
+    AEP = obj_scale*ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
                 cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set,
-                rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)/1e11
+                rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)
+    
+    # return the objective as an array
     return [AEP]
 end
 
+# set up optimization problem wrapper function
 function wind_farm_opt(x)
 
+    # calculate spacing constraint value and jacobian
     spacing_con = spacing_wrapper(x)
     ds_dx = ForwardDiff.jacobian(spacing_wrapper, x)
 
+    # calculate boundary constraint and jacobian
     boundary_con = boundary_wrapper(x)
     db_dx = ForwardDiff.jacobian(boundary_wrapper, x)
 
+    # combine constaint values and jacobians into overall constaint value and jacobian arrays
     c = [spacing_con; boundary_con]
     dcdx = [ds_dx; db_dx]
 
+    # calculate the objective function and jacobian (negative sign in order to maximize AEP)
     AEP = -aep_wrapper(x)[1]
     dAEP_dx = -ForwardDiff.jacobian(aep_wrapper,x)
-    # println("AEP ", AEP)
-    # println(dAEP_dx)
-    # println(c)
-    # println(dcdx)
 
+    # set fail flag to false
     fail = false
+
+    # return objective, constraint, and jacobian values
     return AEP, c, dAEP_dx, dcdx, fail
 end
 
+# import model set with wind farm and related details
+include("./model_sets/model_set_6.jl")
+
+# scale objective to be between 0 and 1
+obj_scale = 1E-11
+
+# set wind farm boundary parameters
+boundary_center = [0.0,0.0]
+boundary_radius = 300.0
+
+# set globals for use in wrapper functions
 global model_set
 global rotor_points_y
 global rotor_points_z
 global turbine_z
-global turbine_definition_ids
-global turbine_definitions
 global ambient_ti
 global rotor_diameter
 global boundary_center
 global boundary_radius
-global scale
+global obj_scale
 
-scale = 1.
+# initialize design variable array
+x = [copy(turbine_x);copy(turbine_y)]
 
-boundary_center = [0.0,0.0]
-boundary_radius = 300.0
+# report initial objective value
+println("starting objective value: ", aep_wrapper(x)[1])
 
-include("./model_sets/model_set_6.jl")
-x = [copy(turbine_x);copy(turbine_y)]./scale
-
-println("start: ", aep_wrapper(x)[1])
-
-turbine_x = copy(x[1:nturbines]).*scale
-turbine_y = copy(x[nturbines+1:end]).*scale
-area = zeros(length(turbine_x)) .+ pi*(rotor_diameter[1]/2.0)^2
-h1 = 0
+# add initial turbine location to plot
 for i = 1:length(turbine_x)
-    if i==1
-        # println("HEREHE")
-        h1 = plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0",label="Start"))
-    else
-        plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
-    end
+    plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
 end
 
+# set general lower and upper bounds for design variables
 lb = zeros(length(x)) .- boundary_radius
 ub = zeros(length(x)) .+ boundary_radius
+
+# set up options for SNOPT
 options = Dict{String, Any}()
 options["Derivative option"] = 1
 options["Verify level"] = 3
@@ -123,31 +145,30 @@ options["Major iteration limit"] = 1e6
 options["Summary file"] = "summary.out"
 options["Print file"] = "print.out"
 
+# run and time optimization
 t1 = time()
 xopt, fopt, info = snopt(wind_farm_opt, x, lb, ub, options)
 t2 = time()
 clkt = t2-t2
+
+# print optimization results
 println("Finished in : ", clkt, " (s)")
-# println("xopt: ", xopt)
-# println("fopt: ", fopt)
 println("info: ", info)
+println("end objective value: ", aep_wrapper(xopt))
 
-println("finish: ", aep_wrapper(xopt))
+# extract final turbine locations
+turbine_x = copy(xopt[1:nturbines])
+turbine_y = copy(xopt[nturbines+1:end])
 
-turbine_x = copy(xopt[1:nturbines]).*scale
-turbine_y = copy(xopt[nturbines+1:end]).*scale
-
-h2 = 0
+# add final turbine locations to plot
 for i = 1:length(turbine_x)
-    if i==1
-        h2 = plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C1",label="End", linestyle="--"))
-    else
-        plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C1", linestyle="--"))
-    end
-    
+    plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C1", linestyle="--")) 
 end
+
+# add wind farm boundary to plot
 plt.gcf().gca().add_artist(plt.Circle((boundary_center[1],boundary_center[2]), boundary_radius, fill=false,color="C2"))
 
+# set up and show plot
 axis("square")
 xlim(-boundary_radius-200,boundary_radius+200)
 ylim(-boundary_radius-200,boundary_radius+200)
