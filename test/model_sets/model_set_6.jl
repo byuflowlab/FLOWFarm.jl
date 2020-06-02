@@ -1,16 +1,5 @@
 import FlowFarm; const ff = FlowFarm
 
-# set flow parameters
-wind_speed = 8.0
-air_density = 1.1716  # kg/m^3
-ambient_ti = 0.077
-shearexponent = 0.15
-winddirections = [275.0*pi/180.0, 0.0, pi]
-windspeeds = [wind_speed, wind_speed, wind_speed]
-windprobabilities = [1.0/3.0,1.0/3.0,1.0/3.0]
-ambient_tis = [ambient_ti, ambient_ti, ambient_ti]
-measurementheight = [hub_height[1], hub_height[1], hub_height[1]]
-
 # set initial turbine x and y locations
 turbine_x = [-3.0, 0.0, 3.0, 0.0, 0.0, -1.5, 0.0, 1.5, 0.0].*80.0
 turbine_y = [0.0, 3.0, 0.0, -3.0, 0.0, 0.0, 1.5, 0.0, -1.5]*80.0
@@ -36,6 +25,17 @@ generator_efficiency = zeros(nturbines) .+0.944
 # rotor swept area sample points (normalized by rotor radius)
 rotor_points_y = [0.0]
 rotor_points_z = [0.0]
+
+# set flow parameters
+wind_speed = 8.0
+air_density = 1.1716  # kg/m^3
+ambient_ti = 0.077
+shearexponent = 0.15
+winddirections = [275.0*pi/180.0, 0.0, pi]
+windspeeds = [wind_speed, wind_speed, wind_speed]
+windprobabilities = [1.0/3.0,1.0/3.0,1.0/3.0]
+ambient_tis = [ambient_ti, ambient_ti, ambient_ti]
+measurementheight = [hub_height[1], hub_height[1], hub_height[1]]
 
 # load power curve
 powerdata = readdlm("inputfiles/niayifar_vestas_v80_power_curve_observed.txt",  ',', skipstart=1)
