@@ -32,7 +32,6 @@ power_model = ff.PowerModelPowerPoints(vel_points, power_points)
 rotor_points_y = [0.0]
 rotor_points_z = [0.0]
 
-
 winddirections = deg2rad.(range(0,stop=350,length=36))
 windspeeds = zeros(36).+(9.23)
 windprobabilities = [1.3,1.1,1.3,1.1,1.0,1.3,1.7,2.2,2.1,3.3,3.5,4.1,4.5,5.0,
@@ -47,9 +46,6 @@ ambient_tis = ones(length(winddirections)).*ambient_ti
 shearexponent = 0.15
 wind_shear_model = ff.PowerLawWindShear(shearexponent)
 windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, wind_shear_model)
-
-
-
 
 alpha = 0.04
 wakedeficitmodel = ff.JensenTopHat(alpha)

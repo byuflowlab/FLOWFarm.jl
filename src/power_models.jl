@@ -272,7 +272,7 @@ Calculate wind farm AEP
 
 
 function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
-            hub_height, turbine_yaw, turbine_ai, ct_model, generator_efficiency, cut_in_speed,
+            hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
             cut_out_speed, rated_speed, rated_power, wind_resource, power_model::AbstractPowerModel, model_set::AbstractModelSet;
             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0])
 
@@ -283,7 +283,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
 
     # state_energy = Vector{typeof(wind_farm.turbine_x[1])}(undef,nstates)
     arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),typeof(hub_height[1]),typeof(turbine_yaw[1]),
-                typeof(turbine_ai[1]),typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),typeof(rated_power[1]))
+                typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),typeof(rated_power[1]))
     state_energy = zeros(arr_type,nstates)
     for i = 1:nstates
 
@@ -291,8 +291,8 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
 
         sorted_turbine_index = sortperm(rot_x)
 
-        turbine_velocities, turbine_ct, turbine_local_ti = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
-                            turbine_ai, sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+        turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+                            sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                             model_set, wind_farm_state_id=i)
 
         wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
