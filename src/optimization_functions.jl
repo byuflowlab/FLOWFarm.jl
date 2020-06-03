@@ -78,12 +78,7 @@ turbine is inside the boundary
 - `turbine_x::Array{Float}`: turbine x locations
 - `turbine_y::Array{Float}`: turbine y locations
 """
-function convex_boundary(
-    boundary_vertices,
-    boundary_normals,
-    turbine_x,
-    turbine_y,
-)
+function convex_boundary(boundary_vertices, boundary_normals, turbine_x, turbine_y)
     nturbines = length(turbine_x)
         nVertices = size(boundary_vertices)[1]
         # initialize array to hold distances from each point to each face
@@ -107,12 +102,15 @@ end
 
 
 """
-    concave_boundary(boundary_vertices,turbine_x,turbine_y)
+    splined_boundary(boundary_vertices,turbine_x,turbine_y)
 
-calculate the distance from each turbine to a boundary with one or more reflex
-angles. Boundary will have three or four selected "corners", such that the
-"sides" between corners (that will be splined) are injective functions.
-Negative means the turbine is inside the boundary
+calculate the distance from each turbine to a closed boundary made up of zero or
+more reflex angles (concavities). Boundary will have three or four user-selected
+"corners", such that the "sides" between corners (that will be splined) are
+injective functions (meaning that for every x-coord,there exists only one
+corresponding y-coord). Returns four values for every turbine, corresponding to
+upper, lower, left, and right splined "sides". A negative return value means the
+turbine is outside the boundary for that corresponding "side".
 
 # Arguments
 - `boundary_vertices::Array{Float,2}`: vertices of the concave hull CCW in 
@@ -122,15 +120,11 @@ Negative means the turbine is inside the boundary
 - `turbine_x::Array{Float}`: turbine x locations
 - `turbine_y::Array{Float}`: turbine y locations
 """
-function concave_boundary(
-    boundary_vertices,
-    boundary_corners,
-    turbine_x,
-    turbine_y,
-)
+function splined_boundary(boundary_vertices, boundary_corners, turbine_x, turbine_y)
     nturbines = length(turbine_x)
     nVertices = size(boundary_vertices)[1]
 
+    # Read in boundary
     # Spline sides
     # Use UpDwnYVals()
 
