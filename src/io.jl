@@ -14,8 +14,8 @@ function get_turb_loc_YAML(file_name)
     nturbs = length(turb_coords)
     turbine_x = zeros(nturbs)
     turbine_y = zeros(nturbs)
+    
     for i in 1:nturbs
-        println(turb_coords[i][1])
         turbine_x[i] = turb_coords[i][1]
         turbine_y[i] = turb_coords[i][2]
     end
@@ -41,6 +41,7 @@ function get_turb_atrbt_YAML(file_name)
     ops = defs["operating_mode"]
     turb = defs["wind_turbine"]
     rotor = defs["rotor"]
+    hub = defs["hub"]
 
     # Rip the turbine attributes
     # (Convert from <list> to <float>)
@@ -49,8 +50,9 @@ function get_turb_atrbt_YAML(file_name)
     rated_ws = float(ops["rated_wind_speed"]["default"])
     rated_pwr = float(turb["rated_power"]["maximum"])
     turb_diam = float(rotor["diameter"]["default"])
+    turb_height = float(hub["height"]["default"])
 
-    return turb_ci, turb_co, rated_ws, rated_pwr, turb_diam
+    return turb_ci, turb_co, rated_ws, rated_pwr, turb_diam, turb_height
 end
 
 ### Complete and functional ###
@@ -73,6 +75,9 @@ function get_wind_rose_YAML(file_name)
     min_speed = props["speed"]["minimum"]
     max_speed = props["speed"]["maximum"]
 
+    # get ambient ti
+    ti = props["turbulence_intensity"]["default"]
+
     # convert to flow farm standard format
     freq = zeros(length(wind_dir_freq)*length(wind_speed_probs))
     speed = zeros(length(wind_dir_freq)*length(wind_speed_probs))
@@ -80,11 +85,11 @@ function get_wind_rose_YAML(file_name)
 
     for i in 1:length(wind_dir_freq)
         for j in 1:length(wind_speed_probs)
-            freq[(i-1)*j+j] = wind_dir_freq[i]*wind_speed_probs[i][j]
-            speed[(i-1)*j+j] = wind_speeds[j]
-            dir[(i-1)*j+j] = wind_dir[i]
+            freq[(i-1)*num_speed_bins+j] = wind_dir_freq[i]*wind_speed_probs[i][j]
+            speed[(i-1)*num_speed_bins+j] = wind_speeds[j]
+            dir[(i-1)*num_speed_bins+j] = wind_dir[i]
         end
     end
 
-    return dir, speed, freq
+    return dir, speed, freq, ti
 end

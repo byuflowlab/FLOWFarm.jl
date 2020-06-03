@@ -106,6 +106,22 @@ GaussYawVariableSpread() = GaussYawVariableSpread(2.32, 0.154, 0.3837, 0.003678,
 GaussYawVariableSpread(x, y) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, [1.0])
 GaussYawVariableSpread(x, y, z) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, z)
 
+
+"""
+    GaussSimple(k, wec_factor)
+
+Container for parameters related to the Gaussian deficit model with yaw presented by Bastankhah and Porte-Agel 2016
+
+# Arguments
+- `k::Float`: parameter controlling the spread of the wake
+- `wec_factor::Array{Float}`: parameter artificial wake spreading for wake expansion continuation (WEC) optimization
+"""
+struct GaussSimple{TF, ATF} <: AbstractWakeDeficitModel
+    k::TF
+    wec_factor::ATF
+end
+GaussSimple(k) = GaussSimple(k, [1.0])
+
 """
     wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::JensenTopHat, windfarmstate::SingleWindFarmState)
 
@@ -423,8 +439,35 @@ function wake_deficit_model(loc, turbine_x, turbine_y, turbine_z, deflection, tu
     loss = _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, wec_factor)
 
     return loss
+end
 
-    # println("loss: ", loss)
+
+"""
+    wake_deficit_model(loc, deflection, turbine_id, turbine_definition::TurbineDefinition, model::GaussSimple, windfarmstate::SingleWindFarmState)
+
+Computes the wake deficit at a given location using the Gaussian wake model presented by Bastankhah and Porte-Agel in the paper: "A new analytical model for wind-turbine wakes" (2014)
+    as modified for IEA Task 37 Case Studies 3 and 4
+
+"""
+function wake_deficit_model(loc, turbine_x, turbine_y, turbine_z, deflection, turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::GaussSimple)
+
+    deflection_y = deflection[1]
+
+    dx = loc[1]-turbine_x[turbine_id]
+    dy = loc[2]-(turbine_y[turbine_id]+deflection_y)
+
+    # extract turbine properties
+    dt = rotor_diameter[turbine_id]
+    ct = turbine_ct[turbine_id]
+
+    # extract model properties
+    k = model.k
+    wf = model.wec_factor[1]
+
+    # calculate loss 
+    sigmay = k*dx+dt/sqrt(8.0)
+    loss = (1.0 - sqrt(1.0-ct/(8.0*sigmay^2/dt^2)))*exp(-0.5*(dy/(wf*sigmay))^2)
+
     return loss
 
 end

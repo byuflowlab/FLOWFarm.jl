@@ -1,8 +1,10 @@
 import FlowFarm; const ff = FlowFarm
 
+# based on IEA case study 3
+
 # set initial turbine x and y locations
-turbine_x = [-3.0, 0.0, 3.0, 0.0, 0.0, -1.5, 0.0, 1.5, 0.0].*80.0
-turbine_y = [0.0, 3.0, 0.0, -3.0, 0.0, 0.0, 1.5, 0.0, -1.5]*80.0
+layout_file_name = "./inputfiles/iea37-ex-opt3.yaml"
+turbine_x, turbine_y, fname_turb, fname_wr = ff.get_turb_loc_YAML(layout_file_name)
 
 # calculate the number of turbines
 nturbines = length(turbine_x)
@@ -14,44 +16,39 @@ turbine_z = zeros(nturbines)
 turbine_yaw = zeros(nturbines)
 
 # set turbine design parameters
-rotor_diameter = zeros(nturbines) .+ 80.0 # m
-hub_height = zeros(nturbines) .+ 70.0   # m
-cut_in_speed = zeros(nturbines) .+4.  # m/s
-cut_out_speed = zeros(nturbines) .+25.  # m/s
-rated_speed = zeros(nturbines) .+16.  # m/s
-rated_power = zeros(nturbines) .+2.0E6  # W
-generator_efficiency = zeros(nturbines) .+0.944
+turbine_file_name = string("./inputfiles/",fname_turb)
+turb_ci, turb_co, rated_ws, rated_pwr, turb_diam, turb_hub_height = ff.get_turb_atrbt_YAML(turbine_file_name)
+
+rotor_diameter = zeros(nturbines) .+ turb_diam # m
+hub_height = zeros(nturbines) .+ turb_hub_height   # m
+cut_in_speed = zeros(nturbines) .+ turb_ci  # m/s
+cut_out_speed = zeros(nturbines) .+ turb_co  # m/s
+rated_speed = zeros(nturbines) .+ rated_ws # m/s
+rated_power = zeros(nturbines) .+ rated_pwr # W
+generator_efficiency = zeros(nturbines) .+ 1.0
 
 # rotor swept area sample points (normalized by rotor radius)
 rotor_points_y = [0.0]
 rotor_points_z = [0.0]
 
 # set flow parameters
-wind_speed = 8.0
-air_density = 1.1716  # kg/m^3
-ambient_ti = 0.077
-shearexponent = 0.15
-winddirections = [275.0*pi/180.0, 0.0, pi]
-windspeeds = [wind_speed, wind_speed, wind_speed]
-windprobabilities = [1.0/3.0,1.0/3.0,1.0/3.0]
-ambient_tis = [ambient_ti, ambient_ti, ambient_ti]
-measurementheight = [hub_height[1], hub_height[1], hub_height[1]]
+windrose_file_name = string("./inputfiles/",fname_wr)
+winddirections, windspeeds, windprobabilities, ambient_ti = ff.get_wind_rose_YAML(windrose_file_name)
+nstates = length(winddirections)
 
-# load power curve
-powerdata = readdlm("inputfiles/niayifar_vestas_v80_power_curve_observed.txt",  ',', skipstart=1)
-velpoints = powerdata[:,1]
-powerpoints = powerdata[:,2]*1E6
+air_density = 1.1716  # kg/m^3
+shearexponent = 0.15
+ambient_tis = zeros(nstates) .+ ambient_ti
+measurementheight = zeros(nstates) .+ turb_hub_height
 
 # initialize power model
-power_model = ff.PowerModelPowerPoints(velpoints, powerpoints)
+power_model = ff.PowerModelPowerCurveCubic()
 
 # load thrust curve
-ctdata = readdlm("inputfiles/predicted_ct_vestas_v80_niayifar2016.txt",  ',', skipstart=1)
-velpoints = ctdata[:,1]
-ctpoints = ctdata[:,2]
+ct = 4.0*(1.0/3.0)*(1.0 - 1.0/3.0)
 
 # initialize thurst model
-ct_model1 = ff.ThrustModelCtPoints(velpoints, ctpoints)
+ct_model1 = ff.ThrustModelConstantCt(ct)
 ct_model = Vector{typeof(ct_model1)}(undef, nturbines)
 for i = 1:nturbines
     ct_model[i] = ct_model1
@@ -67,10 +64,12 @@ sorted_turbine_index = sortperm(turbine_x)
 windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, wind_shear_model)
 
 # set up wake and related models
-wakedeficitmodel = ff.GaussYaw()
-wakedeflectionmodel = ff.GaussYawDeflection()
-wakecombinationmodel = ff.LinearLocalVelocitySuperposition()
-localtimodel = ff.LocalTIModelMaxTI()
+k = 0.0324555
+wakedeficitmodel = ff.GaussSimple(k)
+
+wakedeflectionmodel = ff.JiminezYawDeflection()
+wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
+localtimodel = ff.LocalTIModelNoLocalTI()
 
 # initialize model set
 model_set = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
