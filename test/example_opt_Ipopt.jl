@@ -6,7 +6,8 @@ import ForwardDiff
 
 #---FUNCTIONS FOR CONSTRAINTS---
 
-# set up boundary constraint wrapper function at specific index (needed for Ipopt)
+# set up boundary constraint wrapper function at specific index
+# it takes in x as separate elements instead of as a vector (needed for Ipopt)
 function boundary_wrapper_atindex(ind, x...)
 
     # combine the inputs into a single vector
@@ -36,7 +37,8 @@ function boundary_wrapper_atindex(ind, x...)
 
 end
 
-# set up boundary constraint gradient wrapper function at specific index (needed for Ipopt)
+# set up boundary constraint gradient wrapper function at specific index 
+# it takes in x as separate elements instead of as a vector (needed for Ipopt)
 function boundary_gradient_wrapper_atindex(g, ind, x...)
 
     # combine the inputs into a single vector
@@ -62,7 +64,7 @@ function boundary_gradient_wrapper_atindex(g, ind, x...)
     end
 
     # fill in the provided gradient vector
-    g[1] = 0
+    g[1] = 0.0 # the first spot is for the index argument, which isn't an actual design variable, so we set the partial with respect to it as zero
     for i = 2:length(g)
         g[i] = boundary_constraint_gradients[Int(ind), i-1]
     end
@@ -72,7 +74,8 @@ function boundary_gradient_wrapper_atindex(g, ind, x...)
 
 end
 
-# set up spacing constraint wrapper function at specific index (needed for Ipopt)
+# set up spacing constraint wrapper function at specific index
+# it takes in x as separate elements instead of as a vector (needed for Ipopt)
 function spacing_wrapper_atindex(ind, x...)
 
     # combine the inputs into a single vector
@@ -102,7 +105,8 @@ function spacing_wrapper_atindex(ind, x...)
 
 end
 
-# set up spacing constraint gradient wrapper function at specific index (needed for Ipopt)
+# set up spacing constraint gradient wrapper function at specific index 
+# it takes in x as separate elements instead of as a vector (needed for Ipopt)
 function spacing_gradient_wrapper_atindex(g, ind, x...)
 
     # combine the inputs into a single vector
@@ -128,7 +132,7 @@ function spacing_gradient_wrapper_atindex(g, ind, x...)
     end
 
     # fill in the provided gradient vector
-    g[1] = 0
+    g[1] = 0.0 # the first spot is for the index argument, which isn't an actual design variable, so we set the partial with respect to it as zero
     for i = 2:length(g)
         g[i] = spacing_constraint_gradients[Int(ind), i-1]
     end
@@ -138,7 +142,24 @@ function spacing_gradient_wrapper_atindex(g, ind, x...)
 
 end
 
+# set up constraint function wrapper
+# when this function is called, all constaints values and gradients are calculated
+function con(x)
+
+    # get boundary constraint values and gradients
+    boundary_con = boundary_wrapper(x)
+    db_dx = ForwardDiff.jacobian(boundary_wrapper, x)
+    
+    # get spacing constraint values and gradients
+    spacing_con = spacing_wrapper(x)
+    ds_dx = ForwardDiff.jacobian(spacing_wrapper, x)
+
+    return boundary_con, db_dx, spacing_con, ds_dx
+    
+end
+
 # set up boundary constraint wrapper function
+# this function actually calculates the constraint value
 function boundary_wrapper(x)
 
     # include relevant globals
@@ -158,6 +179,7 @@ function boundary_wrapper(x)
 end
 
 # set up spacing constraint wrapper function
+# this function actually calculates the constraint value
 function spacing_wrapper(x)
     
     # include relevant globals
@@ -175,25 +197,10 @@ function spacing_wrapper(x)
 
 end
 
-# set up constraint function wrapper
-function con(x)
-
-    # get boundary constraint values and gradients
-    boundary_con = boundary_wrapper(x)
-    db_dx = ForwardDiff.jacobian(boundary_wrapper, x)
-    
-    # get spacing constraint values and gradients
-    spacing_con = spacing_wrapper(x)
-    ds_dx = ForwardDiff.jacobian(spacing_wrapper, x)
-
-    return boundary_con, db_dx, spacing_con, ds_dx
-    
-end
-
-
 #---FUNCTIONS FOR OBJECTIVE---
 
 # set up objective wrapper function
+# it takes in x as separate elements instead of as a vector (needed for Ipopt)
 function aep_wrapper_atindex(x...)
 
     # combine inputs into a single vector
@@ -206,7 +213,21 @@ function aep_wrapper_atindex(x...)
     return AEP
 end
 
+# set up objective gradient wrapper function
+# it takes in x as separate elements instead of as a vector (needed for Ipopt)
+function aep_gradient_wrapper(g, x...)
+
+    x = collect(x)
+    gradient = ForwardDiff.jacobian(aep_wrapper, x)
+    for i = 1:size(g)[1]
+        g[i] = gradient[i]
+    end
+
+    return g
+end
+
 # set up objective wrapper function
+# this functino actually calculates the objective value
 function aep_wrapper(x)
 
     # include relevant globals
@@ -244,17 +265,6 @@ function aep_wrapper(x)
     return [AEP]
 end
 
-# set up objective gradient wrapper function
-function aep_gradient_wrapper(g, x...)
-
-    x = collect(x)
-    gradient = ForwardDiff.jacobian(aep_wrapper, x)
-    for i = 1:size(g)[1]
-        g[i] = gradient[i]
-    end
-
-    return g
-end
 
 # import model set with wind farm and related details
 include("./model_sets/model_set_6.jl")
@@ -263,20 +273,23 @@ include("./model_sets/model_set_6.jl")
 obj_scale = 1E-11
 
 # set wind farm boundary parameters
-
-# Utah-shape boundary
-boundary_vertices = ([0 0; 1 0; 1 .75; .75 .75; .75 1; 0 1] .- .5).*500   
+boundary_vertices = ([0 0; 1 0; 1 .75; .75 .75; .75 1; 0 1] .- .5).*500 # Utah-shape boundary
 boundary_normals = [0 1.0; -1 0; 0 -1; -1 0; 0 -1; 1 0]
 
 # get the number of vertices of the boundary
 n_vertices = length(boundary_vertices)
 
-# initialize variables for wrapper functions
+# initialize variables for constraint wrapper functions
 xlast = 0
 boundary_constraint_values = 0
 boundary_constraint_gradients = 0
 spacing_constraint_values = 0
 spacing_constraint_gradients = 0
+global xlast
+global boundary_constraint_values
+global boundary_constraint_gradients
+global spacing_constraint_values
+global spacing_constraint_gradients
 
 # set globals for use in wrapper functions
 global model_set
@@ -288,12 +301,6 @@ global rotor_diameter
 global boundary_vertices
 global boundary_normals
 global obj_scale
-
-global xlast
-global boundary_constraint_values
-global boundary_constraint_gradients
-global spacing_constraint_values
-global spacing_constraint_gradients
 
 # initialize design variable array
 x_initial = [copy(turbine_x);copy(turbine_y)]
@@ -347,7 +354,7 @@ info = (termination_status(model), primal_status(model), dual_status(model))
 println()
 println("Finished in : ", clkt, " (s)")
 println("info: ", info)
-println("starting objective value: ", aep_wrapper(x_initial)[1])
+println("start objective value: ", aep_wrapper(x_initial)[1])
 println("end objective value: ", aep_wrapper(xopt)[1])
 
 # extract final turbine locations

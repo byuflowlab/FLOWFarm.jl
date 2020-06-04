@@ -88,7 +88,7 @@ end
 """
     smooth_max_ndim(x; s=100.0)
 
-Calculate the smoothmax (a.k.a. softmax or LogSumExponential) of x and y.
+Calculate the smoothmax (a.k.a. softmax or LogSumExponential) of the elements in x.
 
 Based on John D. Cook's writings at 
 (1) https://www.johndcook.com/blog/2010/01/13/soft-maximum/
@@ -99,8 +99,8 @@ And based on article in FeedlyBlog
 (3) https://blog.feedly.com/tricks-of-the-trade-logsumexp/
 
 # Arguments
-- `x::Array{Float64,1}`` - vector with all the input values
-- `s::Float64` - controls the level of smoothing used in the smooth max
+- `x::Array{Float64,1}` : vector with all the input values
+- `s::Float64` : controls the level of smoothing used in the smooth max
 """
 function smooth_max_ndim(x; s=100.0)
 
