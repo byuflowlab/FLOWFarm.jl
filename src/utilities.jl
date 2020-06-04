@@ -128,3 +128,41 @@ function smooth_max(x, y; s=10.0)
     return r
 
 end
+
+
+"""
+    smooth_max_ndim(x; s=100.0)
+
+Calculate the smoothmax (a.k.a. softmax or LogSumExponential) of the elements in x.
+
+Based on John D. Cook's writings at 
+(1) https://www.johndcook.com/blog/2010/01/13/soft-maximum/
+and
+(2) https://www.johndcook.com/blog/2010/01/20/how-to-compute-the-soft-maximum/
+
+And based on article in FeedlyBlog
+(3) https://blog.feedly.com/tricks-of-the-trade-logsumexp/
+
+# Arguments
+- `x::Array{Float64,1}` : vector with all the input values
+- `s::Float64` : controls the level of smoothing used in the smooth max
+"""
+function smooth_max_ndim(x; s=100.0)
+
+    # non-overflowing version of Smooth Max function (see ref 2 and 3 above)
+    
+    # get the maximum value and the index of maximum value
+    max_val, max_ind = findmax(x)
+
+    # get the indices of x
+    indices = collect(1:length(x))
+
+    # remove the index of the maximum value
+    splice!(indices, max_ind)
+
+    # LogSumExp with smoothing factor s
+    r = (log(sum([1.0; exp.(s*(x[indices].-max_val))])) + s*max_val)/s
+
+    return r
+
+end
