@@ -35,6 +35,7 @@ rotor_points_z = [0.0]
 windrose_file_name = string("./inputfiles/",fname_wr)
 winddirections, windspeeds, windprobabilities, ambient_ti = ff.get_wind_rose_YAML(windrose_file_name)
 nstates = length(winddirections)
+winddirections *= pi/180.0
 
 air_density = 1.1716  # kg/m^3
 shearexponent = 0.15
