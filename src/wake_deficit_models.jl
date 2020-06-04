@@ -452,7 +452,7 @@ Computes the wake deficit at a given location using the Gaussian wake model pres
 function wake_deficit_model(loc, turbine_x, turbine_y, turbine_z, deflection, turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::GaussSimple)
 
     deflection_y = deflection[1]
-
+   
     dx = loc[1]-turbine_x[turbine_id]
     dy = loc[2]-(turbine_y[turbine_id]+deflection_y)
 
@@ -466,7 +466,9 @@ function wake_deficit_model(loc, turbine_x, turbine_y, turbine_z, deflection, tu
 
     # calculate loss 
     sigmay = k*dx+dt/sqrt(8.0)
-    loss = (1.0 - sqrt(1.0-ct/(8.0*sigmay^2/dt^2)))*exp(-0.5*(dy/(wf*sigmay))^2)
+    radical = 1.0-ct/(8.0*(sigmay^2)/(dt^2))
+    exponent = -0.5*(dy/(wf*sigmay))^2
+    loss = (1.0 - sqrt(radical))*exp(exponent)
 
     return loss
 
