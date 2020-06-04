@@ -110,7 +110,7 @@ obj_scale = 1E-11
 # set wind farm boundary parameters
 # boundary_center = [0.0,0.0]
 # boundary_radius = 300.0
-boundary_vertices = ([0 0; 1 0; 1 .75; .75 .75; .75 1; 0 1] .- .5).*300 # Utah-shape boundary
+boundary_vertices = ([0 0; 1 0; 1 .75; .75 .75; .75 1; 0 1] .- .5).*500 # Utah-shape boundary
 boundary_normals = [0 1.0; -1 0; 0 -1; -1 0; 0 -1; 1 0]
 
 # set globals for use in wrapper functions
@@ -137,20 +137,18 @@ for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
 end
 
-# set general lower and upper bounds for design variables
-# lb = zeros(length(x)) .- boundary_radius
-# ub = zeros(length(x)) .+ boundary_radius
+# set general lower and upper bounds for design variables\
 lb = zeros(length(x)) .+ minimum(boundary_vertices) # create a square that completely encloses the wind farm boundary
 ub = zeros(length(x)) .+ maximum(boundary_vertices)
 
 # set up options for SNOPT
 options = Dict{String, Any}()
 options["Derivative option"] = 1
-options["Verify level"] = 3
-options["Major optimality tolerance"] = 1e-5
-options["Major iteration limit"] = 1e6
-options["Summary file"] = "summary.out"
-options["Print file"] = "print.out"
+options["Verify level"] = 1
+options["Major optimality tolerance"] = 1e-12
+options["Major iteration limit"] = 1e8
+options["Summary file"] = "snopt_summary.out"
+options["Print file"] = "snopt_print.out"
 
 # run and time optimization
 t1 = time()
@@ -173,10 +171,10 @@ for i = 1:length(turbine_x)
 end
 
 # add wind farm boundary to plot
-# plt.gcf().gca().add_artist(plt.Circle((boundary_center[1],boundary_center[2]), boundary_radius, fill=false,color="C2"))
+plt.gcf().gca().plot([boundary_vertices[:,1];boundary_vertices[1,1]],[boundary_vertices[:,2];boundary_vertices[1,2]], color="C2")
 
 # set up and show plot
-# axis("square")
-# xlim(-boundary_radius-200,boundary_radius+200)
-# ylim(-boundary_radius-200,boundary_radius+200)
-# plt.show()
+axis("square")
+xlim(minimum(boundary_vertices) - (maximum(boundary_vertices)-minimum(boundary_vertices))/5, maximum(boundary_vertices) + (maximum(boundary_vertices)-minimum(boundary_vertices))/5)
+ylim(minimum(boundary_vertices) - (maximum(boundary_vertices)-minimum(boundary_vertices))/5, maximum(boundary_vertices) + (maximum(boundary_vertices)-minimum(boundary_vertices))/5)
+plt.show()
