@@ -205,8 +205,8 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
     if wt_velocity < cut_in_speed
         power = 0.0
     elseif wt_velocity < rated_speed
-        # power = rated_power*((wt_velocity - cut_in_speed)/(rated_speed - cut_in_speed))^3
-        power = rated_power*((wt_velocity)/(rated_speed))^3
+        power = rated_power*((wt_velocity - cut_in_speed)/(rated_speed - cut_in_speed))^3
+        # power = rated_power*((wt_velocity)/(rated_speed))^3
     elseif wt_velocity < cut_out_speed
         power = rated_power
     elseif wt_velocity > cut_out_speed
@@ -255,6 +255,54 @@ function turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_ou
     return wt_power
 end
 
+"""
+    calculate_state_aeps(urbine_x, turbine_y, turbine_z, rotor_diameter,
+    hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+    cut_out_speed, rated_speed, rated_power, wind_resource, power_model::AbstractPowerModel, model_set::AbstractModelSet;
+    rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0])
+
+Calculate AEP for each requested state
+
+
+# Arguments
+
+"""
+
+
+function calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
+            hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+            cut_out_speed, rated_speed, rated_power, wind_resource, power_model::AbstractPowerModel, model_set::AbstractModelSet;
+            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0)
+
+    wind_probabilities = wind_resource.wind_probabilities
+
+    nstates = length(wind_probabilities)
+
+    arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),typeof(hub_height[1]),typeof(turbine_yaw[1]),
+                typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),typeof(rated_power[1]))
+    state_energy = zeros(arr_type,nstates)
+ 
+    for i = 1:nstates
+
+        rot_x, rot_y = rotate_to_wind_direction(turbine_x, turbine_y, wind_resource.wind_directions[i])
+
+        sorted_turbine_index = sortperm(rot_x)
+
+        turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+                            sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+                            model_set, wind_farm_state_id=i)
+
+        wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
+                            rated_power, rotor_diameter, turbine_velocities, wind_resource.air_density, power_model)
+
+        state_power = sum(wt_power)
+        state_energy[i] = state_power*hours_per_year*wind_probabilities[i]
+    end
+
+    return state_energy
+end
+
+
 
 """
     calculate_aep(model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem;
@@ -274,12 +322,11 @@ Calculate wind farm AEP
 function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
             cut_out_speed, rated_speed, rated_power, wind_resource, power_model::AbstractPowerModel, model_set::AbstractModelSet;
-            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0])
+            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0)
 
     wind_probabilities = wind_resource.wind_probabilities
 
     nstates = length(wind_probabilities)
-    hours_per_year = 365.25*24.0
 
     # state_energy = Vector{typeof(wind_farm.turbine_x[1])}(undef,nstates)
     arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),typeof(hub_height[1]),typeof(turbine_yaw[1]),

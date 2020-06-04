@@ -29,8 +29,7 @@ struct DiscretizedWindResource{AF, TF, ASM} <: AbstractWindResourceModel
 end
 
 
-function _dist_weibull(x,L)
-    k = 2.0
+function _dist_weibull(x,L;k=2.0)
     if L < 0.0001
         L = 0.0001
     end
