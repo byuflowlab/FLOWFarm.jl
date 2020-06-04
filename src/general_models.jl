@@ -24,10 +24,10 @@ function rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
     # use radians
 
     # convert from meteorological polar system (CW, 0 rad.=N) to standard polar system (CCW, 0 rad.=E)
-    wind_direction_cart = (3*pi/2 - wind_direction_met)
+    wind_direction_cart = (3.0*pi/2.0 - wind_direction_met)
 
     if wind_direction_cart < 0.0
-        wind_direction_cart += 2*pi
+        wind_direction_cart += 2.0*pi
     end
 
     cos_wdr = cos(-wind_direction_cart)
