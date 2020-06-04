@@ -148,7 +148,7 @@ state_aeps = ff.calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diam
 dir_aep = zeros(20)
 for i in 1:20
     for j in 1:20
-        dir_aep[i] += state_aeps[(i-1)*j + j]
+        dir_aep[i] += state_aeps[(i-1)*20 + j]
     end
 end
 
@@ -158,8 +158,7 @@ println("rotor diameter: ", rotor_diameter[1])
 println("starting AEP value (MWh): ", aep_wrapper(x, params)[1]*1E5)
 # println("frequencies ", windprobabilities)
 println("Directional AEP at start: ", dir_aep.*1E-6)
-
-quit()
+exit()
 # add initial turbine location to plot
 for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
