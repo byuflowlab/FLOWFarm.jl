@@ -61,15 +61,10 @@ function boundary_gradient_wrapper_atindex(g, ind, x...)
 
     end
 
-    println(length(g))
-    println(size(g)[1])
-    if length(g) !== 18
-        error("hello")
-    end
-
     # fill in the provided gradient vector
-    for i = 1:length(g)
-        g[i] = boundary_constraint_gradients[Int(ind), i]
+    g[1] = 0
+    for i = 2:length(g)
+        g[i] = boundary_constraint_gradients[Int(ind), i-1]
     end
 
     # return the gradient vector
@@ -132,15 +127,10 @@ function spacing_gradient_wrapper_atindex(g, ind, x...)
 
     end
 
-    println(length(g))
-    println(size(g)[1])
-    if length(g) !== 36
-        error("hello")
-    end
-
     # fill in the provided gradient vector
-    for i = 1:length(g)
-        g[i] = spacing_constraint_gradients[Int(ind), i]
+    g[1] = 0
+    for i = 2:length(g)
+        g[i] = spacing_constraint_gradients[Int(ind), i-1]
     end
 
     # return the gradient vector
@@ -266,34 +256,6 @@ function aep_gradient_wrapper(g, x...)
     return g
 end
 
-
-# set up optimization problem wrapper function
-function wind_farm_opt(x)
-
-    # calculate spacing constraint value and jacobian
-    spacing_con = spacing_wrapper(x)
-    ds_dx = ForwardDiff.jacobian(spacing_wrapper, x)
-
-    # calculate boundary constraint and jacobian
-    boundary_con = boundary_wrapper(x)
-    db_dx = ForwardDiff.jacobian(boundary_wrapper, x)
-
-    # combine constraint values and jacobians into overall constraint value and jacobian arrays
-    c = [spacing_con; boundary_con]
-    dcdx = [ds_dx; db_dx]
-
-    # calculate the objective function and jacobian (negative sign in order to maximize AEP)
-    AEP = -aep_wrapper(x)[1]
-    dAEP_dx = -ForwardDiff.jacobian(aep_wrapper,x)
-
-    # set fail flag to false
-    fail = false
-
-    # return objective, constraint, and jacobian values
-    return AEP, c, dAEP_dx, dcdx, fail
-end
-
-cd("C:\\Users\\wesle\\OneDrive\\Documents\\BYU\\FLOW Lab\\Spring 2020\\flowfarm\\FlowFarm.jl\\test")
 # import model set with wind farm and related details
 include("./model_sets/model_set_6.jl")
 
@@ -301,14 +263,18 @@ include("./model_sets/model_set_6.jl")
 obj_scale = 1E-11
 
 # set wind farm boundary parameters
-boundary_vertices = ([0 0; 1 0; 1 .75; .75 .75; .75 1; 0 1] .- .5).*300
+
+# Utah-shape boundary
+boundary_vertices = ([0 0; 1 0; 1 .75; .75 .75; .75 1; 0 1] .- .5).*500   
 boundary_normals = [0 1.0; -1 0; 0 -1; -1 0; 0 -1; 1 0]
+
+# get the number of vertices of the boundary
 n_vertices = length(boundary_vertices)
 
 # initialize variables for wrapper functions
 xlast = 0
 boundary_constraint_values = 0
-boundary_constraint_gradients = 9
+boundary_constraint_gradients = 0
 spacing_constraint_values = 0
 spacing_constraint_gradients = 0
 
@@ -319,12 +285,11 @@ global rotor_points_z
 global turbine_z
 global ambient_ti
 global rotor_diameter
-global boundary_center
-global boundary_radius
+global boundary_vertices
+global boundary_normals
 global obj_scale
 
-global xlast_obj
-global xlast_con
+global xlast
 global boundary_constraint_values
 global boundary_constraint_gradients
 global spacing_constraint_values
@@ -334,6 +299,11 @@ global spacing_constraint_gradients
 x_initial = [copy(turbine_x);copy(turbine_y)]
 n_designvariables = length(x_initial)
 
+# add initial turbine location to plot
+for i = 1:length(turbine_x)
+    plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
+end
+
 # get number of spacing constraints
 function numberofspacingconstraints(x)
     n = 0
@@ -342,6 +312,10 @@ function numberofspacingconstraints(x)
 end
 n_spacingconstraints = numberofspacingconstraints(length(turbine_x)-1)
 
+# set general lower and upper bounds for design variables
+# lb = minimum(boundary_vertices)
+# ub = maximum(boundary_vertices)
+
 # initialize the model for optimization
 model = Model(Ipopt.Optimizer)
 
@@ -349,72 +323,47 @@ model = Model(Ipopt.Optimizer)
 @variable(model, x[i = 1:n_designvariables], start = x_initial[i])
 
 # register the required functions
-register(model, :boundary, n_designvariables, boundary_wrapper_atindex, boundary_gradient_wrapper_atindex)
-register(model, :spacing, n_designvariables, spacing_wrapper_atindex, spacing_gradient_wrapper_atindex)
+register(model, :boundary, n_designvariables + 1, boundary_wrapper_atindex, boundary_gradient_wrapper_atindex)
+register(model, :spacing, n_designvariables + 1, spacing_wrapper_atindex, spacing_gradient_wrapper_atindex)
 register(model, :AEP, n_designvariables, aep_wrapper_atindex, aep_gradient_wrapper)
 
 # set the objective
 @NLobjective(model, Max, AEP(x...))
 
 # set the constraints
-@NLconstraint(model, boundary_con[i = 1:n_designvariables], boundary(i, x...) <= 0)
+@NLconstraint(model, boundary_con[i = 1:nturbines], boundary(i, x...) <= 0)
 @NLconstraint(model, spacing_con[i = 1:n_spacingconstraints], spacing(i, x...) <= 0)
 
+# run and time optimization
+t1 = time()
 optimize!(model)
+t2 = time()
+clkt = t2-t1
+xopt = value.(x)
+fopt = objective_value(model)
+info = (termination_status(model), primal_status(model), dual_status(model))
 
+# print optimization results
+println()
+println("Finished in : ", clkt, " (s)")
+println("info: ", info)
+println("starting objective value: ", aep_wrapper(x_initial)[1])
+println("end objective value: ", aep_wrapper(xopt)[1])
 
+# extract final turbine locations
+turbine_x = copy(xopt[1:nturbines])
+turbine_y = copy(xopt[nturbines+1:end])
 
+# add final turbine locations to plot
+for i = 1:length(turbine_x)
+    plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C1", linestyle="--")) 
+end
 
+# add wind farm boundary to plot
+plt.gcf().gca().plot([boundary_vertices[:,1];boundary_vertices[1,1]],[boundary_vertices[:,2];boundary_vertices[1,2]], color="C2")
 
-
-
-
-# # report initial objective value
-# println("starting objective value: ", aep_wrapper(x)[1])
-
-# # add initial turbine location to plot
-# for i = 1:length(turbine_x)
-#     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
-# end
-
-# # set general lower and upper bounds for design variables
-# lb = zeros(length(x)) .- boundary_radius
-# ub = zeros(length(x)) .+ boundary_radius
-
-# # set up options for SNOPT
-# options = Dict{String, Any}()
-# options["Derivative option"] = 1
-# options["Verify level"] = 3
-# options["Major optimality tolerance"] = 1e-5
-# options["Major iteration limit"] = 1e6
-# options["Summary file"] = "summary.out"
-# options["Print file"] = "print.out"
-
-# # run and time optimization
-# t1 = time()
-# xopt, fopt, info = snopt(wind_farm_opt, x, lb, ub, options)
-# t2 = time()
-# clkt = t2-t2
-
-# # print optimization results
-# println("Finished in : ", clkt, " (s)")
-# println("info: ", info)
-# println("end objective value: ", aep_wrapper(xopt))
-
-# # extract final turbine locations
-# turbine_x = copy(xopt[1:nturbines])
-# turbine_y = copy(xopt[nturbines+1:end])
-
-# # add final turbine locations to plot
-# for i = 1:length(turbine_x)
-#     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C1", linestyle="--")) 
-# end
-
-# # add wind farm boundary to plot
-# plt.gcf().gca().add_artist(plt.Circle((boundary_center[1],boundary_center[2]), boundary_radius, fill=false,color="C2"))
-
-# # set up and show plot
-# axis("square")
-# xlim(-boundary_radius-200,boundary_radius+200)
-# ylim(-boundary_radius-200,boundary_radius+200)
-# plt.show()
+# set up and show plot
+axis("square")
+xlim(minimum(boundary_vertices) - (maximum(boundary_vertices)-minimum(boundary_vertices))/5, maximum(boundary_vertices) + (maximum(boundary_vertices)-minimum(boundary_vertices))/5)
+ylim(minimum(boundary_vertices) - (maximum(boundary_vertices)-minimum(boundary_vertices))/5, maximum(boundary_vertices) + (maximum(boundary_vertices)-minimum(boundary_vertices))/5)
+plt.show()
