@@ -492,6 +492,6 @@ definitions:
         minimum: 0.0
         maximum: 25.0
 
-      turbulence_intenstiy:
+      turbulence_intensity:
         description: turbulence intensity
         default: 0.075

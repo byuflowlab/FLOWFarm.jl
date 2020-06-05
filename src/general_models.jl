@@ -70,14 +70,14 @@ function point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbi
         # get index of upstream turbine
         upwind_turb_id = Int(sorted_turbine_index[u])
 
-        # skip this loop if it would include a turbine's impact on itself)
-        if upwind_turb_id==downwind_turbine_id; continue; end
-
         # downstream distance between upstream turbine and point
         x = loc[1] - turbine_x[upwind_turb_id]
 
         # check turbine relative locations
         if x > 0.0
+            # skip this loop if it would include a turbine's impact on itself)
+            if upwind_turb_id==downwind_turbine_id; continue; end
+
             # calculate wake deflection of the current wake at the point of interest
             horizontal_deflection = wake_deflection_model(loc, turbine_x, turbine_yaw, turbine_ct,
                             upwind_turb_id, rotor_diameter, turbine_local_ti, wakedeflectionmodel)

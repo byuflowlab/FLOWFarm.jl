@@ -67,11 +67,12 @@ function get_wind_rose_YAML(file_name)
     # (Convert from <list> to <ndarray>)
     wind_dir = props["direction"]["bins"]
     wind_dir_freq = props["direction"]["frequency"]
+    ndirs = length(wind_dir)
     # (Convert from <list> to <float>)
     wind_speeds = props["speed"]["bins"]
     wind_speed_probs = props["speed"]["frequency"]
     # Get default number of windspeed bins per direction
-    num_speed_bins = length(wind_speeds)
+    nspeeds = length(wind_speeds)
     min_speed = props["speed"]["minimum"]
     max_speed = props["speed"]["maximum"]
 
@@ -79,15 +80,16 @@ function get_wind_rose_YAML(file_name)
     ti = props["turbulence_intensity"]["default"]
 
     # convert to flow farm standard format
-    freq = zeros(length(wind_dir_freq)*length(wind_speed_probs))
-    speed = zeros(length(wind_dir_freq)*length(wind_speed_probs))
-    dir = zeros(length(wind_dir_freq)*length(wind_speed_probs))
+    freq = zeros(ndirs*nspeeds)
+    speed = zeros(ndirs*nspeeds)
+    dir = zeros(ndirs*nspeeds)
 
-    for i in 1:length(wind_dir_freq)
-        for j in 1:length(wind_speed_probs)
-            freq[(i-1)*num_speed_bins+j] = wind_dir_freq[i]*wind_speed_probs[i][j]
-            speed[(i-1)*num_speed_bins+j] = wind_speeds[j]
-            dir[(i-1)*num_speed_bins+j] = wind_dir[i]
+    # calculate frequency for each direction/speed combination
+    for i in 1:ndirs
+        for j in 1:nspeeds
+            freq[(i-1)*nspeeds+j] = wind_dir_freq[i]*wind_speed_probs[i][j]
+            speed[(i-1)*nspeeds+j] = wind_speeds[j]
+            dir[(i-1)*nspeeds+j] = wind_dir[i]
         end
     end
 

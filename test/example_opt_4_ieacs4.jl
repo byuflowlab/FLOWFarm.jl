@@ -140,23 +140,10 @@ params = params_struct(model_set, rotor_points_y, rotor_points_z, turbine_z, amb
 # initialize design variable array
 x = [copy(turbine_x);copy(turbine_y)]
 
-state_aeps = ff.calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
-                hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-                cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set;
-                rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.0*24.0)
-
-dir_aep = zeros(20)
-for i in 1:20
-    for j in 1:20
-        dir_aep[i] += state_aeps[(i-1)*20 + j]
-    end
-end
-
 # report initial objective value
-println("nturbines: ", nturbines)
-println("rotor diameter: ", rotor_diameter[1])
-println("starting AEP value (MWh): ", aep_wrapper(x, params)[1]*1E5)
-# println("frequencies ", windprobabilities)
+println("Nturbines: ", nturbines)
+println("Rotor diameter: ", rotor_diameter[1])
+println("Starting AEP value (GWh): ", aep_wrapper(x, params)[1]*1e-9/obj_scale)
 println("Directional AEP at start: ", dir_aep.*1E-6)
 continue
 # add initial turbine location to plot
