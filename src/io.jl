@@ -83,12 +83,8 @@ function get_wind_rose_YAML(file_name)
     freq = zeros(ndirs*nspeeds)
     speed = zeros(ndirs*nspeeds)
     dir = zeros(ndirs*nspeeds)
-    println("HERE")
-    println(length(wind_speed_probs))
-    println(length(wind_dir_freq))
-    println(length(freq))
-    println(length(speed))
-    println(length(dir))
+
+    # calculate frequency for each direction/speed combination
     for i in 1:ndirs
         for j in 1:nspeeds
             freq[(i-1)*nspeeds+j] = wind_dir_freq[i]*wind_speed_probs[i][j]
