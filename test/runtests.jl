@@ -46,7 +46,7 @@ using LinearAlgebra
                             hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
                             cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set;
                             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.0*24.0)
-            
+
             dir_aep = zeros(20)
             for i in 1:20
                 for j in 1:20
@@ -58,6 +58,20 @@ using LinearAlgebra
             32035.08418, 52531.37389, 47035.14700, 46848.21422, 45107.13416,
             53877.69698, 68105.50430, 69587.76656, 73542.89319, 69615.74101,
             66752.31531, 73027.78883, 60187.14103, 59847.98304, 38123.29869]*1E6 rtol=1E-10
+           
+
+        end
+
+        @testset "Test AEP on single turbine" begin
+            # import model set with wind farm and related details
+            include("./model_sets/model_set_7_ieacs4_single_turbine.jl")
+            
+            aep = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
+                            hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+                            cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set;
+                            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.0*24.0)
+            
+            @test aep ≈ 42.54982024375254*1E9 rtol=1E-10
 
         end
 

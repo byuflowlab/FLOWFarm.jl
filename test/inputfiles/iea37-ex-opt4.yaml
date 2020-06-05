@@ -109,7 +109,7 @@ definitions:
         description: specific wind resource used to calculate AEP
         properties:
           items:
-            - $ref: "iea37-windrose-cs3.yaml"       # Reference for the .yaml containing the wind rose
+            - $ref: "iea37-windrose-cs4.yaml"       # Reference for the .yaml containing the wind rose
       
       annual_energy_production:
         description: binned and total (default) annual energy production for a wind plant given a layout and binned wind rose
