@@ -130,6 +130,18 @@ using LinearAlgebra
             m = ff.smooth_max(x, y, s=4)
             @test m ≈ y atol=1E-6
 
+            c = [-30.0;-2.0;0.0;1.0;y]
+            m = ff.smooth_max(c)
+            @test m ≈ y atol=1E-4
+
+            c = [-30.0;-2.0;1.98;1.99;y]
+            m = ff.smooth_max(c, s=400)
+            @test m ≈ y atol=1E-4
+
+            c = [-30.0;-20.0;-10.0;-4.0;y]
+            m = ff.smooth_max(c, s=4)
+            @test m ≈ y atol=1E-6
+
         end
 
     end
