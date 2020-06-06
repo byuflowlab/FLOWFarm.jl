@@ -131,7 +131,7 @@ end
 
 
 """
-    smooth_max_ndim(x; s=100.0)
+    smooth_max(x; s=10.0)
 
 Calculate the smoothmax (a.k.a. softmax or LogSumExponential) of the elements in x.
 
@@ -147,7 +147,7 @@ And based on article in FeedlyBlog
 - `x::Array{Float64,1}` : vector with all the input values
 - `s::Float64` : controls the level of smoothing used in the smooth max
 """
-function smooth_max_ndim(x; s=100.0)
+function smooth_max(x; s=10.0)
 
     # non-overflowing version of Smooth Max function (see ref 2 and 3 above)
     
