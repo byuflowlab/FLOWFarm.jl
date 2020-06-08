@@ -103,11 +103,11 @@ end
 include("./model_sets/model_set_7_ieacs3.jl")
 
 # scale objective to be between 0 and 1
-obj_scale = 1E-11
+obj_scale = 1E-12
 
 # set wind farm boundary parameters
-boundary_center = [0.0,0.0]
-boundary_radius = 3000.0
+boundary_center = [6000.0,6000.0]
+boundary_radius = 5500.0
 
 # set globals for use in wrapper functions
 struct params_struct{}
@@ -155,18 +155,18 @@ end
 # report initial objective value
 println("nturbines: ", nturbines)
 println("rotor diameter: ", rotor_diameter[1])
-println("starting AEP value (MWh): ", aep_wrapper(x, params)[1]*1E5)
+println("starting AEP value (MWh): ", aep_wrapper(x, params)[1])
 # println("frequencies ", windprobabilities)
 println("Directional AEP at start: ", dir_aep.*1E-6)
-continue
+
 # add initial turbine location to plot
 for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
 end
 
 # set general lower and upper bounds for design variables
-lb = zeros(length(x)) .- boundary_radius
-ub = zeros(length(x)) .+ boundary_radius
+lb = zeros(length(x)) .- boundary_radius .+ boundary_center[1]
+ub = zeros(length(x)) .+ boundary_radius .+ boundary_center[2]
 
 # set up options for SNOPT
 options = Dict{String, Any}()
@@ -184,7 +184,7 @@ boundary_wrapper(x) = boundary_wrapper(x, params)
 
 # run and time optimization
 t1 = time()
-xopt, fopt, info = snopt(obj_func, x, lb, ub, options)
+xopt, fopt, info = snopt(wind_farm_opt, x, lb, ub, options)
 t2 = time()
 clkt = t2-t2
 
@@ -207,6 +207,6 @@ plt.gcf().gca().add_artist(plt.Circle((boundary_center[1],boundary_center[2]), b
 
 # set up and show plot
 axis("square")
-xlim(-boundary_radius-200,boundary_radius+200)
-ylim(-boundary_radius-200,boundary_radius+200)
+xlim(-boundary_radius+boundary_center[1],boundary_radius+boundary_center[1])
+ylim(-boundary_radius+boundary_center[2],boundary_radius+boundary_center[2])
 plt.show()

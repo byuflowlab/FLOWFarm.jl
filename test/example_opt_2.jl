@@ -165,7 +165,7 @@ options["Print file"] = "print.out"
 spacing_wrapper(x) = spacing_wrapper(x, params)
 aep_wrapper(x) = aep_wrapper(x, params)
 boundary_wrapper(x) = boundary_wrapper(x, params)
-
+obj_func(x) = wind_farm_opt(x)
 # run and time optimization
 t1 = time()
 xopt, fopt, info = snopt(obj_func, x, lb, ub, options)
