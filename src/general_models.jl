@@ -276,8 +276,7 @@ Generates a flow field for a given state and cross section
 - `turbine_z::Array{TF,nTurbines}`: turbine base height in the global reference frame
 - `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in 
     radians
-- `turbine_ct::Array{TF,nTurbines}`: turbine north-south locations in the global 
-    reference frame
+- `turbine_ct::Array{TF,nTurbines}`: thrust coefficient of each turbine for the given state
 - `turbine_ai::Array{TF,nTurbines}`: turbine axial induction for the given state
 - `rotor_diameter::Array{TF,nTurbines}`: turbine rotor diameters
 - `hub_height::Array{TF,nTurbines}`: turbine hub heights
