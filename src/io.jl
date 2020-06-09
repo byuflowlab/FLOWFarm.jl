@@ -1,6 +1,13 @@
 import YAML
 
-## Complete and functional ###
+"""
+    get_turb_loc_YAML(file_name)
+
+read in turbine locations and related problem file names from .yaml
+
+# Arguments
+- `file_name::String`: path/and/name/of/location/file.yaml
+"""
 function get_turb_loc_YAML(file_name)
     ### Retrieve turbine locations and auxiliary file names from <.yaml> file.
     ### Auxiliary (reference) files supply wind rose and turbine attributes.
@@ -31,7 +38,14 @@ function get_turb_loc_YAML(file_name)
     return turbine_x, turbine_y, fname_turb, fname_wr
 end
 
-### Complete and functional ###
+"""
+    get_turb_atrbt_YAML(file_name)
+
+read in turbine attributes from .yaml
+
+# Arguments
+- `file_name::String`: path/to/attribute/file.yaml
+"""
 function get_turb_atrbt_YAML(file_name)
     ###Retreive turbine attributes from the <.yaml> file###
 
@@ -55,7 +69,14 @@ function get_turb_atrbt_YAML(file_name)
     return turb_ci, turb_co, rated_ws, rated_pwr, turb_diam, turb_height
 end
 
-### Complete and functional ###
+"""
+    get_wind_rose_YAML(file_name)
+
+read in wind resource information from .yaml
+
+# Arguments
+- `file_name::String`: path/to/wind/resource/file.yaml
+"""
 function get_wind_rose_YAML(file_name)
     ### Retrieve wind rose data (bins, freqs, speeds) from <.yaml> file.
 

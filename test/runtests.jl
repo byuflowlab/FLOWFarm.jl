@@ -357,6 +357,65 @@ using LinearAlgebra
 
         end
 
+        @testset "calculate_turbine_power() PowerModelPowerCurveCubic" begin
+
+            include("./model_sets/model_set_7_ieacs4_single_turbine.jl")
+
+            # test below cut in
+            wt_velocity = 1.0
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            
+            @test p ≈ 0.0 atol=1E-6
+
+            # region 2
+            speeds = [ 0.90,  1.98,  3.18,  4.40,
+            5.64,  6.87,  8.11,  9.35,
+            10.59, 11.83, 13.07, 14.31,
+            15.56, 16.80, 18.04, 19.28,
+            20.52, 21.77, 23.01, 24.25]
+
+            wt_velocity = speeds[4]
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            rotor_area = pi*0.25*rotor_diameter[1]^2
+            @test p ≈ 0.0018658892128279934*1E6 rtol=1E-14
+
+
+            wt_velocity = speeds[5]
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            @test p ≈ 0.1285989504373177*1E6 rtol=1E-14
+
+
+            wt_velocity = speeds[6]
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            @test p ≈ 0.6892100000000001*1E6 rtol=1E-14
+
+
+            wt_velocity = speeds[7]
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            @test p ≈ 2.024097113702623*1E6 rtol=1E-14
+
+
+            wt_velocity = speeds[8]
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            @test p ≈ 4.4644424198250725*1E6 rtol=1E-14
+
+
+            wt_velocity = speeds[9]
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            @test p ≈ 8.343766151603498*1E6 rtol=1E-14
+
+            # above rated
+            wt_velocity = 20.0
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            @test p ≈ rated_power[1] atol=1E-6
+
+            # above cut out
+            wt_velocity = 30.0
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            @test p ≈ 0.0 atol=1E-6
+
+        end
+
     end
 
 
