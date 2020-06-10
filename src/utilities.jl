@@ -13,15 +13,15 @@ interpolating between two end points with known slopes
 - `y1::Float`: y position of downwind endpoint of spline
 - `dy1::Float`: slope at downwind endpoint of spline
 """
-function hermite_spline(x, x0, x1, y0, dy0, y1, dy1, return_deriv=false)
+function hermite_spline(x, x0, x1, y0, dy0, y1, dy1; return_deriv=false)
 
     # initialize coefficients for parametric Hermite cubic spline
-    c3 = (2.0*(y1))/(x0^3 - 3.0*x0^2*x1 + 3.0*x0*x1^2 - x1^3) - \
-        (2.0*(y0))/(x0^3 - 3.0*x0^2*x1 + 3.0*x0*x1^2 - x1^3) + \
-        (dy0)/(x0^2 - 2.0*x0*x1 + x1^2) + \
+    c3 = (2.0*(y1))/(x0^3 - 3.0*x0^2*x1 + 3.0*x0*x1^2 - x1^3) - 
+        (2.0*(y0))/(x0^3 - 3.0*x0^2*x1 + 3.0*x0*x1^2 - x1^3) + 
+        (dy0)/(x0^2 - 2.0*x0*x1 + x1^2) + 
         (dy1)/(x0^2 - 2.0*x0*x1 + x1^2)
 
-    c2 = (3.0*(y0)*(x0 + x1))/(x0^3 - 3.0*x0^2*x1 + 3.0*x0*x1^2 - x1^3) - \
+    c2 = (3.0*(y0)*(x0 + x1))/(x0^3 - 3.0*x0^2*x1 + 3.0*x0*x1^2 - x1^3) - 
         ((dy1)*(2.0*x0 + x1))/(x0^2 - 2.0*x0*x1 + x1^2) - ((dy0)*(x0 +
         2.0*x1))/(x0^2 - 2.0*x0*x1 + x1^2) - (3.0*(y1)*(x0 + x1))/(x0^3 -
         3.0*x0^2*x1 + 3.0*x0*x1^2 - x1^3)
@@ -33,7 +33,7 @@ function hermite_spline(x, x0, x1, y0, dy0, y1, dy1, return_deriv=false)
 
     c0 = ((y0)*(- x1^3 + 3.0*x0*x1^2))/(x0^3 - 3.0*x0^2*x1 + 3.0*x0*x1^2 -
         x1^3) - ((y1)*(- x0^3 + 3.0*x1*x0^2))/(x0^3 - 3.0*x0^2*x1 +
-        3.0*x0*x1^2 - x1^3) - (x0*x1^2*(dy0))/(x0^2 - 2.0*x0*x1 + x1^2) - \
+        3.0*x0*x1^2 - x1^3) - (x0*x1^2*(dy0))/(x0^2 - 2.0*x0*x1 + x1^2) - 
         (x0^2*x1*(dy1))/(x0^2 - 2.0*x0*x1 + x1^2)
 
     # Solve for y and dy values at the given point
@@ -44,6 +44,7 @@ function hermite_spline(x, x0, x1, y0, dy0, y1, dy1, return_deriv=false)
         return y, dy_dx
     else
         return y
+    end
 end
 
 """

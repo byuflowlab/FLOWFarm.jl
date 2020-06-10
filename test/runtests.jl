@@ -79,6 +79,32 @@ using LinearAlgebra
 
     @testset "utilities" begin
 
+
+        @testset "hermite spline" begin
+
+            x = 0.5
+            x1 = 0.0
+            x2 = 1.0
+            y1 = 0.0
+            y2 = 1.0
+            dydx1 = 1.0
+            dydx2 = 1.0
+
+            v = ff.hermite_spline(x, x1, x2, y1, dydx1, y2, dydx2)
+            @test v == 0.5
+
+            v, dv = ff.hermite_spline(x, x1, x2, y1, dydx1, y2, dydx2; return_deriv=true)
+            @test v == 0.5
+            @test dv == 1.0
+
+            dydx1 = 0.0
+            dydx2 = 0.0
+            v, dv = ff.hermite_spline(x, x1, x2, y1, dydx1, y2, dydx2; return_deriv=true)
+            @test v == 0.5
+            @test dv == 1.5
+
+        end
+
         @testset "wake overlap" begin
 
             turbine_y = 1000.0
