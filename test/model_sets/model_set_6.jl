@@ -1,38 +1,41 @@
 import FlowFarm; const ff = FlowFarm
 
-rotor_diameter = 80.0
-hub_height = 70.0
-yaw = 0.0
+# set initial turbine x and y locations
+turbine_x = [-3.0, 0.0, 3.0, 0.0, 0.0, -1.5, 0.0, 1.5, 0.0].*80.0
+turbine_y = [0.0, 3.0, 0.0, -3.0, 0.0, 0.0, 1.5, 0.0, -1.5]*80.0
 
-cut_in_speed = 4.  # m/s
-cut_out_speed = 25.  # m/s
-rated_speed = 16.  # m/s
-rated_power = 2.0E6  # W
-generator_efficiency = 0.944
+# calculate the number of turbines
+nturbines = length(turbine_x)
 
-ai = 1.0/3.0
-ct = 0.689
+# set turbine base heights
+turbine_z = zeros(nturbines)
+
+# set turbine yaw values
+turbine_yaw = zeros(nturbines)
+
+# set turbine design parameters
+rotor_diameter = zeros(nturbines) .+ 80.0 # m
+hub_height = zeros(nturbines) .+ 70.0   # m
+cut_in_speed = zeros(nturbines) .+4.  # m/s
+cut_out_speed = zeros(nturbines) .+25.  # m/s
+rated_speed = zeros(nturbines) .+16.  # m/s
+rated_power = zeros(nturbines) .+2.0E6  # W
+generator_efficiency = zeros(nturbines) .+0.944
+
+# rotor swept area sample points (normalized by rotor radius)
+rotor_points_y = [0.0]
+rotor_points_z = [0.0]
+
+# set flow parameters
 wind_speed = 8.0
 air_density = 1.1716  # kg/m^3
 ambient_ti = 0.077
-turbine_x = [-3.0, 0.0, 3.0, 0.0, 0.0]*rotor_diameter
-nturbines = length(turbine_x)
-turbine_y = [0.0, 3.0, 0.0, -3.0, 0.0]*rotor_diameter
-turbine_z = zeros(nturbines)
-turbine_yaw = zeros(nturbines)
-turbine_ct = zeros(nturbines) .+ ct
-turbine_ai = zeros(nturbines) .+ ai
+shearexponent = 0.15
 winddirections = [275.0*pi/180.0, 0.0, pi]
 windspeeds = [wind_speed, wind_speed, wind_speed]
 windprobabilities = [1.0/3.0,1.0/3.0,1.0/3.0]
-measurementheight = [hub_height, hub_height, hub_height]
 ambient_tis = [ambient_ti, ambient_ti, ambient_ti]
-shearexponent = 0.15
-turbine_inflow_velcities = zeros(nturbines) .+ wind_speed
-
-# rotor sample points
-rotor_points_y = [0.0]
-rotor_points_z = [0.0]
+measurementheight = [hub_height[1], hub_height[1], hub_height[1]]
 
 # load power curve
 powerdata = readdlm("inputfiles/niayifar_vestas_v80_power_curve_observed.txt",  ',', skipstart=1)
@@ -48,26 +51,26 @@ velpoints = ctdata[:,1]
 ctpoints = ctdata[:,2]
 
 # initialize thurst model
-ct_model = ff.ThrustModelCtPoints(velpoints, ctpoints)
+ct_model1 = ff.ThrustModelCtPoints(velpoints, ctpoints)
+ct_model = Vector{typeof(ct_model1)}(undef, nturbines)
+for i = 1:nturbines
+    ct_model[i] = ct_model1
+end
 
 # initialize wind shear model
 wind_shear_model = ff.PowerLawWindShear(shearexponent)
 
-# initialize turbine definition
-turbine1 = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], ct_model, power_model)
-
-turbine_definitions = [turbine1 for i in 1:nturbines]
+# get sorted indecies 
 sorted_turbine_index = sortperm(turbine_x)
-turbine_definition_ids = ones(Int, nturbines)
 
-windfarm = ff.WindFarm(turbine_x, turbine_y, turbine_z, turbine_definition_ids, turbine_definitions)
-windfarmstate = ff.SingleWindFarmState(1, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, turbine_inflow_velcities, zeros(nturbines), (zeros(nturbines).+ambient_ti),sorted_turbine_index)
-windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, [wind_shear_model])
+# initialize the wind resource definition
+windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, wind_shear_model)
 
+# set up wake and related models
 wakedeficitmodel = ff.GaussYaw()
 wakedeflectionmodel = ff.GaussYawDeflection()
 wakecombinationmodel = ff.LinearLocalVelocitySuperposition()
 localtimodel = ff.LocalTIModelMaxTI()
 
-ms6 = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
-pd6 = ff.WindFarmProblemDescription(windfarm, windresource, [windfarmstate, windfarmstate, windfarmstate])
+# initialize model set
+model_set = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)

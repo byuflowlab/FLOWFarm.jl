@@ -1,7 +1,7 @@
 abstract type AbstractModelSet end
 
 """
-    WindFarmModelSet(wakedeficitmodel, wake_deflection_model, wake_combination_model, local_ti_model, wind_shear_model)
+    WindFarmModelSet(wakedeficitmodel, wake_deflection_model, wake_combination_model, local_ti_model)
 
 Container for objects defining models to use in wind farm calculations
 
@@ -20,14 +20,26 @@ struct WindFarmModelSet{DTM,DNM,CM,TIM} <: AbstractModelSet
 
 end
 
+"""
+    rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
+
+Rotates wind farm coordinates to be in wind direction reference where wind direction is to
+the positive x.
+
+# Arguments
+- `xlocs::Array`: contains turbine east-west locations in the global reference frame
+- `ylocs::Array`: contains turbine north-south locations in the global reference frame
+- `wind_direction_met::Array`: contains wind direction in radians in meteorological standard 
+    system (N=0 rad, proceeds CW, wind from direction given)
+"""
 function rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
     # use radians
 
     # convert from meteorological polar system (CW, 0 rad.=N) to standard polar system (CCW, 0 rad.=E)
-    wind_direction_cart = (3*pi/2 - wind_direction_met)
+    wind_direction_cart = (3.0*pi/2.0 - wind_direction_met)
 
     if wind_direction_cart < 0.0
-        wind_direction_cart += 2*pi
+        wind_direction_cart += 2.0*pi
     end
 
     cos_wdr = cos(-wind_direction_cart)
@@ -40,6 +52,40 @@ function rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
     return x_cart, y_cart
 end
 
+"""
+    point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+    rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
+    wind_resource, model_set::AbstractModelSet;
+    wind_farm_state_id=1, downwind_turbine_id=0)
+
+Calculates the wind speed at a given point for a given state
+
+# Arguments
+- `loc::Array{TF,3}`: Location of interest
+- `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the global 
+    reference frame
+- `turbine_y::Array{TF,nTurbines}`: turbine north-south locations in the global 
+    reference frame
+- `turbine_z::Array{TF,nTurbines}`: turbine base height in the global reference frame
+- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in 
+    radians
+- `turbine_ct::Array{TF,nTurbines}`: turbine north-south locations in the global 
+    reference frame
+- `turbine_ai::Array{TF,nTurbines}`: turbine axial induction for the given state
+- `rotor_diameter::Array{TF,nTurbines}`: turbine rotor diameters
+- `hub_height::Array{TF,nTurbines}`: turbine hub heights
+- `turbine_local_ti::Array{TF,nTurbines}`: turbine local turbulence intensity for 
+    the given state
+- `sorted_turbine_index::Array{TF,nTurbines}`: array containing indices of wind turbines 
+    from most upwind to most downwind turbine in the given state
+- `wtvelocities::Array{TF,nTurbines}`: effective inflow wind speed for given state
+- `wind_resource::DiscretizedWindResource`: contains wind resource discreption (directions,
+    speeds, frequencies, etc)
+- `wind_farm_state_id::Int`: index to correct state to use from wind resource provided.
+    Defaults to 1
+- `downwind_turbine_id::Int`: index of wind turbine of interest (if any). If not a point for
+    calculating effective wind speed of a turbine, then provide 0 (default)
+"""
 function point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
                     wind_resource, model_set::AbstractModelSet;
@@ -70,14 +116,14 @@ function point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbi
         # get index of upstream turbine
         upwind_turb_id = Int(sorted_turbine_index[u])
 
-        # skip this loop if it would include a turbine's impact on itself)
-        if upwind_turb_id==downwind_turbine_id; continue; end
-
         # downstream distance between upstream turbine and point
         x = loc[1] - turbine_x[upwind_turb_id]
 
         # check turbine relative locations
         if x > 0.0
+            # skip this loop if it would include a turbine's impact on itself)
+            if upwind_turb_id==downwind_turbine_id; continue; end
+
             # calculate wake deflection of the current wake at the point of interest
             horizontal_deflection = wake_deflection_model(loc, turbine_x, turbine_yaw, turbine_ct,
                             upwind_turb_id, rotor_diameter, turbine_local_ti, wakedeflectionmodel)
@@ -106,9 +152,41 @@ function point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbi
 
 end
 
+"""
+    point_velocity(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+    sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+    model_set::AbstractModelSet; wind_farm_state_id=1)
 
+Calculates the wind speed at a given point for a given state
+
+# Arguments
+- `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the global 
+    reference frame
+- `turbine_y::Array{TF,nTurbines}`: turbine north-south locations in the global 
+    reference frame
+- `turbine_z::Array{TF,nTurbines}`: turbine base height in the global reference frame
+- `rotor_diameter::Array{TF,nTurbines}`: turbine rotor diameters
+- `hub_height::Array{TF,nTurbines}`: turbine hub heights
+- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in 
+    radians
+- `sorted_turbine_index::Array{TF,nTurbines}`: turbine north-south locations in the 
+    global reference frame
+- `ct_model::AbstractThrustCoefficientModel`: defines how the thrust coefficient changes 
+    with state etc
+- rotor_sample_points_y::Array{TF,N}`: horizontal wind location of points to sample across 
+    the rotor swept area when calculating the effective wind speed for the wind turbine. 
+    Points are centered at the hub (0,0) and scaled by the radius (1=tip of blades) 
+- rotor_sample_points_z::Array{TF,N}`: vertical wind location of points to sample across the 
+    rotor swept area when calculating the effective wind speed for the wind turbine. Points
+    are centered at the hub (0,0) and scaled by the radius (1=tip of blades)
+- `wind_resource::DiscretizedWindResource`: wind resource discreption (directions, speeds, 
+    frequencies, etc)
+- `model_set::AbstractModelSet`: defines wake-realated models to be used in analysis
+- `wind_farm_state_id::Int`: index to correct state to use from wind resource provided.
+    Defaults to 1
+"""
 function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
-                    turbine_ai, sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+                    sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set::AbstractModelSet; wind_farm_state_id=1)
 
     # get number of turbines and rotor sample point
@@ -116,7 +194,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
     n_rotor_sample_points = length(rotor_sample_points_y)
 
     arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
-                            typeof(hub_height[1]),typeof(turbine_yaw[1]),typeof(turbine_ai[1]))
+                            typeof(hub_height[1]),typeof(turbine_yaw[1]))
     turbine_velocities = zeros(arr_type, n_turbines)
     turbine_ct = zeros(arr_type, n_turbines)
     turbine_ai = zeros(arr_type, n_turbines)
@@ -157,7 +235,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         # final velocity calculation for downstream turbine (average equally across all points)
         wind_turbine_velocity /= n_rotor_sample_points
 
-        turbine_velocities[downwind_turbine_id] = wind_turbine_velocity
+        turbine_velocities[downwind_turbine_id] = deepcopy(wind_turbine_velocity)
 
         # update thrust coefficient for downstream turbine
         turbine_ct[downwind_turbine_id] = calculate_ct(turbine_velocities[downwind_turbine_id], ct_model[downwind_turbine_id])
@@ -179,82 +257,73 @@ end
 # turbine_velocities_one_direction!(model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1) = turbine_velocities_one_direction!([0.0], [0.0],
 # model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1)
 
+"""
+calculate_flow_field(xrange, yrange, zrange, model_set::AbstractModelSet, turbine_x, 
+    turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, rotor_diameter, hub_height, 
+    turbine_local_ti, sorted_turbine_index, wtvelocities, wind_resource; wind_farm_state_id=1)
 
-# function calculate_flow_field(direction_id, xrange, yrange, zrange, rotor_sample_points_y, rotor_sample_points_z,
-#     model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem;
-#     wind_farm_state_id=1)
-#
-#     windresource = problem_description.wind_resource
-#
-#     xlen = length(xrange)
-#     ylen = length(yrange)
-#     zlen = length(zrange)
-#     npoints = xlen*ylen*zlen
-#     point_velocities = zeros(npoints)
-#     point_velocities = reshape(point_velocities, (zlen, ylen, xlen))
-#
-#     for zi in 1:zlen
-#         for yi in 1:ylen
-#             for xi in 1:xlen
-#                 loc = [xrange[xi], yrange[yi], zrange[zi]]
-#                 loc[1], loc[2] = rotate_to_wind_direction(loc[1], loc[2], windresource.wind_directions[direction_id])
-#
-#                 point_velocities[zi, yi, xi] = point_velocity(loc, model_set, problem_description, wind_farm_state_id=wind_farm_state_id)
-#
-#             end
-#         end
-#     end
-#
-#     if zlen == 1
-#         return point_velocities[1,1:ylen,1:xlen]
-#     elseif ylen == 1
-#         return point_velocities[1:zlen,1,1:xlen]
-#     elseif xlen == 1
-#         return point_velocities[1:zlen,1:ylen,1]
-#     end
-#
-# end
+Generates a flow field for a given state and cross section
 
+# Arguments
+- `xrange::Range`: range defining east-west locations to sample in global reference frame
+- `yrange::Range`: range defining north-west locations to sample in global reference frame
+- `zrange::Range`: range defining vertical locations to sample in global reference frame
+- `model_set::AbstractModelSet`: defines wake-realated models to be used in analysis
+- `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the global 
+    reference frame
+- `turbine_y::Array{TF,nTurbines}`: turbine north-south locations in the global 
+    reference frame
+- `turbine_z::Array{TF,nTurbines}`: turbine base height in the global reference frame
+- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in 
+    radians
+- `turbine_ct::Array{TF,nTurbines}`: thrust coefficient of each turbine for the given state
+- `turbine_ai::Array{TF,nTurbines}`: turbine axial induction for the given state
+- `rotor_diameter::Array{TF,nTurbines}`: turbine rotor diameters
+- `hub_height::Array{TF,nTurbines}`: turbine hub heights
+- `turbine_local_ti::Array{TF,nTurbines}`: turbine local turbulence intensity for 
+    the given state
+- `sorted_turbine_index::Array{TF,nTurbines}`: turbine north-south locations in the 
+    global reference frame
+- `wtvelocities::Array{TF,nTurbines}`: effective inflow wind speed for given state
+- `wind_resource::DiscretizedWindResource`: wind resource discreption (directions, speeds, 
+    frequencies, etc)
+- `wind_farm_state_id::Int`: index to correct state to use from wind resource provided.
+    Defaults to 1
+"""
+function calculate_flow_field(xrange, yrange, zrange,
+    model_set::AbstractModelSet, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+    rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
+    wind_resource;
+    wind_farm_state_id=1)
 
-function hermite_spline(x, x0, x1, y0, dy0, y1, dy1)
-       """This function produces the y and dy values for a hermite cubic spline
-       interpolating between two end points with known slopes
+    xlen = length(xrange)
+    ylen = length(yrange)
+    zlen = length(zrange)
+    npoints = xlen*ylen*zlen
+    point_velocities = zeros(npoints)
+    point_velocities = reshape(point_velocities, (zlen, ylen, xlen))
 
-       :param x: x position of output y
-       :param x0: x position of upwind endpoint of spline
-       :param x1: x position of downwind endpoint of spline
-       :param y0: y position of upwind endpoint of spline
-       :param dy0: slope at upwind endpoint of spline
-       :param y1: y position of downwind endpoint of spline
-       :param dy1: slope at downwind endpoint of spline
+    for zi in 1:zlen
+        for yi in 1:ylen
+            for xi in 1:xlen
+                loc = [xrange[xi], yrange[yi], zrange[zi]]
+                loc[1], loc[2] = rotate_to_wind_direction(loc[1], loc[2], wind_resource.wind_directions[wind_farm_state_id])
 
-       :return: y: y value of spline at location x"""
+                point_velocities[zi, yi, xi] = point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+                    rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
+                    wind_resource, model_set,
+                    wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=0)
 
-    # initialize coefficients for parametric cubic spline
-    c3 = (2.0*(y1))/(x0^3 - 3.0*x0^2*x1 + 3.0*x0*x1^2 - x1^3) - \
-         (2.0*(y0))/(x0^3 - 3.0*x0^2*x1 + 3.0*x0*x1^2 - x1^3) + \
-         (dy0)/(x0^2 - 2.0*x0*x1 + x1^2) + \
-         (dy1)/(x0^2 - 2.0*x0*x1 + x1^2)
+            end
+        end
+    end
 
-    c2 = (3.0*(y0)*(x0 + x1))/(x0^3 - 3.0*x0^2*x1 + 3.0*x0*x1^2 - x1^3) - \
-         ((dy1)*(2.0*x0 + x1))/(x0^2 - 2.0*x0*x1 + x1^2) - ((dy0)*(x0 +
-         2.0*x1))/(x0^2 - 2.0*x0*x1 + x1^2) - (3.0*(y1)*(x0 + x1))/(x0^3 -
-         3.0*x0^2*x1 + 3.0*x0*x1^2 - x1^3)
+    if zlen == 1
+        return point_velocities[1,1:ylen,1:xlen]
+    elseif ylen == 1
+        return point_velocities[1:zlen,1,1:xlen]
+    elseif xlen == 1
+        return point_velocities[1:zlen,1:ylen,1]
+    end
 
-    c1 = ((dy0)*(x1^2 + 2.0*x0*x1))/(x0^2 - 2.0*x0*x1 + x1^2) + ((dy1)*(x0^2 +
-         2.0*x1*x0))/(x0^2 - 2.0*x0*x1 + x1^2) - (6.0*x0*x1*(y0))/(x0^3 -
-         3.0*x0^2*x1 + 3.0*x0*x1^2 - x1^3) + (6.0*x0*x1*(y1))/(x0^3 -
-         3.0*x0^2*x1 + 3.0*x0*x1^2 - x1^3)
-
-    c0 = ((y0)*(- x1^3 + 3.0*x0*x1^2))/(x0^3 - 3.0*x0^2*x1 + 3.0*x0*x1^2 -
-         x1^3) - ((y1)*(- x0^3 + 3.0*x1*x0^2))/(x0^3 - 3.0*x0^2*x1 +
-         3.0*x0*x1^2 - x1^3) - (x0*x1^2*(dy0))/(x0^2 - 2.0*x0*x1 + x1^2) - \
-         (x0^2*x1*(dy1))/(x0^2 - 2.0*x0*x1 + x1^2)
-
-    # Solve for y and dy values at the given point
-    y = c3*x^3 + c2*x^2 + c1*x + c0
-    # dy_dx = c3*3*x^2 + c2*2*x + c1
-
-    # return y, dy_dx
-    return y
 end

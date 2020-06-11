@@ -5,6 +5,7 @@ module FlowFarm
 using FLOWMath: linear,trapz
 # using Statistics
 
+include("io.jl")
 include("utilities.jl")
 include("turbines.jl")
 include("windfarms.jl")
