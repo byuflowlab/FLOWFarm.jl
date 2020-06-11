@@ -7,7 +7,7 @@ using LinearAlgebra
 
     @testset "io functions" begin
 
-        @testset "write yaml" begin
+        @testset "read and write yaml" begin
 
             loc_yaml = "./inputfiles/iea37-ex-opt3.yaml"
             turbine_x1, turbine_y1, fname_turb1, fname_wr1 = ff.get_turb_loc_YAML(loc_yaml)
@@ -19,6 +19,7 @@ using LinearAlgebra
             @test fname_turb1 == fname_turb2
             @test fname_wr1 == fname_wr2
             rm(test_yaml)
+
         end
     end
 
