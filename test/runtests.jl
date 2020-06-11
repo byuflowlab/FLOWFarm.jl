@@ -5,6 +5,23 @@ using LinearAlgebra
 
 @testset "All Tests" begin
 
+    @testset "io functions" begin
+
+        @testset "write yaml" begin
+
+            loc_yaml = "./inputfiles/iea37-ex-opt3.yaml"
+            turbine_x1, turbine_y1, fname_turb1, fname_wr1 = ff.get_turb_loc_YAML(loc_yaml)
+            test_yaml = "runtest_temp.yaml"
+            ff.write_turb_loc_YAML(test_yaml, turbine_x1, turbine_y1; turbinefile=fname_turb1, windresourcefile=fname_wr1)
+            turbine_x2, turbine_y2, fname_turb2, fname_wr2 = ff.get_turb_loc_YAML(test_yaml)
+            @test turbine_x1 == turbine_x2
+            @test turbine_y1 == turbine_y2
+            @test fname_turb1 == fname_turb2
+            @test fname_wr1 == fname_wr2
+            rm(test_yaml)
+        end
+    end
+
     @testset "AEP function" begin
 
         @testset "Test AEP" begin
