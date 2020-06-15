@@ -44,6 +44,10 @@ powerpoints = powerdata[:,2]*1E6
 
 # initialize power model
 power_model = ff.PowerModelPowerPoints(velpoints, powerpoints)
+power_models = Vector{typeof(power_model)}(undef, nturbines)
+for i = 1:nturbines
+    power_models[i] = power_model
+end
 
 # load thrust curve
 ctdata = readdlm("inputfiles/predicted_ct_vestas_v80_niayifar2016.txt",  ',', skipstart=1)

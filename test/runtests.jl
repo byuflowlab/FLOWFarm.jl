@@ -31,8 +31,7 @@ using LinearAlgebra
             # println(sum(windprobabilities))
             modelAEP = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-            cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set, 
-            rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)/1e9
+            cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set)/1e9
             paperAEP = 1889.3
             # println(modelAEP/paperAEP)
             @test modelAEP/paperAEP ≈ 1 atol=0.1
@@ -47,7 +46,7 @@ using LinearAlgebra
 
             aep = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-                cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set,
+                cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
                 rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z, hours_per_year=365.0*24.0)
             
             @test aep ≈ 938573.62950*1E6 rtol=1E-10
@@ -62,7 +61,7 @@ using LinearAlgebra
             
             state_aeps = ff.calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
                             hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-                            cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set;
+                            cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set;
                             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.0*24.0)
 
             dir_aep = zeros(20)
@@ -86,7 +85,7 @@ using LinearAlgebra
             
             aep = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                             hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-                            cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set;
+                            cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set;
                             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.0*24.0)
             
             @test aep ≈ 42.54982024375254*1E9 rtol=1E-10

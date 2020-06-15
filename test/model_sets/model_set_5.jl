@@ -27,6 +27,10 @@ nturbines = 1
 
 ct_model = ff.ThrustModelConstantCt(ct)
 power_model = ff.PowerModelConstantCp(constcp)
+power_models = Vector{typeof(power_model)}(undef, nturbines)
+for i = 1:nturbines
+    power_models[i] = power_model
+end
 wind_shear_model = [ff.PowerLawWindShear(shearexponent)]
 
 cut_in_speed = 0.0
