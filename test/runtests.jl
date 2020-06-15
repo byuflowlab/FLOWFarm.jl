@@ -97,6 +97,17 @@ using LinearAlgebra
 
     @testset "utilities" begin
 
+        @testset "latitude longitude to xy" begin
+
+            latitude = [59.3293, 59.8586]
+            longitude = [18.0686, 17.6389] 
+            utm_zone = 33
+            x, y = ff.latlong_to_xy(latitude, longitude, utm_zone)
+
+            @test x ≈ [0.0, -26778.38032168697] atol=1E-6
+            @test y ≈ [0.0, 57865.048037721775] atol=1E-6
+        end
+
 
         @testset "hermite spline" begin
 

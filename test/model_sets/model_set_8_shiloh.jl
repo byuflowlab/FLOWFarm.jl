@@ -8,28 +8,32 @@ using PyPlot
 layout_file_name = "./inputfiles/shiloh_layout.csv"
 layout_data = CSV.read(layout_file_name)
 
-println(layout_data)
-println(layout_data.elevation[10])
+# println(layout_data)
+# println(layout_data.elevation[10])
 
 nturbines = length(layout_data.elevation)
-turbine_x = zeros(nturbines)
-turbine_y = zeros(nturbines)
-elevation = zeros(nturbines)
+lat = zeros(nturbines)
+long = zeros(nturbines)
 hub_height = zeros(nturbines)
 model = layout_data.model
+global m 
+m = 0
+    
 for i in 1:nturbines
-    turbine_x[i] = layout_data.longitude[i]
-    turbine_y[i] = layout_data.latitude[i]
-    hub_height[i] = layout_data.hub_height[i]
-
+    lat[i] = layout_data.latitude[i]
+    long[i] = layout_data.longitude[i]
+    println(layout_data.model[i])
     if ismissing(layout_data.elevation[i])
-        elevation[i] = (layout_data.elevation[i-1] + layout_data.elevation[i+1])/2.0
+        hub_height[i] = (layout_data.elevation[i-1] + layout_data.elevation[i+1])/2.0 + layout_data.hub_height[i]
+        global m = m + 1
     else
-        elevation[i] = layout_data.elevation[i]
+        hub_height[i] = layout_data.elevation[i] + layout_data.hub_height[i]
     end
 end
+utm_zone = 10
+turbine_x, turbine_y = ff.latlong_to_xy(lat, long, utm_zone)
 
-println(layout_data.elevation)
+
 # calculate the number of turbines
 nturbines = length(turbine_x)
 
@@ -43,7 +47,6 @@ turbine_yaw = zeros(nturbines)
 turbge1p5file = string("./inputfiles/ge15-77_thrust_power.csv")
 
 gedata = CSV.read(turbge1p5file)
-mmdata = CSV.read(turbmm92file)
 
 ngepoints = length(gedata.id)
 gespeed = zeros(ngepoints)
@@ -96,8 +99,6 @@ generator_efficiency = zeros(nturbines) .+ 1.0
 
 for i in 1:nturbines
 
-    hub_height[i] = layout_data.hub_height[i] + elevation[i]   # m
-
     if layout_data.model[i] == gemodel
         rotor_diameter[i] = gerd    # m
         cut_in_speed[i] = gecutin   # m/s
@@ -117,16 +118,27 @@ end
 rotor_points_y = [0.0]
 rotor_points_z = [0.0]
 
+fig, ax = plt.subplots()
+plot([minimum(turbine_x),minimum(turbine_x),maximum(turbine_x), maximum(turbine_x), 
+minimum(turbine_x)],[minimum(turbine_y),maximum(turbine_y),maximum(turbine_y),
+minimum(turbine_y),minimum(turbine_y)])
+
+println(minimum(turbine_x))
+println(maximum(turbine_x))
+println(minimum(turbine_y))
+println(maximum(turbine_y))
+
+
 # add final turbine locations to plot
 for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[i]/2.0, fill=false,color="C1", linestyle="--")) 
 end
-#TODO https://discourse.julialang.org/t/converting-longitude-latitude-to-x-y-on-a-map-using-julia/20611/6
-
-# set up and show plot
-axis("square")
-xlim(-boundary_radius-200,boundary_radius+200)
-ylim(-boundary_radius-200,boundary_radius+200)
+# #TODO https://discourse.julialang.org/t/converting-longitude-latitude-to-x-y-on-a-map-using-julia/20611/6
+println(nturbines)
+println(m)
+println(minimum(layout_data.hub_height))
+# # set up and show plot
+# axis("square")
 plt.show()
 
 # # set flow parameters

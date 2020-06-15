@@ -1,4 +1,53 @@
 """
+    latlong_to_xy(latitude, longitude, utm_zone; isnorth=true, units="m")
+
+Converts arrays of points from latitude and longitude to x and y in meters in a local
+coordinate frame based on the point with the lowest magnitude latitude,
+
+# Arguments
+- `latitude::Array{Float,N}`
+- `longitude::Array{Float,N}`
+- `isnorth::Float`: specifies if the point is in the northern hemisphere (defaul: true)
+"""
+function latlong_to_xy(latitude, longitude, utm_zone; isnorth=true)
+    
+    # get number of points
+    npoints = length(latitude)
+
+    # set up utm region
+    utmregion = gd.UTMfromLLA(utm_zone, isnorth, wgs84)
+
+    # get zero point index
+    zp = argmin(latitude)
+
+    # get zero point lat long
+    minlla = gd.LLA(latitude[zp], longitude[zp])
+    
+    # get zero point utm
+    minutm = utmregion(minlla)
+
+    # get x and y for all points
+    x = zeros(npoints)
+    y = zeros(npoints)
+    for i in 1:npoints
+        # lat and long for current point
+        lla = gd.LLA(latitude[i], longitude[i])
+
+        # convert to utm coordinates
+        utm = utmregion(lla)
+
+        # get x location
+        x[i] = utm.x - minutm.x
+
+        # get y location
+        y[i] = utm.y - minutm.y
+
+    end
+    
+    return x, y
+end
+
+"""
     hermite_spline(x, x0, x1, y0, dy0, y1, dy1)
     
 Produces the y and (optionally) dy values for a hermite cubic spline

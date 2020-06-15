@@ -1,4 +1,5 @@
 module FlowFarm
+using Geodesy; const gd = Geodesy
 
 # using CCBlade
 # using PyPlot
