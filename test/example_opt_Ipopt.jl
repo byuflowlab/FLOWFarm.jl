@@ -242,7 +242,7 @@ function aep_wrapper(x)
     global rated_speed
     global rated_power
     global windresource
-    global power_model
+    global power_models
     global model_set
     global rotor_points_y
     global rotor_points_z
@@ -258,7 +258,7 @@ function aep_wrapper(x)
     # calculate AEP
     AEP = obj_scale*ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-                cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set,
+                cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
                 rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)
     
     # return the objective as a vector
