@@ -100,17 +100,17 @@ function wind_farm_opt(x)
 end
 
 # import model set with wind farm and related details
-include("./model_sets/model_set_6.jl")
+include("./model_sets/model_set_9_38turb_round_farm.jl")
 
 # scale objective to be between 0 and 1
 obj_scale = 1E-11
 
 # set wind farm boundary parameters
 boundary_center = [0.0,0.0]
-boundary_radius = 300.0
+boundary_radius = 1225.8227848101264
 
 # set globals for use in wrapper functions
-struct params_struct2{}
+struct params_struct{}
     model_set
     rotor_points_y
     rotor_points_z
@@ -132,17 +132,19 @@ struct params_struct2{}
     power_models
 end
 
-params = params_struct2(model_set, rotor_points_y, rotor_points_z, turbine_z, ambient_ti, 
+params = params_struct(model_set, rotor_points_y, rotor_points_z, turbine_z, ambient_ti, 
     rotor_diameter, boundary_center, boundary_radius, obj_scale, hub_height, turbine_yaw, 
     ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, 
     windresource, power_models)
 
 # initialize design variable array
 x = [copy(turbine_x);copy(turbine_y)]
+global x
 
 # report initial objective value
 println("starting objective value: ", aep_wrapper(x, params)[1])
 
+plot(0,0)
 # add initial turbine location to plot
 for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
@@ -156,7 +158,7 @@ ub = zeros(length(x)) .+ boundary_radius
 options = Dict{String, Any}()
 options["Derivative option"] = 1
 options["Verify level"] = 3
-options["Major optimality tolerance"] = 1e-5
+options["Major optimality tolerance"] = 1e-6
 options["Major iteration limit"] = 1e6
 options["Summary file"] = "summary.out"
 options["Print file"] = "print.out"
@@ -167,13 +169,37 @@ aep_wrapper(x) = aep_wrapper(x, params)
 boundary_wrapper(x) = boundary_wrapper(x, params)
 obj_func(x) = wind_farm_opt(x)
 
+# set up for WEC optimization
+wec_steps = 6
+wec_max = 3.0
+wec_end = 1.0
+wec_values = collect(LinRange(wec_max, wec_end, wec_steps))
+println(wec_values)
+info = fill("",wec_steps)
 # run and time optimization
-t1 = time()
-xopt, fopt, info = snopt(obj_func, x, lb, ub, options)
-t2 = time()
-clkt = t2-t2
-
+t1t = time()
+for i in 1:length(wec_values)
+    global x
+    global xopt
+    println("Running with WEC = ", wec_values[i])
+    params.model_set.wake_deficit_model.wec_factor[1] = wec_values[i]
+    
+    t1 = time()
+    xopt, fopt, info[i] = snopt(obj_func, x, lb, ub, options)
+    t2 = time()
+    clk = t2-t1
+    # print optimization results
+    println("Finished in : ", clk, " (s)")
+    println("info: ", info)
+    println("end objective value: ", -fopt)
+    println("locations ", x[1:5])
+    println("locations opt ", xopt[1:5])
+    x = deepcopy(xopt)
+end
+t2t = time()
+clkt = t2t - t1t
 # print optimization results
+println("Overall Stats: ")
 println("Finished in : ", clkt, " (s)")
 println("info: ", info)
 println("end objective value: ", aep_wrapper(xopt))
