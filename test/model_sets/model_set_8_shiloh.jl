@@ -1,4 +1,5 @@
 import FlowFarm; const ff = FlowFarm
+using DelimitedFiles
 using CSV 
 using PyPlot
 
@@ -133,7 +134,7 @@ println(maximum(turbine_y))
 for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[i]/2.0, fill=false,color="C1", linestyle="--")) 
 end
-# #TODO https://discourse.julialang.org/t/converting-longitude-latitude-to-x-y-on-a-map-using-julia/20611/6
+
 println(nturbines)
 println(m)
 println(minimum(layout_data.hub_height))
@@ -141,46 +142,59 @@ println(minimum(layout_data.hub_height))
 # axis("square")
 plt.show()
 
-# # set flow parameters
-# windrose_file_name = string("./inputfiles/",fname_wr)
-# winddirections, windspeeds, windprobabilities, ambient_ti = ff.get_wind_rose_YAML(windrose_file_name)
-# nstates = length(winddirections)
-# winddirections *= pi/180.0
+# set flow parameters
+wind_rose_file_name = string("./inputfiles/wind_rose_jepson_prarie.txt")
+winddata = readdlm(wind_rose_file_name, ',', skipstart=9)
+println(winddata)
+speeds = [3.0, 5.0, 7.0, 9.0, 11.0, 13.0]
+winddirections = zeros(length(winddata)*6)
+windspeeds = zeros(length(winddata)*6)
+windprobabilities = zeros(length(winddata)*6)
+for i in 1:length(winddata[:,1])
+    dirstr = split(winddata[i,1] , r"[-]")
+    for j in 1:6
+        winddirections[(i-1)*6 + j] = (0.5*(parse(Float64, dirstr[2])+parse(Float64,dirstr[1])))
+        windspeeds[(i-1)*6 + j] = speeds[j]
+        windprobabilities[(i-1)*6 + j] = winddata[i,j+2] 
+    end
+end
+nstates = length(winddirections)
+winddirections *= pi/180.0
 
-# air_density = 1.1716  # kg/m^3
-# shearexponent = 0.15
-# ambient_tis = zeros(nstates) .+ ambient_ti
-# measurementheight = zeros(nstates) .+ turb_hub_height
+air_density = 1.1716  # kg/m^3
+shearexponent = 0.15
+ambient_tis = zeros(nstates) .+ 0.1
+measurementheight = zeros(nstates) .+ 80.0
 
-# # initialize power model
-# power_model = ff.PowerModelPowerCurveCubic()
+# initialize power model
+power_model = ff.PowerModelPowerCurveCubic()
 
-# # load thrust curve
-# ct = 4.0*(1.0/3.0)*(1.0 - 1.0/3.0)
+# load thrust curve
+ct = 4.0*(1.0/3.0)*(1.0 - 1.0/3.0)
 
-# # initialize thurst model
-# ct_model1 = ff.ThrustModelConstantCt(ct)
-# ct_model = Vector{typeof(ct_model1)}(undef, nturbines)
-# for i = 1:nturbines
-#     ct_model[i] = ct_model1
-# end
+# initialize thurst model
+ct_model1 = ff.ThrustModelConstantCt(ct)
+ct_model = Vector{typeof(ct_model1)}(undef, nturbines)
+for i = 1:nturbines
+    ct_model[i] = ct_model1
+end
 
-# # initialize wind shear model
-# wind_shear_model = ff.PowerLawWindShear(shearexponent)
+# initialize wind shear model
+wind_shear_model = ff.PowerLawWindShear(shearexponent)
 
-# # get sorted indecies 
-# sorted_turbine_index = sortperm(turbine_x)
+# get sorted indecies 
+sorted_turbine_index = sortperm(turbine_x)
 
-# # initialize the wind resource definition
-# windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, wind_shear_model)
+# initialize the wind resource definition
+windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, wind_shear_model)
 
-# # set up wake and related models
-# k = 0.0324555
-# wakedeficitmodel = ff.GaussSimple(k)
+# set up wake and related models
+k = 0.0324555
+wakedeficitmodel = ff.GaussSimple(k)
 
-# wakedeflectionmodel = ff.JiminezYawDeflection()
-# wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
-# localtimodel = ff.LocalTIModelNoLocalTI()
+wakedeflectionmodel = ff.JiminezYawDeflection()
+wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
+localtimodel = ff.LocalTIModelNoLocalTI()
 
-# # initialize model set
-# model_set = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
+# initialize model set
+model_set = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
