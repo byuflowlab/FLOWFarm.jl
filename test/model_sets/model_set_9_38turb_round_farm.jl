@@ -1,8 +1,15 @@
 import FlowFarm; const ff = FlowFarm
 
 # set initial turbine x and y locations
-turbine_x = [-3.0, 0.0, 3.0, 0.0, 0.0, -1.5, 0.0, 1.5, 0.0].*80.0
-turbine_y = [0.0, 3.0, 0.0, -3.0, 0.0, 0.0, 1.5, 0.0, -1.5]*80.0
+diam = 80.0
+data = readdlm("inputfiles/layout_38turb_round.txt",  ' ', skipstart=1)
+turbine_x = data[:, 1].*diam
+nturbines = length(turbine_x)
+turbine_y = data[:, 2].*diam
+turbine_z = zeros(nturbines)
+
+turbine_x = turbine_x .- turbine_x[1]
+turbine_y = turbine_y .- turbine_y[1]
 
 # calculate the number of turbines
 nturbines = length(turbine_x)
@@ -71,10 +78,12 @@ sorted_turbine_index = sortperm(turbine_x)
 windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, wind_shear_model)
 
 # set up wake and related models
-wakedeficitmodel = ff.GaussYaw()
-wakedeflectionmodel = ff.GaussYawDeflection()
-wakecombinationmodel = ff.LinearLocalVelocitySuperposition()
-localtimodel = ff.LocalTIModelMaxTI()
+k = 0.0324555
+wakedeficitmodel = ff.GaussSimple(k)
+
+wakedeflectionmodel = ff.JiminezYawDeflection()
+wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
+localtimodel = ff.LocalTIModelNoLocalTI()
 
 # initialize model set
 model_set = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)

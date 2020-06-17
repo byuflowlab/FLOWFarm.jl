@@ -7,7 +7,7 @@ using LinearAlgebra
 
     @testset "io functions" begin
 
-        @testset "write yaml" begin
+        @testset "read and write yaml" begin
 
             loc_yaml = "./inputfiles/iea37-ex-opt3.yaml"
             turbine_x1, turbine_y1, fname_turb1, fname_wr1 = ff.get_turb_loc_YAML(loc_yaml)
@@ -19,6 +19,7 @@ using LinearAlgebra
             @test fname_turb1 == fname_turb2
             @test fname_wr1 == fname_wr2
             rm(test_yaml)
+
         end
     end
 
@@ -30,8 +31,7 @@ using LinearAlgebra
             # println(sum(windprobabilities))
             modelAEP = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-            cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set, 
-            rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)/1e9
+            cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set)/1e9
             paperAEP = 1889.3
             # println(modelAEP/paperAEP)
             @test modelAEP/paperAEP ≈ 1 atol=0.1
@@ -46,7 +46,7 @@ using LinearAlgebra
 
             aep = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-                cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set,
+                cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
                 rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z, hours_per_year=365.0*24.0)
             
             @test aep ≈ 938573.62950*1E6 rtol=1E-10
@@ -61,7 +61,7 @@ using LinearAlgebra
             
             state_aeps = ff.calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
                             hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-                            cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set;
+                            cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set;
                             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.0*24.0)
 
             dir_aep = zeros(20)
@@ -85,7 +85,7 @@ using LinearAlgebra
             
             aep = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                             hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-                            cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set;
+                            cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set;
                             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.0*24.0)
             
             @test aep ≈ 42.54982024375254*1E9 rtol=1E-10
@@ -95,6 +95,17 @@ using LinearAlgebra
     end
 
     @testset "utilities" begin
+
+        @testset "latitude longitude to xy" begin
+
+            latitude = [59.3293, 59.8586]
+            longitude = [18.0686, 17.6389] 
+            utm_zone = 33
+            x, y = ff.latlong_to_xy(latitude, longitude, utm_zone)
+
+            @test x ≈ [0.0, -26778.38032168697] atol=1E-6
+            @test y ≈ [0.0, 57865.048037721775] atol=1E-6
+        end
 
 
         @testset "hermite spline" begin
@@ -171,6 +182,18 @@ using LinearAlgebra
 
             x = -4
             m = ff.smooth_max(x, y, s=4)
+            @test m ≈ y atol=1E-6
+
+            c = [-30.0;-2.0;0.0;1.0;y]
+            m = ff.smooth_max(c)
+            @test m ≈ y atol=1E-4
+
+            c = [-30.0;-2.0;1.98;1.99;y]
+            m = ff.smooth_max(c, s=400)
+            @test m ≈ y atol=1E-4
+
+            c = [-30.0;-20.0;-10.0;-4.0;y]
+            m = ff.smooth_max(c, s=4)
             @test m ≈ y atol=1E-6
 
         end
@@ -785,6 +808,58 @@ using LinearAlgebra
 
             # test deflection at 8D with yaw 20 deg
             @test ff.wake_deflection_model([dx8d, dy8d_20, hub_height], turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, ambient_ti, model) ≈ dy8d_20 atol=atol
+
+        end
+
+        @testset "Gauss Yaw Deflection Variable Spread" begin
+
+            atol = 0.005
+
+            rotor_diameter = 0.15 #[1] p. 509
+            hub_height = 0.125 #[1] p. 509
+            yaw_20 = 20.0*pi/180.0
+            ct = 0.82 # [1] fig. 8
+            constcp = 0.8
+            generator_efficiency = 0.944
+
+            wind_farm_state_id = 1
+            turbine_x = [0.0]
+            turbine_y = [0.0]
+            turbine_z = [0.000022] #[1] p. 509
+            turbine_yaw = [yaw_20]
+            turbine_ct = [ct]
+            turbine_ai = [1.0/3.0]
+            sorted_turbine_index = [1]
+            turbine_inflow_velcity = [8.0]
+            turbine_id = 1
+            turbine_definition_id = 1
+            cut_in_speed = 0.0
+            cut_out_speed = 25.0
+            rated_speed = 12.0
+            rated_power = 1.0176371581904552e6
+
+            ct_model = ff.ThrustModelConstantCt(ct)
+            power_model = ff.PowerModelConstantCp([constcp])
+
+            turbine_definition = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
+
+            turbulence_intensity = 0.07 # this value is just guessed #TODO find data about deflection using this model
+            alpha_star = 2.32 #[1] p. 534
+            beta_star = 0.154 #[1] p. 534
+
+            model = ff.GaussYawVariableSpreadDeflection(alpha_star, beta_star)
+
+            dx4d = 4.0*rotor_diameter
+            dy4d_20 = 0.2684659090909065*rotor_diameter # from [1] figure 21
+
+            dx8d = 8.0*rotor_diameter
+            dy8d_20 = 0.34090909090908905*rotor_diameter # from [1] figure 21
+
+            # test deflection at 4D with yaw 20 deg
+            @test ff.wake_deflection_model([dx4d, dy4d_20, hub_height], turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbulence_intensity, model) ≈ dy4d_20 atol=atol
+
+            # test deflection at 8D with yaw 20 deg
+            @test ff.wake_deflection_model([dx8d, dy8d_20, hub_height], turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbulence_intensity, model) ≈ dy8d_20 atol=atol
 
         end
 

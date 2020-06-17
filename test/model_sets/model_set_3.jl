@@ -26,7 +26,12 @@ rated_power = zeros(nturbines).+3.6E6  # W
 cpdata = readdlm("inputfiles/power_curve_siemens_swp3.6-120.txt",  ',', skipstart=1)
 vel_points = cpdata[:, 1]
 power_points = cpdata[:, 2]
+
 power_model = ff.PowerModelPowerPoints(vel_points, power_points)
+power_models = Vector{typeof(power_model)}(undef, nturbines)
+for i = 1:nturbines
+    power_models[i] = power_model
+end
 
 # rotor sample points
 rotor_points_y = [0.0]

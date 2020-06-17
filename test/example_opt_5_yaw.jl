@@ -50,7 +50,7 @@ function aep_wrapper(x, params)
     params.rated_speed
     params.rated_power
     params.windresource
-    params.power_models
+    params.power_model
     params.model_set
     params.rotor_points_y
     params.rotor_points_z
@@ -66,7 +66,7 @@ function aep_wrapper(x, params)
     # calculate AEP
     AEP = obj_scale*ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-                cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
+                cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set,
                 rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z, hours_per_year=365.0*24.0)
     
     # return the objective as an array
@@ -100,14 +100,14 @@ function wind_farm_opt(x)
 end
 
 # import model set with wind farm and related details
-include("./model_sets/model_set_7_ieacs3.jl")
+include("./model_sets/model_set_8_shiloh.jl")
 
 # scale objective to be between 0 and 1
-obj_scale = 1E-12
+obj_scale = 1E-11
 
 # set wind farm boundary parameters
-boundary_center = [6000.0,6000.0]
-boundary_radius = 5500.0
+boundary_center = [0.0,0.0]
+boundary_radius = 3000.0
 
 # set globals for use in wrapper functions
 struct params_struct{}
@@ -129,44 +129,31 @@ struct params_struct{}
     rated_speed
     rated_power
     windresource
-    power_models
+    power_model
 end
 
 params = params_struct(model_set, rotor_points_y, rotor_points_z, turbine_z, ambient_ti, 
     rotor_diameter, boundary_center, boundary_radius, obj_scale, hub_height, turbine_yaw, 
     ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, 
-    windresource, power_models)
+    windresource, power_model)
 
 # initialize design variable array
 x = [copy(turbine_x);copy(turbine_y)]
 
-state_aeps = ff.calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
-                hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-                cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set;
-                rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.0*24.0)
-
-dir_aep = zeros(20)
-for i in 1:20
-    for j in 1:20
-        dir_aep[i] += state_aeps[(i-1)*20 + j]
-    end
-end
-
 # report initial objective value
-println("nturbines: ", nturbines)
-println("rotor diameter: ", rotor_diameter[1])
-println("starting AEP value (MWh): ", aep_wrapper(x, params)[1])
-# println("frequencies ", windprobabilities)
+println("Nturbines: ", nturbines)
+println("Rotor diameter: ", rotor_diameter[1])
+println("Starting AEP value (GWh): ", aep_wrapper(x, params)[1]*1e-9/obj_scale)
 println("Directional AEP at start: ", dir_aep.*1E-6)
-
+continue
 # add initial turbine location to plot
 for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
 end
 
 # set general lower and upper bounds for design variables
-lb = zeros(length(x)) .- boundary_radius .+ boundary_center[1]
-ub = zeros(length(x)) .+ boundary_radius .+ boundary_center[2]
+lb = zeros(length(x)) .- boundary_radius
+ub = zeros(length(x)) .+ boundary_radius
 
 # set up options for SNOPT
 options = Dict{String, Any}()
@@ -184,7 +171,7 @@ boundary_wrapper(x) = boundary_wrapper(x, params)
 
 # run and time optimization
 t1 = time()
-xopt, fopt, info = snopt(wind_farm_opt, x, lb, ub, options)
+xopt, fopt, info = snopt(obj_func, x, lb, ub, options)
 t2 = time()
 clkt = t2-t2
 
@@ -207,6 +194,6 @@ plt.gcf().gca().add_artist(plt.Circle((boundary_center[1],boundary_center[2]), b
 
 # set up and show plot
 axis("square")
-xlim(-boundary_radius+boundary_center[1],boundary_radius+boundary_center[1])
-ylim(-boundary_radius+boundary_center[2],boundary_radius+boundary_center[2])
+xlim(-boundary_radius-200,boundary_radius+200)
+ylim(-boundary_radius-200,boundary_radius+200)
 plt.show()

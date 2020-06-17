@@ -6,7 +6,6 @@ import FlowFarm; const ff = FlowFarm
 layout_file_name = "./inputfiles/iea37-ex-opt4.yaml"
 turbine_x, turbine_y, fname_turb, fname_wr = ff.get_turb_loc_YAML(layout_file_name)
 
-
 # calculate the number of turbines
 nturbines = length(turbine_x)
 
@@ -34,7 +33,7 @@ rotor_points_z = [0.0]
 
 # set flow parameters
 windrose_file_name = string("./inputfiles/",fname_wr)
-winddirections, windspeeds, windprobabilities, ambient_ti = ff.get_wind_rose_YAML(windrose_file_name)
+winddirections, windspeeds, windprobabilities, ambient_ti = ff.get_reduced_wind_rose_YAML(windrose_file_name)
 nstates = length(winddirections)
 winddirections *= pi/180.0
 
@@ -45,10 +44,6 @@ measurementheight = zeros(nstates) .+ turb_hub_height
 
 # initialize power model
 power_model = ff.PowerModelPowerCurveCubic()
-power_models = Vector{typeof(power_model)}(undef, nturbines)
-for i = 1:nturbines
-    power_models[i] = power_model
-end
 
 # load thrust curve
 ct = 4.0*(1.0/3.0)*(1.0 - 1.0/3.0)

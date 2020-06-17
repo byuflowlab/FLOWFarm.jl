@@ -402,7 +402,7 @@ function ray_trace_boundary(boundary_vertices,boundary_normals,turbine_x,turbine
         end
 
         # magnitude of the constraint value
-        c[i] = -ff.smooth_max_ndim(-turbine_to_face_distance)
+        c[i] = -ff.smooth_max(-turbine_to_face_distance, s=100.0)
 
         # sign of the constraint value (- is inside, + is outside)
         if mod(intersection_counter, 2) == 1
