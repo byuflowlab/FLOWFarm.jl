@@ -224,6 +224,124 @@ using LinearAlgebra
 
         end
 
+        @testset "Splined boundary" begin
+
+            function PointsInCircum(center_x, center_y, r, n = 100)
+                bndry_x = zeros(n+1)
+                bndry_y = zeros(n+1)
+                for i in 1:n+1
+                    bndry_x[i] = center_x + cos(2*pi/n*i)*r
+                    bndry_y[i] = center_y + sin(2*pi/n*i)*r
+                end
+                return bndry_x, bndry_y
+            end
+
+            @testset "One Turbine, Circular Boundary" begin
+                #-- One-turbine circular boundary as a square --#
+                # A discretized 20-point circle
+                bndry_x_clsd = [200.00, 195.11, 180.90, 158.78, 130.90, 100.00, 69.10, 41.22, 19.10, 4.89, 0.00, 4.89, 19.10, 41.22, 69.10, 100.00, 130.90, 158.78, 180.90, 195.11, 200.00]
+                bndry_y_clsd = [100.00, 130.90, 158.78, 180.90, 195.11, 200.00, 195.11, 180.90, 158.78, 130.90, 100.00, 69.10, 41.22, 19.10, 4.89, 0.00, 4.89, 19.10, 41.22, 69.10, 100.00]
+                # Vertices that keep splines injective (4-corners)
+                bndry_corner_indcies =[1,6,11,16, 21]  # 20 pt circle, 4 corners
+                # Should be equidistant from sides
+                testing_x = [100.0]
+                testing_y = [100.0]
+                test_values = [100.0 100.0 100.0 100.0]
+
+                @test ff.splined_boundary(testing_x, testing_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies) == test_values
+
+                #-- One-turbine circular boundary as a triangle --#
+                # Vertices that keep splines injective (3-corners)
+                bndry_corner_indcies =[1,11,17,21]  # 20 pt circle, 3 corners
+                @test ff.splined_boundary(testing_x, testing_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies) == test_values
+            end
+
+            @testset "Multi-Turbine, Circular Boundary" begin
+                #-- Multi-turbine circular boundary as a square --#
+                # A discretized 200-point circle
+                num_pts = 200
+                circ_radius = 100.0
+                circ_center = [100.0, 100.0]
+                bndry_x_clsd, bndry_y_clsd = PointsInCircum(circ_center[1], circ_center[2], circ_radius, num_pts)
+                # Vertices that keep splines injective (4-corners)
+                bndry_corner_indcies = [1, 51, 101, 151, 201]  # 200 pt circle, 4 corners
+
+                # Vertices that keep splines injective
+                circ_corners = 1/sqrt(2)
+                cc_r = circ_center[2] + (circ_corners * circ_radius) # ~170
+                cc_l = circ_center[1] - (circ_corners * circ_radius) # ~ 30
+                cc_d = cc_r - cc_l                # ~140
+                cc_d2 = cc_d/2                    # ~ 70
+
+                testing_x = [cc_l, 100.0, cc_r, cc_l, 100.0, cc_r, cc_l, 100.0, cc_r]
+                testing_y = [cc_r, cc_r, cc_r, 100.0, 100.0, 100.0, cc_l, cc_l, cc_l]
+                
+                test_values = [ cc_r  cc_l   0.0  cc_d
+                               100.0 100.0  cc_l  cc_r
+                                cc_l  cc_r   0.0  cc_d
+                                cc_r  cc_l cc_d2 cc_d2
+                               100.0 100.0 100.0 100.0
+                                cc_l  cc_r cc_d2 cc_d2
+                                cc_r  cc_l  cc_d   0.0
+                               100.0 100.0  cc_r  cc_l
+                                cc_l  cc_r cc_d    0.0]
+
+                ans = ff.splined_boundary(testing_x, testing_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies)
+                # Test each turbine individually
+                for i in 1:length(test_values)
+                    @test ans[i] ≈ test_values[i] atol=5E-2
+                end
+
+                #-- Multi-turbine circular boundary as a triangle --#
+                # Vertices that keep splines injective (3-corners)
+                bndry_corner_indcies = [1, 101, 151, 201]  # 200 pt circle, 3 corners
+                ans = ff.splined_boundary(testing_x, testing_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies)
+                for i in 1:length(test_values)
+                    @test ans[i] ≈ test_values[i] atol=5E-2
+                end
+            end
+
+            ###### TODO: Rewrite boundary method so it doesn't fail with pt 3 being concave
+            # #-- Multi-turbine circular boundary as a triangle --#
+            # # Vertices that keep splines injective (3-corners)
+            # bndry_corner_indcies = [1, 101, 151, 201]  # 200 pt circle, 3 corners
+            # ans = ff.splined_boundary(testing_x, testing_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies)
+            # # Test each turbine individually
+            # for i in 1:length(test_values)
+            #     @test ans[i] ≈ test_values[i] atol=5E-2
+            # end
+
+            # #-- Multi-turbine convex boundary test --#
+            # bndry_x = [200, 100, 50, 100, 50, 100, 200]
+            # bndry_y = [100, 200, 150, 100, 50, 0, 100]
+            # # Vertices that keep splines injective
+            # bndry_corner_indcies = [1, 3, 4, 5, 7]
+            # # Make a turbine grid inside the circle
+            # testing_x = [ 50, 100, 150,  50, 100, 150,  50, 100, 150]
+            # testing_y = [150, 150, 150, 100, 100, 100,  50,  50,  50]
+
+            # test_values = [150 -50 -50  50
+            #                100   0 -50  50
+            #                 50  50   0 100
+            #                150 -50   0   0
+            #                100   0   0   0
+            #                 50  50  50  50
+            #                150 -50  50 -50
+            #                100   0  50 -50
+            #                 50  50 100   0]
+            # @test ff.splined_boundary(testing_x, testing_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies) == test_values #atol=1E-3
+
+            #-- Multi-turbine concave boundary test --#
+        
+        end
+
+        # @testset "Splined boundary (discreet regions)" begin
+
+        #     @test ff.splined_boundary_discreet_regions(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies, turbs_per_region)
+        
+        # end
+
+
         # @testset "Polygon boundary" begin
 
         #     v = zeros(4,2)
