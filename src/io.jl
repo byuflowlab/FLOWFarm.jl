@@ -95,3 +95,42 @@ function get_wind_rose_YAML(file_name)
 
     return dir, speed, freq, ti
 end
+
+function get_reduced_wind_rose_YAML(file_name)
+    ### Retrieve wind rose data (bins, freqs, speeds) from <.yaml> file.
+    # Only the average wind speeds for each direction are reported.
+
+    # Read in the .yaml file
+    f = YAML.load(open(file_name))
+    props = f["definitions"]["wind_inflow"]["properties"]
+
+    # Rip wind directional bins, their frequency, and the windspeed parameters for each bin
+    # (Convert from <list> to <ndarray>)
+    wind_dir = props["direction"]["bins"]
+    wind_dir_freq = props["direction"]["frequency"]
+    ndirs = length(wind_dir)
+    # (Convert from <list> to <float>)
+    wind_speeds = props["speed"]["bins"]
+    wind_speed_probs = props["speed"]["frequency"]
+    # Get default number of windspeed bins per direction
+    nspeeds = length(wind_speeds)
+    min_speed = props["speed"]["minimum"]
+    max_speed = props["speed"]["maximum"]
+
+    # get ambient ti
+    ti = props["turbulence_intensity"]["default"]
+
+    # convert to flow farm standard format
+    freq = zeros(ndirs)
+    speed = zeros(ndirs)
+    dir = zeros(ndirs)
+
+    # calculate average speed for each direction
+    for i in 1:ndirs
+        freq[i] = wind_dir_freq[i]
+        speed[i] = sum(wind_speeds.*wind_speed_probs[i])
+        dir[i] = wind_dir[i]
+    end
+
+    return dir, speed, freq, ti
+end
