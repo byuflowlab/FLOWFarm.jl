@@ -239,9 +239,6 @@ using LinearAlgebra
             @testset "One Turbine, Circular Boundary" begin
                 #-- One-turbine circular boundary as a square --#
                 # A discretized 20-point circle
-                num_pts = 20
-                circ_radius = 100.0
-                circ_center = [100.0, 100.0]
                 bndry_x_clsd = [200.00, 195.11, 180.90, 158.78, 130.90, 100.00, 69.10, 41.22, 19.10, 4.89, 0.00, 4.89, 19.10, 41.22, 69.10, 100.00, 130.90, 158.78, 180.90, 195.11, 200.00]
                 bndry_y_clsd = [100.00, 130.90, 158.78, 180.90, 195.11, 200.00, 195.11, 180.90, 158.78, 130.90, 100.00, 69.10, 41.22, 19.10, 4.89, 0.00, 4.89, 19.10, 41.22, 69.10, 100.00]
                 # Vertices that keep splines injective (4-corners)
@@ -263,6 +260,8 @@ using LinearAlgebra
                 #-- Multi-turbine circular boundary as a square --#
                 # A discretized 200-point circle
                 num_pts = 200
+                circ_radius = 100.0
+                circ_center = [100.0, 100.0]
                 bndry_x_clsd, bndry_y_clsd = PointsInCircum(circ_center[1], circ_center[2], circ_radius, num_pts)
                 # Vertices that keep splines injective (4-corners)
                 bndry_corner_indcies = [1, 51, 101, 151, 201]  # 200 pt circle, 4 corners
@@ -1362,37 +1361,37 @@ using LinearAlgebra
 
         end
 
-        # @testset "Gaussian TI" begin
+        @testset "Gaussian TI" begin
 
-        #         include("model_sets/model_set_5.jl")
-        #         ambient_ti = 0.137
+                include("model_sets/model_set_5.jl")
+                ambient_ti = 0.137
 
-        #         x = [2.959e-2,            2.219e-1,            4.290e-1,            6.805e-1,
-        #         9.467e-1,            1.287e+0,            1.701e+0,            2.101e+0,
-        #         2.441e+0,            2.811e+0,            3.092e+0,            3.388e+0,
-        #         3.683e+0,            3.979e+0,            4.364e+0,            4.852e+0,
-        #         5.237e+0,            5.740e+0,            6.139e+0,            6.686e+0,
-        #         7.411e+0,            8.166e+0,            8.861e+0,            9.408e+0,
-        #         9.970e+0] .* rotor_diameter
+                x = [2.959e-2,            2.219e-1,            4.290e-1,            6.805e-1,
+                9.467e-1,            1.287e+0,            1.701e+0,            2.101e+0,
+                2.441e+0,            2.811e+0,            3.092e+0,            3.388e+0,
+                3.683e+0,            3.979e+0,            4.364e+0,            4.852e+0,
+                5.237e+0,            5.740e+0,            6.139e+0,            6.686e+0,
+                7.411e+0,            8.166e+0,            8.861e+0,            9.408e+0,
+                9.970e+0] .* rotor_diameter
 
-        #         """paper data from "A new Gaussian-based analytical wake model for wind turbines
-        #         considering ambiend turbulence intensities and thrust coefficient effects" by Ishihara and
-        #         Qian"""
-        #         paper_data = [1.625e-1, 1.841e-1, 2.023e-1, 2.114e-1, 2.149e-1, 2.149e-1, 2.081e-1, 1.991e-1,
-        #             1.900e-1, 1.821e-1, 1.753e-1, 1.697e-1, 1.629e-1, 1.573e-1, 1.505e-1, 1.426e-1,
-        #             1.370e-1, 1.302e-1, 1.234e-1, 1.189e-1, 1.111e-1, 1.032e-1, 9.760e-2, 9.425e-2,
-        #             9.090e-2]
+                """paper data from "A new Gaussian-based analytical wake model for wind turbines
+                considering ambiend turbulence intensities and thrust coefficient effects" by Ishihara and
+                Qian"""
+                paper_data = [1.625e-1, 1.841e-1, 2.023e-1, 2.114e-1, 2.149e-1, 2.149e-1, 2.081e-1, 1.991e-1,
+                    1.900e-1, 1.821e-1, 1.753e-1, 1.697e-1, 1.629e-1, 1.573e-1, 1.505e-1, 1.426e-1,
+                    1.370e-1, 1.302e-1, 1.234e-1, 1.189e-1, 1.111e-1, 1.032e-1, 9.760e-2, 9.425e-2,
+                    9.090e-2]
 
-        #         TI = zeros(length(x))
-        #         for i = 1:length(x)
-        #                 loc = [x[i],0.0,hub_height+rotor_diameter/2.0]
-        #                 TI[i] = ff.GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, sorted_turbine_index, ambient_ti; div_sigma=2.5, div_ti=1.2)
-        #         end
+                TI = zeros(length(x))
+                for i = 1:length(x)
+                        loc = [x[i],0.0,hub_height+rotor_diameter/2.0]
+                        TI[i] = ff.GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, sorted_turbine_index, ambient_ti; div_sigma=2.5, div_ti=1.2)
+                end
 
-        #         tol = 1E-2
-        #         @test TI.-ambient_ti ≈ paper_data atol=tol
+                tol = 1E-2
+                @test TI.-ambient_ti ≈ paper_data atol=tol
 
-        # end
+        end
 
     end
 
