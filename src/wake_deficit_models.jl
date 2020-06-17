@@ -103,9 +103,8 @@ struct GaussYawVariableSpread{TF, ATF} <: AbstractWakeDeficitModel
     wec_factor::ATF
 end
 GaussYawVariableSpread() = GaussYawVariableSpread(2.32, 0.154, 0.3837, 0.003678, [1.0])
-GaussYawVariableSpread(x, y) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, [1.0])
 GaussYawVariableSpread(x, y, z) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, z)
-
+GaussYawVariableSpread(x, y) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, [1.0])
 
 """
     GaussSimple(k, wec_factor)

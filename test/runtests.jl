@@ -692,6 +692,58 @@ using LinearAlgebra
 
         end
 
+        @testset "Gauss Yaw Deflection Variable Spread" begin
+
+            atol = 0.005
+
+            rotor_diameter = 0.15 #[1] p. 509
+            hub_height = 0.125 #[1] p. 509
+            yaw_20 = 20.0*pi/180.0
+            ct = 0.82 # [1] fig. 8
+            constcp = 0.8
+            generator_efficiency = 0.944
+
+            wind_farm_state_id = 1
+            turbine_x = [0.0]
+            turbine_y = [0.0]
+            turbine_z = [0.000022] #[1] p. 509
+            turbine_yaw = [yaw_20]
+            turbine_ct = [ct]
+            turbine_ai = [1.0/3.0]
+            sorted_turbine_index = [1]
+            turbine_inflow_velcity = [8.0]
+            turbine_id = 1
+            turbine_definition_id = 1
+            cut_in_speed = 0.0
+            cut_out_speed = 25.0
+            rated_speed = 12.0
+            rated_power = 1.0176371581904552e6
+
+            ct_model = ff.ThrustModelConstantCt(ct)
+            power_model = ff.PowerModelConstantCp([constcp])
+
+            turbine_definition = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
+
+            turbulence_intensity = 0.07 # this value is just guessed #TODO find data about deflection using this model
+            alpha_star = 2.32 #[1] p. 534
+            beta_star = 0.154 #[1] p. 534
+
+            model = ff.GaussYawVariableSpreadDeflection(alpha_star, beta_star)
+
+            dx4d = 4.0*rotor_diameter
+            dy4d_20 = 0.2684659090909065*rotor_diameter # from [1] figure 21
+
+            dx8d = 8.0*rotor_diameter
+            dy8d_20 = 0.34090909090908905*rotor_diameter # from [1] figure 21
+
+            # test deflection at 4D with yaw 20 deg
+            @test ff.wake_deflection_model([dx4d, dy4d_20, hub_height], turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbulence_intensity, model) ≈ dy4d_20 atol=atol
+
+            # test deflection at 8D with yaw 20 deg
+            @test ff.wake_deflection_model([dx8d, dy8d_20, hub_height], turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbulence_intensity, model) ≈ dy8d_20 atol=atol
+
+        end
+
     end
 
     @testset "Wake Deficit Models" begin
