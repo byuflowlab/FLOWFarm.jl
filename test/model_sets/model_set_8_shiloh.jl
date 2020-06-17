@@ -23,7 +23,7 @@ m = 0
 for i in 1:nturbines
     lat[i] = layout_data.latitude[i]
     long[i] = layout_data.longitude[i]
-    println(layout_data.model[i])
+    # println(layout_data.model[i])
     if ismissing(layout_data.elevation[i])
         hub_height[i] = (layout_data.elevation[i-1] + layout_data.elevation[i+1])/2.0 + layout_data.hub_height[i]
         global m = m + 1
@@ -33,7 +33,8 @@ for i in 1:nturbines
 end
 utm_zone = 10
 turbine_x, turbine_y = ff.latlong_to_xy(lat, long, utm_zone)
-
+# turbine_x = [0.0]
+# turbine_y = [0.0]
 
 # calculate the number of turbines
 nturbines = length(turbine_x)
@@ -123,20 +124,14 @@ plot([minimum(turbine_x),minimum(turbine_x),maximum(turbine_x), maximum(turbine_
 minimum(turbine_x)],[minimum(turbine_y),maximum(turbine_y),maximum(turbine_y),
 minimum(turbine_y),minimum(turbine_y)])
 
-println(minimum(turbine_x))
-println(maximum(turbine_x))
-println(minimum(turbine_y))
-println(maximum(turbine_y))
-
-
 # add final turbine locations to plot
 for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[i]/2.0, fill=false,color="C1", linestyle="--")) 
 end
 
-println(nturbines)
-println(m)
-println(minimum(layout_data.hub_height))
+# println(nturbines)
+# println(m)
+# println(minimum(layout_data.hub_height))
 # # set up and show plot
 # axis("square")
 plt.show()
@@ -144,7 +139,7 @@ plt.show()
 # set flow parameters
 wind_rose_file_name = string("./inputfiles/wind_rose_jepson_prarie.txt")
 winddata = readdlm(wind_rose_file_name, ',', skipstart=9)
-println(winddata)
+# println(winddata)
 speeds = [3.0, 5.0, 7.0, 9.0, 11.0, 13.0]
 winddirections = zeros(length(winddata)*6)
 windspeeds = zeros(length(winddata)*6)
@@ -165,34 +160,34 @@ shearexponent = 0.15
 ambient_tis = zeros(nstates) .+ 0.1
 measurementheight = zeros(nstates) .+ sum(hub_height)/nturbines
 
-# println(maximum(hub_height))
-# println(sum(hub_height)/nturbines)
-# println(minimum(hub_height))
-# continue
-
 # initialize power model
 gepower_model = ff.PowerModelCpPoints(gespeed, gecp)
 mmpower_model = ff.PowerModelCpPoints(mmspeed, mmcp)
 power_models = Vector{typeof(gepower_model)}(undef, nturbines)
 for i = 1:nturbines
-    if model == gemodel
+    if model[i] == gemodel
         power_models[i] = gepower_model
-    elseif model == mmmodel
+    elseif model[i] == mmmodel
         power_models[i] = mmpower_model
+    else
+        throw(UndefVarError(:model))
     end
 end
 
 # initialize thurst model
 gect_model = ff.ThrustModelCtPoints(gespeed, gethrust)
 mmct_model = ff.ThrustModelCtPoints(mmspeed, mmthrust)
-ct_model = Vector{typeof(gect_model)}(undef, nturbines)
+ct_models = Vector{typeof(gect_model)}(undef, nturbines)
 for i = 1:nturbines
-    if model == gemodel
-        ct_model[i] = gect_model
-    elseif model == mmmodel
-        ct_model[i] = mmct_model
+    if model[i] == gemodel
+        ct_models[i] = gect_model
+    elseif model[i] == mmmodel
+        ct_models[i] = mmct_model
+    else
+        throw(UndefVarError(:model))
     end
 end
+
 
 # initialize wind shear model
 wind_shear_model = ff.PowerLawWindShear(shearexponent)

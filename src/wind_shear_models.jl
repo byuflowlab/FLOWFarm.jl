@@ -14,7 +14,7 @@ function adjust_for_wind_shear(loc, reference_velocity, reference_height, ground
     # initialize adjusted wind speed to zero
     adjusted_wind_speed = 0.0
     shear_exp = model.shear_exponent
-
+    
     # check that the point of interest is above ground level
     if loc[3] >= ground_height
         # adjusted wind speed for wind shear if point is above ground

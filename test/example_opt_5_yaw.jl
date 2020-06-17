@@ -11,7 +11,7 @@ function aep_wrapper(x, params)
     turbine_y = params.turbine_y
     rotor_diameter = params.rotor_diameter
     hub_height = params.hub_height
-    ct_model = params.ct_model
+    ct_models = params.ct_models
     generator_efficiency = params.generator_efficiency
     cut_in_speed = params.cut_in_speed
     cut_out_speed = params.cut_out_speed
@@ -32,7 +32,7 @@ function aep_wrapper(x, params)
 
     # calculate AEP
     AEP = obj_scale*ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
-                hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+                hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
                 cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
                 rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z, hours_per_year=365.0*24.0)
     
@@ -50,8 +50,11 @@ function wind_farm_opt(x)
     # set fail flag to false
     fail = false
 
+    c = []
+    dcdx = []
+    
     # return objective, constraint, and jacobian values
-    return AEP, dAEP_dx, fail
+    return AEP, c, dAEP_dx, dcdx, fail
 end
 
 # import model set with wind farm and related details
@@ -71,7 +74,7 @@ struct params_struct{}
     rotor_diameter
     obj_scale
     hub_height
-    ct_model
+    ct_models
     generator_efficiency
     cut_in_speed
     cut_out_speed
@@ -81,9 +84,9 @@ struct params_struct{}
     power_models
 end
 
-params = params_struct(model_set, rotor_points_y, rotor_points_z, turbine_z, turbine_x, turbine_y, 
+params = params_struct(model_set, rotor_points_y, rotor_points_z, turbine_x, turbine_y, turbine_z,
     rotor_diameter, obj_scale, hub_height, 
-    ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, 
+    ct_models, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, 
     windresource, power_models)
 
 # initialize design variable array
@@ -92,8 +95,10 @@ x = zeros(nturbines)
 # report initial objective value
 println("Nturbines: ", nturbines)
 println("Rotor diameter: ", rotor_diameter[1])
+t1 = time()
 println("Starting AEP value (GWh): ", aep_wrapper(x, params)*1e-9/obj_scale)
-
+t2 = time()
+println("AEP calc took ", t2-t1, "sec.")
 # add initial turbine location to plot
 for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
@@ -107,8 +112,8 @@ options["Major optimality tolerance"] = 1e-5
 options["Major iteration limit"] = 1e6
 options["Summary file"] = "summary.out"
 options["Print file"] = "print.out"
-lb = zeros(nturbines) - 30.0*pi/180.0
-ub = zeros(nturbines) + 30.0*pi/180.0
+lb = zeros(nturbines) .- 30.0*pi/180.0
+ub = zeros(nturbines) .+ 30.0*pi/180.0
 
 # generate wrapper function surrogate
 aep_wrapper(x) = aep_wrapper(x, params)

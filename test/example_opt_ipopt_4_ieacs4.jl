@@ -74,7 +74,7 @@ function aep_wrapper(x, params)
     params.rated_speed
     params.rated_power
     params.windresource
-    params.power_model
+    params.power_models
     params.model_set
     params.rotor_points_y
     params.rotor_points_z
@@ -90,7 +90,7 @@ function aep_wrapper(x, params)
     # calculate AEP
     AEP = obj_scale*ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-                cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set,
+                cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
                 rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)
     
     # return the objective as an array
@@ -170,7 +170,6 @@ funcalls_AEP = zeros(Float64, 0)
 global iter_AEP
 global funcalls_AEP
 
-cd("C:\\Users\\wesle\\OneDrive\\Documents\\BYU\\FLOW Lab\\Spring 2020\\flowfarm_concavecontraints\\FlowFarm.jl\\test")
 # import model set with wind farm and related details
 include("./model_sets/model_set_7_ieacs4_reduced_wind_rose.jl")
 
@@ -224,14 +223,14 @@ struct params_struct{}
     rated_speed
     rated_power
     windresource
-    power_model
+    power_models
 end
 
 params = params_struct(model_set, rotor_points_y, rotor_points_z, turbine_z, ambient_ti, 
     rotor_diameter, boundary_vertices_a, boundary_normals_a, boundary_vertices_b, boundary_normals_b,
     boundary_vertices_c, boundary_normals_c, boundary_vertices_d, boundary_normals_d, boundary_vertices_e,
     boundary_normals_e, obj_scale, hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed, 
-    cut_out_speed, rated_speed, rated_power, windresource, power_model)
+    cut_out_speed, rated_speed, rated_power, windresource, power_models)
 
 # initialize design variable array
 x_initial = [copy(turbine_x);copy(turbine_y)]
