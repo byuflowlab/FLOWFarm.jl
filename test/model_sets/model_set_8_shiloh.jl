@@ -51,13 +51,13 @@ gedata = CSV.read(turbge1p5file)
 
 ngepoints = length(gedata.id)
 gespeed = zeros(ngepoints)
-gepower = zeros(ngepoints)
+gecp= zeros(ngepoints)
 gethrust = zeros(ngepoints)
 gerd = gedata.rd[1]
 gemodel = gedata.model[1]
 for i in 1:ngepoints
     gespeed[i] = gedata.wind_speed[i]
-    gepower[i] = gedata.power[i]
+    gecp[i] = gedata.power[i]
     gethrust[i] = gedata.thrust[i]
 end
 
@@ -74,13 +74,13 @@ mmdata = CSV.read(turbmm92file)
 
 nmmpoints = length(mmdata.id)
 mmspeed = zeros(nmmpoints)
-mmpower = zeros(nmmpoints)
+mmcp = zeros(nmmpoints)
 mmthrust = zeros(nmmpoints)
 mmrd = mmdata.rd[1]
 mmmodel = mmdata.model[1]
 for i in 1:nmmpoints
     mmspeed[i] = mmdata.wind_speed[i]
-    mmpower[i] = mmdata.power[i]
+    mmcp[i] = mmdata.power[i]
     mmthrust[i] = mmdata.thrust[i]
 end
 
@@ -91,7 +91,6 @@ mmratedspeed =  10.5
 mmratedpower =  2.0E6
 
 rotor_diameter = zeros(nturbines) # m
-hub_height = zeros(nturbines)   # m
 cut_in_speed = zeros(nturbines)   # m/s
 cut_out_speed = zeros(nturbines)   # m/s
 rated_speed = zeros(nturbines)  # m/s
@@ -164,19 +163,35 @@ winddirections *= pi/180.0
 air_density = 1.1716  # kg/m^3
 shearexponent = 0.15
 ambient_tis = zeros(nstates) .+ 0.1
-measurementheight = zeros(nstates) .+ 80.0
+measurementheight = zeros(nstates) .+ sum(hub_height)/nturbines
+
+# println(maximum(hub_height))
+# println(sum(hub_height)/nturbines)
+# println(minimum(hub_height))
+# continue
 
 # initialize power model
-power_model = ff.PowerModelPowerCurveCubic()
-
-# load thrust curve
-ct = 4.0*(1.0/3.0)*(1.0 - 1.0/3.0)
+gepower_model = ff.PowerModelCpPoints(gespeed, gecp)
+mmpower_model = ff.PowerModelCpPoints(mmspeed, mmcp)
+power_models = Vector{typeof(gepower_model)}(undef, nturbines)
+for i = 1:nturbines
+    if model == gemodel
+        power_models[i] = gepower_model
+    elseif model == mmmodel
+        power_models[i] = mmpower_model
+    end
+end
 
 # initialize thurst model
-ct_model1 = ff.ThrustModelConstantCt(ct)
-ct_model = Vector{typeof(ct_model1)}(undef, nturbines)
+gect_model = ff.ThrustModelCtPoints(gespeed, gethrust)
+mmct_model = ff.ThrustModelCtPoints(mmspeed, mmthrust)
+ct_model = Vector{typeof(gect_model)}(undef, nturbines)
 for i = 1:nturbines
-    ct_model[i] = ct_model1
+    if model == gemodel
+        ct_model[i] = gect_model
+    elseif model == mmmodel
+        ct_model[i] = mmct_model
+    end
 end
 
 # initialize wind shear model
@@ -189,12 +204,11 @@ sorted_turbine_index = sortperm(turbine_x)
 windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, wind_shear_model)
 
 # set up wake and related models
-k = 0.0324555
 wakedeficitmodel = ff.GaussYawVariableSpread()
 
-wakedeflectionmodel = ff.GaussYawVariableSpread()
-wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
-localtimodel = ff.LocalTIModelNoLocalTI()
+wakedeflectionmodel = ff.GaussYawVariableSpreadDeflection()
+wakecombinationmodel = ff.LinearLocalVelocitySuperposition()
+localtimodel = ff.LocalTIModelMaxTI()
 
 # initialize model set
 model_set = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
