@@ -3,6 +3,7 @@ using DelimitedFiles
 using PyPlot
 import ForwardDiff
 
+### JuMP with Ipopt
 
 #---FUNCTIONS FOR CONSTRAINTS---
 
