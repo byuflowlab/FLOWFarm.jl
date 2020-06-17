@@ -3,6 +3,8 @@ using DelimitedFiles
 using PyPlot
 import ForwardDiff
 
+### uses a Julia interface to the Ipopt nonlinear solver
+
 # set up boundary constraint wrapper function
 function boundary_wrapper(x, params)
     # include relevant globals
