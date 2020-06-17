@@ -1,6 +1,7 @@
 """file with functions used in wind farm optimization, including constraints
 created May 4, 2020
 author: PJ Stanley and Jared Thomas
+contributors: Nicholas F. Baker and Wesley Holt
 """
 
 
@@ -32,12 +33,6 @@ function turbine_spacing(turbine_x, turbine_y)
         end
     end
     return spacing_vec
-end
-
-
-function splined_boundary_spacing(turbine_x, turbine_y, spline_list, corner_x, corner_y)
-
-        
 end
 
 """
@@ -102,33 +97,219 @@ end
 
 
 """
-    splined_boundary(boundary_vertices,turbine_x,turbine_y)
+    splined_boundary(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies)
 
 calculate the distance from each turbine to a closed boundary made up of zero or
 more reflex angles (concavities). Boundary will have three or four user-selected
 "corners", such that the "sides" between corners (that will be splined) are
 injective functions (meaning that for every x-coord,there exists only one
 corresponding y-coord). Returns four values for every turbine, corresponding to
-upper, lower, left, and right splined "sides". A negative return value means the
-turbine is outside the boundary for that corresponding "side".
+the distance from the turb to the upper, lower, left, and right splined "sides".
+A negative return value means the turb is outside the boundary for that "side".
+Returns a single array of {Float64} of length {length(turbine_x) * 4}. Note that
+all boundary coordinates must be in the first quadrant of the Cartesian
+coordinate system (+x and +y values only)
 
 # Arguments
-- `boundary_vertices::Array{Float,2}`: vertices of the concave hull CCW in 
-        order s.t. boundaryVertices[0] is the NE corner of boundary
-- `boundary_corners::Array{Float}`: An array of 3 or 4 indicies in boundary_vertices
-        that correspond to the four "corners" used between splined "sides"
 - `turbine_x::Array{Float}`: turbine x locations
 - `turbine_y::Array{Float}`: turbine y locations
+- `bndry_x_clsd::Array{Float}`: x locations of boundary vertices, CCW in
+        order s.t. boundaryVertices[0] is the NE corner of boundary, and with
+        the first vertex duplicated at the end for completeness of calcs.
+- `bndry_y_clsd::Array{Float}`: y locations of boundary vertices, CCW in
+        order s.t. boundaryVertices[0] is the NE corner of boundary, and with
+        the first vertex duplicated at the end for completeness of calcs.
+- `bndry_corner_indcies::Array{Float}`: An array of 3 or 4 indicies in the
+        bndry_x/y_clsd arrays that correspond to the three four "corners" used
+        between splined "sides"
 """
-function splined_boundary(boundary_vertices, boundary_corners, turbine_x, turbine_y)
-    nturbines = length(turbine_x)
-    nVertices = size(boundary_vertices)[1]
+function splined_boundary(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies)
+    """ Returns if the passed turbines are within the passed closed boundary """
+    num_turbs = Int8(length(turbine_x))
+    num_sides = Int8(length(bndry_corner_indcies)-1)
+    x_min_indx = 3                      # Default to work w/ squared boundaries
+    if num_sides == 3                   # If we only have 3 corners
+        x_min_indx = 2                  # denote that it's a triangle boundary
+    end
 
-    # Read in boundary
-    # Spline sides
-    # Use UpDwnYVals()
+    # Check to make sure our points are in
+    bndry_cons = zeros(typeof(turbine_x[1]),(num_turbs, 4))   # 4 values (2 x and 2 y) for each turb
 
-end 
+    x_max = bndry_x_clsd[bndry_corner_indcies[1]]           # Our maximum x-value
+    x_min = bndry_x_clsd[bndry_corner_indcies[x_min_indx]]  # Our min x-value
+
+    # For every turbine
+    for cntr in 1:num_turbs
+        #- Calc x-vals
+        bndry_cons[cntr,1] = (x_max - turbine_x[cntr])   # Positive good, neg bad
+        bndry_cons[cntr,2] = (turbine_x[cntr] - x_min)   # pos good, neg bad
+
+        #- Calc y-vals
+        y_max,y_min = getUpDwnYvals(turbine_x[cntr], bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies)
+        bndry_cons[cntr,3] = (y_max - turbine_y[cntr])
+        bndry_cons[cntr,4] = (turbine_y[cntr] - y_min)
+    end
+
+    # Debug code to print the constraint values
+    # for i in 1:sum(num_turbs)
+    #     @printf("%e %e %e %e\n", bndry_cons[i,1], bndry_cons[i,2], bndry_cons[i,3] ,bndry_cons[i,4])
+    # end
+
+    return collect(bndry_cons)
+end
+
+"""
+    splined_boundary_discreet_regions(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies, turbs_per_region)
+
+Uses FlowFarm's splined_boundary() function to calculate the turbine-boundary
+constraints for one or more discreet regions, with pre-allocated turbines
+for each region. Returns four values for every turbine, corresponding to the
+distance from each turb to the upper, lower, left, and right splined "sides" for
+the region to which it was allocated. A negative return value means the turb is
+outside the "side" of boundary for which it has been allocated. Returns a single
+array of {Float64} of length {length(turbine_x) * 4}. Note that all boundary
+coordinates must be in the first quadrant of the Cartesian coordinate system
+(+x and +y values only)
+
+# Arguments
+- `turbine_x::Array{Float}`: turbine x locations
+- `turbine_y::Array{Float}`: turbine y locations
+- `bndry_x_clsd::Array{Float}`: x locations of boundary vertices, CCW in
+        order s.t. boundaryVertices[0] is the NE corner of boundary, and with
+        the first vertex duplicated at the end for completeness of calcs.
+- `bndry_y_clsd::Array{Float}`: y locations of boundary vertices, CCW in
+        order s.t. boundaryVertices[0] is the NE corner of boundary, and with
+        the first vertex duplicated at the end for completeness of calcs.
+- `bndry_corner_indcies::Array{Float}`: An array of 3 or 4 indicies in the
+        bndry_x/y_clsd arrays that correspond to the three four "corners" used
+        between splined "sides"
+- 'turbs_per_region::Array{Int}`: An array of length equivalent to the number of
+        discrete boundary regions, with each element denoting howmany turbines
+        are apportioned to the corresponding region. sum(turbs_per_region) must
+        be equivalent to the total number of turbines in the windfarm
+"""
+function splined_boundary_discreet_regions(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies, turbs_per_region)
+    """ Goes through numerous discrete splined-boundary regions and returns if the apportioned turbines are within their region """
+    num_regions = length(turbs_per_region)
+    bndry_constraints = [ Float64[] for i in 1:num_regions ]  # To hold cnstrnts
+
+    #-- Loop through and do all regions --#
+    prev_turb_index = 1
+    for cntr in 1:num_regions
+        next_turb_index = ((turbs_per_region[cntr]-1) + prev_turb_index)  # Next index for our Turbines
+        region_turbine_x = turbine_x[prev_turb_index:next_turb_index]   # Simplified list of turbines preallocated to this region
+        region_turbine_y = turbine_y[prev_turb_index:next_turb_index]
+        bndry_constraints[cntr] = append!(bndry_constraints[cntr],splined_boundary(region_turbine_x, region_turbine_y, bndry_x_clsd[cntr], bndry_y_clsd[cntr], bndry_corner_indcies[cntr]))
+        prev_turb_index = (turbs_per_region[cntr] + prev_turb_index)
+    end
+
+    # Make it a long 1D array for SNOPT
+    bndry_constraints = collect(Iterators.Flatten(bndry_constraints))
+    return bndry_constraints
+end
+
+
+"""
+    getUpDwnYvals(turbine_x, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies)
+
+Supplements FlowFarm's splined_boundary() function by calculating (for a given x
+location) the maximum and minimum y-value permitted to remain "inside" the
+boundary. If turbine_x is located left of the boundary's leftmost vertex or
+right of the boundary's rightmost vertex, it return's that corresponding
+vertex's y-value as the max and min, as default. Returns two values, the minimum
+and maximum interior y-values withing a boundary for the given turbine_x value.
+Note that all boundary coordinates must be in the first quadrant of the
+Cartesian coordinate system (+x and +y values only)
+
+# Arguments
+- `turbine_x::Array{Float}`: x-value of the turbine being examined
+- `bndry_x_clsd::Array{Float}`: x locations of boundary vertices, CCW in
+        order s.t. boundaryVertices[0] is the NE corner of boundary, and with
+        the first vertex duplicated at the end for completeness of calcs.
+- `bndry_y_clsd::Array{Float}`: y locations of boundary vertices, CCW in
+        order s.t. boundaryVertices[0] is the NE corner of boundary, and with
+        the first vertex duplicated at the end for completeness of calcs.
+- `bndry_corner_indcies::Array{Float}`: An array of 3 or 4 indicies in the
+        bndry_x/y_clsd arrays that correspond to the three four "corners" used
+        between splined "sides"
+"""
+function getUpDwnYvals(turbine_x, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies)
+    # Given that there are 4 "sides" (with 3&4 below, 1&2 above),
+    # returns the splined y-vals the given x-coord falls between
+    bool_triangle = false                # Default to work w/ squared boundaries
+    if length(bndry_corner_indcies) == 4 # If we only have 3 corners (4 closed)
+        bool_triangle = true             # denote that it's a triangle boundary
+    end
+
+    #-- Upper edge calculation
+    if (bool_triangle) # If we're dealing with a 3-sided boundary
+        # If it's out of bounds to the left of the upper boundary
+        if (turbine_x <= bndry_x_clsd[bndry_corner_indcies[2]])
+            # Give it the y-value of our leftmost point
+            y_max = bndry_y_clsd[bndry_corner_indcies[2]]
+        # If it's right of the leftmost corner, but left of the rightmost corner
+        elseif (turbine_x < bndry_x_clsd[bndry_corner_indcies[1]])
+            y_max = linear(bndry_x_clsd[bndry_corner_indcies[2]:-1:bndry_corner_indcies[1]],
+                            bndry_y_clsd[bndry_corner_indcies[2]:-1:bndry_corner_indcies[1]], turbine_x)  # Make it the left upper spline #############
+        else # Otherwise it's right of our top right corner
+            # Give it the y-value of our rightmost corner
+            y_max = bndry_y_clsd[bndry_corner_indcies[1]]
+        end
+    else # If we're dealing with a 4-sided boundary
+        # If left of the bottom left corner
+        if (turbine_x <= bndry_x_clsd[bndry_corner_indcies[3]])
+            # Give it the y-value of our bottom left corner
+            y_max = bndry_y_clsd[bndry_corner_indcies[3]]
+        # If it's to the left of the right upper spline
+        elseif (turbine_x < bndry_x_clsd[bndry_corner_indcies[2]])
+            y_max = linear(bndry_x_clsd[bndry_corner_indcies[3]:-1:bndry_corner_indcies[2]],
+                            bndry_y_clsd[bndry_corner_indcies[3]:-1:bndry_corner_indcies[2]], turbine_x)
+        # If it's to the left of the rightmost point
+        elseif (turbine_x < bndry_x_clsd[bndry_corner_indcies[1]])
+            y_max = linear(bndry_x_clsd[bndry_corner_indcies[2]:-1:bndry_corner_indcies[1]],
+                            bndry_y_clsd[bndry_corner_indcies[2]:-1:bndry_corner_indcies[1]], turbine_x)
+        else # Otherwise, if it's out of bounds to the right
+            # Give it the y-value of our rightmost point
+            y_max = bndry_y_clsd[bndry_corner_indcies[1]]
+        end
+    end
+    #-- Lower edge calculation.
+    if (bool_triangle)
+        # If it's to the left of the leftmost lower spline
+        if (turbine_x <= bndry_x_clsd[bndry_corner_indcies[2]])
+            y_min = bndry_y_clsd[bndry_corner_indcies[2]] # leftmost y-value is corner #2
+        elseif (turbine_x < bndry_x_clsd[bndry_corner_indcies[3]])
+            # Spline from bottom left to bottom middle
+            y_min = linear(bndry_x_clsd[bndry_corner_indcies[2]:bndry_corner_indcies[3]],
+                            bndry_y_clsd[bndry_corner_indcies[2]:bndry_corner_indcies[3]], turbine_x)
+        elseif (turbine_x < bndry_x_clsd[bndry_corner_indcies[1]])
+            # Spline from bottom middle to bottom right
+            y_min = linear(bndry_x_clsd[bndry_corner_indcies[3]:bndry_corner_indcies[4]],
+                            bndry_y_clsd[bndry_corner_indcies[3]:bndry_corner_indcies[4]], turbine_x)
+        else
+            # Give it the y-value of our rightmost point
+            y_min = bndry_y_clsd[bndry_corner_indcies[1]]
+        end
+    else # if it's a square
+        # If it's to the left of the leftmost lower spline
+        if (turbine_x <= bndry_x_clsd[bndry_corner_indcies[3]])
+            y_min = bndry_y_clsd[bndry_corner_indcies[3]] # leftmost y-value is corner #3
+        elseif (turbine_x < bndry_x_clsd[bndry_corner_indcies[4]])
+            # Spline from bottom left to bottom middle
+            y_min = linear(bndry_x_clsd[bndry_corner_indcies[3]:bndry_corner_indcies[4]],
+                            bndry_y_clsd[bndry_corner_indcies[3]:bndry_corner_indcies[4]], turbine_x)
+        elseif (turbine_x < bndry_x_clsd[bndry_corner_indcies[5]])
+            # Spline from bottom middle to bottom right
+            y_min = linear(bndry_x_clsd[bndry_corner_indcies[4]:bndry_corner_indcies[5]],
+                            bndry_y_clsd[bndry_corner_indcies[4]:bndry_corner_indcies[5]], turbine_x)
+        else
+            # Give it the y-value of our rightmost point
+            y_min = bndry_y_clsd[bndry_corner_indcies[1]]
+        end
+    end
+
+    return y_max, y_min
+end
 
 """
     ray_trace_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_y)
