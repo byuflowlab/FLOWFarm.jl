@@ -182,6 +182,7 @@ aep_wrapper(x) = aep_wrapper(x, params)
 boundary_wrapper(x) = boundary_wrapper(x, params)
 
 # run and time optimization
+println
 t1 = time()
 xopt, fopt, info = snopt(obj_func, x, lb, ub, options)
 t2 = time()

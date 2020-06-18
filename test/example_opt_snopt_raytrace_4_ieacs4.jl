@@ -1,4 +1,4 @@
-using Ipopt
+using Snopt
 using DelimitedFiles 
 using PyPlot
 import ForwardDiff
@@ -63,23 +63,23 @@ end
 # set up objective wrapper function
 function aep_wrapper(x, params)
     # include relevant globals
-    params.turbine_z
-    params.rotor_diameter
-    params.hub_height
-    params.turbine_yaw
-    params.ct_model
-    params.generator_efficiency
-    params.cut_in_speed
-    params.cut_out_speed
-    params.rated_speed
-    params.rated_power
-    params.windresource
-    params.power_models
-    params.model_set
-    params.rotor_points_y
-    params.rotor_points_z
-    params.obj_scale
-    
+    turbine_z = params.turbine_z
+    rotor_diameter = params.rotor_diameter
+    hub_height = params.hub_height
+    turbine_yaw = params.turbine_yaw
+    ct_model = params.ct_model
+    generator_efficiency = params.generator_efficiency
+    cut_in_speed = params.cut_in_speed
+    cut_out_speed = params.cut_out_speed
+    rated_speed = params.rated_speed
+    rated_power = params.rated_power
+    windresource = params.windresource
+    power_models = params.power_models
+    model_set = params.model_set
+    rotor_points_y = params.rotor_points_y
+    rotor_points_z = params.rotor_points_z
+    obj_scale = params.obj_scale
+
     # get number of turbines
     nturbines = Int(length(x)/2)
 
@@ -92,83 +92,52 @@ function aep_wrapper(x, params)
                 hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
                 cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
                 rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)
-    
+
     # return the objective as an array
     return [AEP]
 end
 
-# objective function
-function obj(x) 
-    global funcalls_AEP
-    AEP = -aep_wrapper(x)[1]
-    append!(funcalls_AEP, -AEP)
-    return AEP
-end
+# set up optimization problem wrapper function
+function wind_farm_opt(x, params)
+    it = params.it
 
-# constraint function
-function con(x, g)
-    # calculate spacing constraint value
+    # calculate spacing constraint value and jacobian
     spacing_con = spacing_wrapper(x)
+    ds_dx = ForwardDiff.jacobian(spacing_wrapper, x)
 
-    # calculate boundary constraint
+    # calculate boundary constraint and jacobian
     boundary_con = boundary_wrapper(x)
+    db_dx = ForwardDiff.jacobian(boundary_wrapper, x)
 
-    # combine spacing and boundary constraint values
-    g[:] = [spacing_con; boundary_con]
-end
+    # # combine constraint jacobians into an overall array of constraint derivatives
+    # for i = 1:prob.m
+    #     for j = 1:prob.n
+    #         values[(i-1)*prob.n+j] = [ds_dx; db_dx][i, j]
+    #     end
+    # end
 
-# objective gradient function
-function obj_grad(x, grad_f)
-    grad_f[:] = -ForwardDiff.jacobian(aep_wrapper,x)
-end
+    # combine constaint values and jacobians into overall constaint value and jacobian arrays
+    c = [spacing_con; boundary_con]
+    dcdx = [ds_dx; db_dx]
 
-# constraint gradients function
-function con_grad(x, mode, rows, cols, values)
-    if mode == :Structure
-        # report the sparcity structure of the jacobian
-        for i = 1:prob.m
-            rows[(i-1)*prob.n+1:i*prob.n] = i*ones(Int,prob.n)
-            cols[(i-1)*prob.n+1:i*prob.n] = 1:prob.n
-        end
-        return rows, cols
-    else
-        # calculate spacing constraint jacobian
-        ds_dx = ForwardDiff.jacobian(spacing_wrapper, x)
+    # calculate the objective function and jacobian (negative sign in order to maximize AEP)
+    AEP = -aep_wrapper(x)[1]
+    dAEP_dx = -ForwardDiff.jacobian(aep_wrapper,x)
 
-        # calculate boundary constraint jacobian
-        db_dx = ForwardDiff.jacobian(boundary_wrapper, x)
+    it[1] += 1
+    params.funcalls_AEP[it[1]] = it[1]
+    params.iter_AEP[it[1]] = -AEP
 
-        # combine constraint jacobians into an overall array of constraint derivatives
-        for i = 1:prob.m
-            for j = 1:prob.n
-                values[(i-1)*prob.n+j] = [ds_dx; db_dx][i, j]
-            end
-        end
-    end
-    return values
-end
+    # set fail flag to false
+    fail = false
 
-# this function will be called at each iteration of the optimization
-function intermediate(
-    alg_mod::Int,
-    iter_count::Int,
-    obj_value::Float64,
-    inf_pr::Float64, inf_du::Float64,
-    mu::Float64, d_norm::Float64,
-    regularization_size::Float64,
-    alpha_du::Float64, alpha_pr::Float64,
-    ls_trials::Int)
-    global iter_AEP
-    append!(iter_AEP, -obj_value)
-    
-    return true
+    # return objective, constraint, and jacobian values
+    return AEP, c, dAEP_dx, dcdx, fail
 end
 
 # set globals for iteration history
-iter_AEP = zeros(Float64, 0)
-funcalls_AEP = zeros(Float64, 0)
-global iter_AEP
-global funcalls_AEP
+iter_AEP = zeros(Float64, 10000)
+funcalls_AEP = zeros(Float64, 10000)
 
 # import model set with wind farm and related details
 include("./model_sets/model_set_7_ieacs4_reduced_wind_rose.jl")
@@ -224,16 +193,20 @@ struct params_struct{}
     rated_power
     windresource
     power_models
+    iter_AEP
+    funcalls_AEP
+    it
 end
 
 params = params_struct(model_set, rotor_points_y, rotor_points_z, turbine_z, ambient_ti, 
     rotor_diameter, boundary_vertices_a, boundary_normals_a, boundary_vertices_b, boundary_normals_b,
     boundary_vertices_c, boundary_normals_c, boundary_vertices_d, boundary_normals_d, boundary_vertices_e,
     boundary_normals_e, obj_scale, hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed, 
-    cut_out_speed, rated_speed, rated_power, windresource, power_models)
+    cut_out_speed, rated_speed, rated_power, windresource, power_models, iter_AEP, funcalls_AEP, [0])
 
 # initialize design variable array
 x_initial = [copy(turbine_x);copy(turbine_y)]
+x = [copy(turbine_x);copy(turbine_y)]
 
 # add initial turbine location to plot
 plt.clf()
@@ -257,19 +230,20 @@ ub = ones(n_designvariables) * Inf
 lb_g = ones(n_constraints) * -Inf
 ub_g = zeros(n_constraints)
 
-# create the problem
-prob = createProblem(n_designvariables, lb, ub, n_constraints, lb_g, ub_g, n_designvariables*n_constraints, 0,
-    obj, con, obj_grad, con_grad)
-addOption(prob, "hessian_approximation", "limited-memory")
-prob.x = deepcopy(x_initial)
-
-# set intermediate function to be ran at every iteration
-setIntermediateCallback(prob, intermediate)
-
 # generate wrapper function surrogates
 spacing_wrapper(x) = spacing_wrapper(x, params)
 aep_wrapper(x) = aep_wrapper(x, params)
 boundary_wrapper(x) = boundary_wrapper(x, params)
+wind_farm_opt(x) = wind_farm_opt(x, params)
+
+# set up options for SNOPT
+options = Dict{String, Any}()
+options["Derivative option"] = 1
+options["Verify level"] = 1
+options["Major optimality tolerance"] = 1e-5
+options["Major iteration limit"] = 1e6
+options["Summary file"] = "summary.out"
+options["Print file"] = "print.out"
 
 # print initial objective value
 println("nturbines: ", nturbines)
@@ -278,12 +252,9 @@ println("starting AEP value (MWh): ", aep_wrapper(x_initial)[1]*1E5)
 
 # run and time optimization
 t1 = time()
-status = solveProblem(prob)
+xopt, fopt, info = snopt(wind_farm_opt, x, lb, ub, options)
 t2 = time()
-clkt = t2-t1
-xopt = prob.x
-fopt = prob.obj_val
-info = Ipopt.ApplicationReturnStatus[status]
+clkt = t2-t2
 
 # print optimization results
 println("Finished in : ", clkt, " (s)")
@@ -311,7 +282,7 @@ axis("square")
 xlim(0, 11000)
 ylim(-500, 13000)
 plt.show()
-savefig("ipoptresults_turbinelayout.png")
+savefig("snoptresults_turbinelayout.png")
 
 # create obj value history plots
 plt.clf()
@@ -319,17 +290,17 @@ plt.gcf().gca().plot(1:length(funcalls_AEP), funcalls_AEP)
 title("Objective Value History")
 xlabel("Function Call")
 ylabel("AEP (TWh)")
-savefig("ipoptresults_plot_AEP_history_by_funcall.png")
+savefig("snoptresults_plot_AEP_history_by_funcall.png")
 
 plt.clf()
 plt.gcf().gca().plot(1:length(iter_AEP), iter_AEP)
 title("Objective Value at Each Iteration")
 xlabel("Iteration")
 ylabel("AEP (TWh)")
-savefig("ipoptresults_plot_AEP_history_by_iter.png")
+savefig("snoptresults_plot_AEP_history_by_iter.png")
 
 # write text file with optimization summary info
-io = open("ipoptresults_summary.txt", "a")
+io = open("snoptresults_summary.txt", "a")
 write(io, "number of turbines: ")
 writedlm(io, nturbines)
 write(io, "rotor diameter: ")
