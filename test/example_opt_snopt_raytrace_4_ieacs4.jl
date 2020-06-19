@@ -91,7 +91,7 @@ function aep_wrapper(x, params)
     AEP = obj_scale*ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
                 cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
-                rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)
+                rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z, hours_per_year=365.0*24.0)
 
     # return the objective as an array
     return [AEP]
@@ -140,7 +140,7 @@ iter_AEP = zeros(Float64, 10000)
 funcalls_AEP = zeros(Float64, 10000)
 
 # import model set with wind farm and related details
-include("./model_sets/model_set_7_ieacs4_reduced_wind_rose.jl")
+include("./model_sets/model_set_7_ieacs4.jl")
 
 # scale objective to be between 0 and 1
 obj_scale = 1E-12
@@ -239,11 +239,11 @@ wind_farm_opt(x) = wind_farm_opt(x, params)
 # set up options for SNOPT
 options = Dict{String, Any}()
 options["Derivative option"] = 1
-options["Verify level"] = 1
-options["Major optimality tolerance"] = 1e-5
+options["Verify level"] = 0
+options["Major optimality tolerance"] = 1e-6
 options["Major iteration limit"] = 1e6
-options["Summary file"] = "summary.out"
-options["Print file"] = "print.out"
+options["Summary file"] = "./snopt_summarycs4.out"
+options["Print file"] = "./snopt_printcs4.out"
 
 # print initial objective value
 println("nturbines: ", nturbines)

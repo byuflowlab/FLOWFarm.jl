@@ -196,7 +196,7 @@ wind_shear_model = ff.PowerLawWindShear(shearexponent)
 sorted_turbine_index = sortperm(turbine_x)
 
 # initialize the wind resource definition
-windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, wind_shear_model)
+windresource = ff.DiscretizedWindResource([winddirections[1]], [windspeeds[1]], [windprobabilities[1]], [measurementheight[1]], air_density, [ambient_tis[1]], wind_shear_model)
 
 # set up wake and related models
 wakedeficitmodel = ff.GaussYawVariableSpread()

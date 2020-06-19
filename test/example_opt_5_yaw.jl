@@ -107,27 +107,48 @@ end
 # set up options for SNOPT
 options = Dict{String, Any}()
 options["Derivative option"] = 1
-options["Verify level"] = 3
+options["Verify level"] = 0
 options["Major optimality tolerance"] = 1e-5
 options["Major iteration limit"] = 1e6
-options["Summary file"] = "summary.out"
-options["Print file"] = "print.out"
+options["Summary file"] = "snopt_yaw_summary.out"
+options["Print file"] = "snopt_yaw_print.out"
 lb = zeros(nturbines) .- 30.0*pi/180.0
 ub = zeros(nturbines) .+ 30.0*pi/180.0
 
 # generate wrapper function surrogate
 aep_wrapper(x) = aep_wrapper(x, params)
 
+# set up holders for optimized yaw values for each state
+optyaw = zeros((nstates,nturbines))
+diraep = zeros(nstates)
 # run and time optimization
 t1 = time()
-xopt, fopt, info = snopt(aep_wrapper, x, lb, ub, options)
+for i in 1:nstates
+    println("Optimizing for state: ", i)
+    println("Direction: ", winddirections[i])
+    println("Wind speed: ", windspeeds[i])
+    println("Probability: ", windprobabilities[i])
+    params.windresource.wind_directions[1] = winddirections[i]
+    params.windresource.wind_speeds[1] = windspeeds[i]
+    params.windresource.wind_probabilities[1] = windprobabilities[i]
+    params.windresource.measurement_heights[1] = measurementheight[i]
+    params.windresource.ambient_tis[1] = ambient_tis[i]
+    x = zeros(nturbines)
+    xopt, fopt, info = snopt(wind_farm_opt, x, lb, ub, options)
+
+    diraep[i] = fopt
+    for j in 1:nturbines
+        optyaw[i,j] = xopt[j]
+    end
+end
+
 t2 = time()
 clkt = t2-t2
 
 # print optimization results
 println("Finished in : ", clkt, " (s)")
 println("info: ", info)
-println("end objective value: ", aep_wrapper(xopt))
+println("end AEP value: ", sum(diraep))
 
 # add final turbine locations to plot
 for i = 1:length(turbine_x)

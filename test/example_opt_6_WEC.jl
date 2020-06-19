@@ -157,7 +157,7 @@ ub = zeros(length(x)) .+ boundary_radius
 # set up options for SNOPT
 options = Dict{String, Any}()
 options["Derivative option"] = 1
-options["Verify level"] = 3
+options["Verify level"] = 0
 options["Major optimality tolerance"] = 1e-6
 options["Major iteration limit"] = 1e6
 options["Summary file"] = "summary.out"
@@ -170,7 +170,7 @@ boundary_wrapper(x) = boundary_wrapper(x, params)
 obj_func(x) = wind_farm_opt(x)
 
 # set up for WEC optimization
-wec_steps = 6
+wec_steps = 2
 wec_max = 3.0
 wec_end = 1.0
 wec_values = collect(LinRange(wec_max, wec_end, wec_steps))
