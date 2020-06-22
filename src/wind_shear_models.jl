@@ -9,16 +9,16 @@ end
 
 #TODO add log shear
 
-function adjust_for_wind_shear(loc, reference_velocity, reference_height, ground_height, model::PowerLawWindShear)
+function adjust_for_wind_shear(locz, reference_velocity, reference_height, ground_height, model::PowerLawWindShear)
 
     # initialize adjusted wind speed to zero
     adjusted_wind_speed = 0.0
     shear_exp = model.shear_exponent
     
     # check that the point of interest is above ground level
-    if loc[3] >= ground_height
+    if locz >= ground_height
         # adjusted wind speed for wind shear if point is above ground
-        adjusted_wind_speed = reference_velocity*((loc[3]-ground_height)/(reference_height-ground_height))^shear_exp
+        adjusted_wind_speed = reference_velocity*((locz-ground_height)/(reference_height-ground_height))^shear_exp
     end
 
     return adjusted_wind_speed
