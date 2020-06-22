@@ -56,10 +56,10 @@ ctvelpoints = ctdata[:,1]
 ctpoints = ctdata[:,2]
 
 # initialize thurst model
-ct_model1 = ff.ThrustModelCtPoints(ctvelpoints, ctpoints)
-ct_models = Vector{typeof(ct_model1)}(undef, nturbines)
+ct_model = ff.ThrustModelCtPoints(ctvelpoints, ctpoints)
+ct_models = Vector{typeof(ct_model)}(undef, nturbines)
 for i = 1:nturbines
-    ct_models[i] = ct_model1
+    ct_models[i] = ct_model
 end
 
 # initialize wind shear model
