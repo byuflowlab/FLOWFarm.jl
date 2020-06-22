@@ -15,7 +15,7 @@ turbine_y = turbine_y .- turbine_y[1]
 nturbines = length(turbine_x)
 
 # set turbine base heights
-turbine_z = zeros(nturbines)
+turbine_z = zeros(nturbines) .+ 0.0
 
 # set turbine yaw values
 turbine_yaw = zeros(nturbines)
@@ -84,7 +84,7 @@ wakedeficitmodel = ff.GaussYawVariableSpread()
 
 wakedeflectionmodel = ff.GaussYawVariableSpreadDeflection()
 wakecombinationmodel = ff.LinearLocalVelocitySuperposition()
-localtimodel = ff.LocalTIModelMaxTI()
+localtimodel = ff.LocalTIModelNoLocalTI()
 
 # initialize model set
 model_set = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)

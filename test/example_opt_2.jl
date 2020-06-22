@@ -83,14 +83,14 @@ function wind_farm_opt(x)
 end
 
 # set globals for use in wrapper functions
-struct params_struct2{MS, AF, I, ACTM, WR, APM}
+struct params_struct2{MS, AF, F, I, ACTM, WR, APM}
     model_set::MS
     rotor_points_y::AF
     rotor_points_z::AF
     turbine_z::AF
     rotor_diameter::AF
     boundary_center::AF
-    boundary_radius::AF
+    boundary_radius::F
     obj_scale::I
     hub_height::AF
     turbine_yaw::AF
