@@ -130,7 +130,7 @@ function point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbi
             vertical_deflection = 0.0
 
             # velocity difference in the wake
-            deltav = wake_deficit_model(loc, turbine_x, turbine_y, turbine_z, [horizontal_deflection,vertical_deflection],
+            deltav = wake_deficit_model(loc, turbine_x, turbine_y, turbine_z, horizontal_deflection, vertical_deflection,
                             upwind_turb_id, hub_height, rotor_diameter, turbine_ai,
                             turbine_local_ti, turbine_ct, turbine_yaw, wakedeficitmodel)
 
