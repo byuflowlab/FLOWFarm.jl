@@ -122,7 +122,7 @@ params = params_struct2(model_set, rotor_points_y, rotor_points_z, turbine_z,
 
 # initialize design variable array
 x = [copy(turbine_x);copy(turbine_y)]
-
+xinit = deepcopy(x)
 # report initial objective value
 println("starting objective value: ", aep_wrapper(x, params)[1])
 
