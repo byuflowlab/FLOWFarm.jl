@@ -1,23 +1,29 @@
+using FlowFarm; const ff = FlowFarm
 using Snopt
 using DelimitedFiles 
 using PyPlot
 import ForwardDiff
+import YAML
+using CSV
+include("iea37_specific_functions.jl")
 
 # set up boundary constraint wrapper function
 function boundary_wrapper(x, params)
     # include relevant globals
-    params.boundary_center
-    params.boundary_radius
+    params.bndry_x_clsd
+    params.bndry_y_clsd
+    params.bndry_corner_indcies
+    params.turbs_per_region
 
     # get number of turbines
     nturbines = Int(length(x)/2)
-    
+
     # extract x and y locations of turbines from design variables vector
     turbine_x = x[1:nturbines]
     turbine_y = x[nturbines+1:end]
 
     # get and return boundary distances
-    return ff.circle_boundary(boundary_center, boundary_radius, turbine_x, turbine_y)
+    return ff.splined_boundary_discreet_regions(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies, turbs_per_region)
 end
 
 # set up spacing constraint wrapper function
@@ -105,10 +111,6 @@ include("./model_sets/model_set_7_ieacs4.jl")
 # scale objective to be between 0 and 1
 obj_scale = 1E-11
 
-# set wind farm boundary parameters
-boundary_center = [0.0,0.0]
-boundary_radius = 3000.0
-
 # set globals for use in wrapper functions
 struct params_struct{}
     model_set
@@ -117,8 +119,10 @@ struct params_struct{}
     turbine_z
     ambient_ti
     rotor_diameter
-    boundary_center
-    boundary_radius
+    bndry_x_clsd
+    bndry_y_clsd
+    bndry_corner_indcies
+    turbs_per_region
     obj_scale
     hub_height
     turbine_yaw
@@ -132,16 +136,71 @@ struct params_struct{}
     power_model
 end
 
+#--- Read in windfarm boundary data ---#
+# Which case study we're doing. 'cs3' or 'cs4'
+str_case = "4"
+nNumRegions = 5     # Number of reigons we're using (cs4 = 5, cs3 = 1)
+#- Rip the boundary coordinates from the .yaml file -#
+file_dir = "./inputfiles/"
+bnry_file_name_orig = "iea37-boundary-cs" * str_case * ".yaml"
+bnry_file_name = string(file_dir,bnry_file_name_orig)
+bndry_x, bndry_y = getBndryCs4YAML(bnry_file_name)
+bndry_x_clsd, bndry_y_clsd = ff.closeBndryLists(bndry_x, bndry_y)
+
+#--- Read in turbine data to calculate AEP ---#
+file_name_orig = "iea37-ex-opt" * str_case * ".yaml"
+file_name = string(file_dir,file_name_orig)
+# Get turbine locations
+turbine_x, turbine_y, fname_turb_orig, fname_wr_orig  = ff.get_turb_loc_YAML(file_name)
+fname_turb = string(file_dir,fname_turb_orig)
+fname_wr = string(file_dir,fname_wr_orig)
+# Get turbine attributes
+turb_ci, turb_co, rated_ws, rated_pwr, rotor_diameter, turb_height = ff.get_turb_atrbt_YAML(fname_turb)
+# Get windrose data
+wind_dir, wind_speed, wind_freq, wind_ti = ff.get_wind_rose_YAML(fname_wr)
+
+#--- Read in random turbine locations ---#
+# Make an array of the number of turbines in each region
+turbs_per_region = zeros(Int8, nNumRegions)  # Preallocated turbines in each region
+bndry_corner_indcies = [ Int64[] for i in 1:nNumRegions ]
+for cntr in 1:nNumRegions
+    bndry_corner_indcies[cntr] =
+        append!(bndry_corner_indcies[cntr],getCs34VertList(getCs34Name(cntr)))
+    turbs_per_region[cntr] = floor(getCs34NumTurbs(getCs34Name(cntr)))
+end
+num_tot_turbs = sum(turbs_per_region)
+
 params = params_struct(model_set, rotor_points_y, rotor_points_z, turbine_z, ambient_ti, 
-    rotor_diameter, boundary_center, boundary_radius, obj_scale, hub_height, turbine_yaw, 
+    rotor_diameter, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies, turbs_per_region, obj_scale, hub_height, turbine_yaw, 
     ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, 
     windresource, power_model)
 
+# Pull the pre-made random starts
+which_prestart = 1
+x0l = [ Float64[] for i in 1:nNumRegions ]
+for i in 1:nNumRegions    # Loop through our regions
+    PreStartsXY = convert(Matrix{Float64}, CSV.read(string(file_dir, "iea37-randostarts-", getCs34Name(i), "-200.csv"), delim=','))
+    x0l[i] = append!(x0l[i], PreStartsXY[which_prestart,:])
+end
+
+# Convert to arrays of x and y coordinates
+turbine_x = zeros(num_tot_turbs)
+turbine_y = zeros(num_tot_turbs)
+cntr = 0
+prev_index = 1
+
+for i in 1:nNumRegions
+    global prev_index
+    num_turbs = Int8(length(x0l[i]) / 2)
+    turbine_x[prev_index:(prev_index+num_turbs-1)] = x0l[i][1:num_turbs]
+    turbine_y[prev_index:(prev_index+num_turbs-1)] = x0l[i][num_turbs+1:end]
+    prev_index = prev_index+num_turbs
+end
 # initialize design variable array
 x = [copy(turbine_x);copy(turbine_y)]
 
 # report initial objective value
-println("Nturbines: ", nturbines)
+println("Number of turbines: ", num_tot_turbs)
 println("Rotor diameter: ", rotor_diameter[1])
 println("Starting AEP value (GWh): ", aep_wrapper(x, params)[1]*1e-9/obj_scale)
 # println("Directional AEP at start: ", dir_aep.*1E-6)
@@ -193,8 +252,8 @@ println("info: ", info)
 println("end objective value: ", aep_wrapper(xopt))
 
 # extract final turbine locations
-turbine_x = copy(xopt[1:nturbines])
-turbine_y = copy(xopt[nturbines+1:end])
+turbine_x = copy(xopt[1:num_turbines])
+turbine_y = copy(xopt[num_turbines+1:end])
 
 # add final turbine locations to plot
 for i = 1:length(turbine_x)
@@ -209,3 +268,20 @@ axis("square")
 xlim(-boundary_radius-200,boundary_radius+200)
 ylim(-boundary_radius-200,boundary_radius+200)
 plt.show()
+
+
+# #---- Debug plotting ----#
+# # Plot the Boundary
+# for cntr in 1:nNumRegions
+#     plot(bndry_x_clsd[cntr], bndry_y_clsd[cntr])
+# end
+
+# # Plot the turbines
+# for i = 1:length(turbine_x)
+#     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter/2.0, fill=true,color="black"))
+#     plt.text(turbine_x[i]+rotor_diameter,turbine_y[i]+rotor_diameter, string(i))
+# end
+
+# axis("square")
+# axis("off")
+# plt.show()

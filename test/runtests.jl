@@ -226,16 +226,6 @@ using LinearAlgebra
 
         @testset "Splined boundary" begin
 
-            function PointsInCircum(center_x, center_y, r, n = 100)
-                bndry_x = zeros(n+1)
-                bndry_y = zeros(n+1)
-                for i in 1:n+1
-                    bndry_x[i] = center_x + cos(2*pi/n*i)*r
-                    bndry_y[i] = center_y + sin(2*pi/n*i)*r
-                end
-                return bndry_x, bndry_y
-            end
-
             @testset "One Turbine, Circular Boundary" begin
                 #-- One-turbine circular boundary as a square --#
                 # A discretized 20-point circle
@@ -262,7 +252,7 @@ using LinearAlgebra
                 num_pts = 200
                 circ_radius = 100.0
                 circ_center = [100.0, 100.0]
-                bndry_x_clsd, bndry_y_clsd = PointsInCircum(circ_center[1], circ_center[2], circ_radius, num_pts)
+                bndry_x_clsd, bndry_y_clsd = ff.DiscreteCircum(circ_center[1], circ_center[2], circ_radius, num_pts)
                 # Vertices that keep splines injective (4-corners)
                 bndry_corner_indcies = [1, 51, 101, 151, 201]  # 200 pt circle, 4 corners
 

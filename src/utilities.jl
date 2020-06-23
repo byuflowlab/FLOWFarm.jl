@@ -242,3 +242,50 @@ function smooth_max(x; s=10.0)
     return r
 
 end
+
+"""
+    closeBndryLists(bndryPts_x, bndryPts_y)
+
+Appends the 1st element to the end of each array for a closed boundary
+
+# Arguments
+- `bndryPts_x::Array{Float,1}` : 1-D array of x-coordinates for the vertices
+        around a closed boundary
+- `bndryPts_y::Array{Float,1}` : 1-D array of y-coordinates for the vertices
+        around a closed boundary
+"""
+function closeBndryLists(bndryPts_x, bndryPts_y)
+    # Determine how many regions and points per region were passed
+    nRegions = length(bndryPts_x)
+    # Append the initial points to the end
+    for i in 1:nRegions
+        bndryPts_x[i] = push!(bndryPts_x[i], bndryPts_x[i][1])
+        bndryPts_y[i] = push!(bndryPts_y[i], bndryPts_y[i][1])
+    end
+
+    return bndryPts_x, bndryPts_y
+end
+
+
+"""
+    PointsOnCircum(center_x, center_y, r, n = 100)
+
+Given a circle center, radius, and number of discrete points, returns an array
+of discrete points along the circle's circumference
+
+# Arguments
+- `center_x::Float64` : cartesian x-coordinate for the center of the circle
+- `center_y::Float64` : cartesian y-coordinate for the center of the circle
+- `r::Float64` : distance from circle's center to the circumference points
+- `n::Float64` : defaults to 100, is the number of discrete evenly-spaced points
+        that will be returned along the circle's circumference
+"""
+function DiscreteCircum(center_x, center_y, r, n = 100)
+    bndry_x = zeros(n+1)
+    bndry_y = zeros(n+1)
+    for i in 1:n+1
+        bndry_x[i] = center_x + cos(2*pi/n*i)*r
+        bndry_y[i] = center_y + sin(2*pi/n*i)*r
+    end
+    return bndry_x, bndry_y
+end
