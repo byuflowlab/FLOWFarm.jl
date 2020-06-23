@@ -64,27 +64,27 @@ include("./model_sets/model_set_8_shiloh.jl")
 obj_scale = 1E-11
 
 # set globals for use in wrapper functions
-struct params_struct{}
-    model_set
-    rotor_points_y
-    rotor_points_z
-    turbine_x
-    turbine_y
-    turbine_z
-    rotor_diameter
-    obj_scale
-    hub_height
-    ct_models
-    generator_efficiency
-    cut_in_speed
-    cut_out_speed
-    rated_speed
-    rated_power
-    windresource
-    power_models
+struct params_struct4{MS, AF, F, ACTM, WR, APM}
+    model_set::MS
+    rotor_points_y::AF
+    rotor_points_z::AF
+    turbine_x::AF 
+    turbine_y::AF
+    turbine_z::AF
+    rotor_diameter::AF
+    obj_scale::F
+    hub_height::AF
+    ct_models::ACTM
+    generator_efficiency::AF
+    cut_in_speed::AF
+    cut_out_speed::AF
+    rated_speed::AF
+    rated_power::AF
+    windresource::WR
+    power_models::APM
 end
 
-params = params_struct(model_set, rotor_points_y, rotor_points_z, turbine_x, turbine_y, turbine_z,
+params = params_struct4(model_set, rotor_points_y, rotor_points_z, turbine_x, turbine_y, turbine_z,
     rotor_diameter, obj_scale, hub_height, 
     ct_models, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, 
     windresource, power_models)
@@ -123,22 +123,28 @@ optyaw = zeros((nstates,nturbines))
 diraep = zeros(nstates)
 # run and time optimization
 t1 = time()
-for i in 1:nstates
+for i in 1:1
     println("Optimizing for state: ", i)
     println("Direction: ", winddirections[i])
     println("Wind speed: ", windspeeds[i])
     println("Probability: ", windprobabilities[i])
+    options["Summary file"] = String("snopt_yaw_summary_$i.out")
+    options["Print file"] = String("snopt_yaw_print_$i.out")
     params.windresource.wind_directions[1] = winddirections[i]
     params.windresource.wind_speeds[1] = windspeeds[i]
     params.windresource.wind_probabilities[1] = windprobabilities[i]
     params.windresource.measurement_heights[1] = measurementheight[i]
     params.windresource.ambient_tis[1] = ambient_tis[i]
     x = zeros(nturbines)
+    t11 = time()
     xopt, fopt, info = snopt(wind_farm_opt, x, lb, ub, options)
-
-    diraep[i] = fopt
+    t22 = time()
+    println("Finished in : ", t22-t11, " (s)")
+    println("info: ", info)
+    println("end AEP value for dir: ", -fopt)
+    diraep[i] = deepcopy(fopt)
     for j in 1:nturbines
-        optyaw[i,j] = xopt[j]
+        optyaw[i,j] = deepcopy(xopt[j])
     end
 end
 
@@ -149,7 +155,7 @@ clkt = t2-t2
 println("Finished in : ", clkt, " (s)")
 println("info: ", info)
 println("end AEP value: ", sum(diraep))
-
+println("optimized yaw", optyaw)
 # add final turbine locations to plot
 for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C1", linestyle="--")) 
