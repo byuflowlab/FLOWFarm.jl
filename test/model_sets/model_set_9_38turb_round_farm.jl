@@ -15,7 +15,7 @@ turbine_y = turbine_y .- turbine_y[1]
 nturbines = length(turbine_x)
 
 # set turbine base heights
-turbine_z = zeros(nturbines)
+turbine_z = zeros(nturbines) .+ 0.0
 
 # set turbine yaw values
 turbine_yaw = zeros(nturbines)
@@ -34,15 +34,17 @@ rotor_points_y = [0.0]
 rotor_points_z = [0.0]
 
 # set flow parameters
-wind_speed = 8.0
+data = readdlm("inputfiles/windrose_nantucket_12dir.txt",  ' ', skipstart=1)
+winddirections = data[:, 1].*pi/180.0
+windspeeds = data[:,2]
+windprobabilities = data[:, 3]
+nstates = length(windspeeds)
+
 air_density = 1.1716  # kg/m^3
 ambient_ti = 0.077
 shearexponent = 0.15
-winddirections = [275.0*pi/180.0, 0.0, pi]
-windspeeds = [wind_speed, wind_speed, wind_speed]
-windprobabilities = [1.0/3.0,1.0/3.0,1.0/3.0]
-ambient_tis = [ambient_ti, ambient_ti, ambient_ti]
-measurementheight = [hub_height[1], hub_height[1], hub_height[1]]
+ambient_tis = zeros(nstates) .+ ambient_ti
+measurementheight = zeros(nstates) .+ hub_height[1]
 
 # load power curve
 powerdata = readdlm("inputfiles/niayifar_vestas_v80_power_curve_observed.txt",  ',', skipstart=1)
@@ -62,10 +64,10 @@ velpoints = ctdata[:,1]
 ctpoints = ctdata[:,2]
 
 # initialize thurst model
-ct_model1 = ff.ThrustModelCtPoints(velpoints, ctpoints)
-ct_model = Vector{typeof(ct_model1)}(undef, nturbines)
+ct_model = ff.ThrustModelCtPoints(velpoints, ctpoints)
+ct_models = Vector{typeof(ct_model)}(undef, nturbines)
 for i = 1:nturbines
-    ct_model[i] = ct_model1
+    ct_models[i] = ct_model
 end
 
 # initialize wind shear model
@@ -78,11 +80,10 @@ sorted_turbine_index = sortperm(turbine_x)
 windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, wind_shear_model)
 
 # set up wake and related models
-k = 0.0324555
-wakedeficitmodel = ff.GaussSimple(k)
+wakedeficitmodel = ff.GaussYawVariableSpread()
 
-wakedeflectionmodel = ff.JiminezYawDeflection()
-wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
+wakedeflectionmodel = ff.GaussYawVariableSpreadDeflection()
+wakecombinationmodel = ff.LinearLocalVelocitySuperposition()
 localtimodel = ff.LocalTIModelNoLocalTI()
 
 # initialize model set

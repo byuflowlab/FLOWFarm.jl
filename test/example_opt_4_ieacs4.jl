@@ -56,7 +56,7 @@ function aep_wrapper(x, params)
     params.rated_speed
     params.rated_power
     params.windresource
-    params.power_model
+    params.power_models
     params.model_set
     params.rotor_points_y
     params.rotor_points_z
@@ -72,7 +72,7 @@ function aep_wrapper(x, params)
     # calculate AEP
     AEP = obj_scale*ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-                cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set,
+                cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
                 rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z, hours_per_year=365.0*24.0)
     
     # return the objective as an array
@@ -133,7 +133,7 @@ struct params_struct{}
     rated_speed
     rated_power
     windresource
-    power_model
+    power_models
 end
 
 #--- Read in windfarm boundary data ---#
@@ -173,7 +173,7 @@ num_tot_turbs = sum(turbs_per_region)
 params = params_struct(model_set, rotor_points_y, rotor_points_z, turbine_z, ambient_ti, 
     rotor_diameter, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies, turbs_per_region, obj_scale, hub_height, turbine_yaw, 
     ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, 
-    windresource, power_model)
+    windresource, power_models)
 
 # Pull the pre-made random starts
 which_prestart = 1
@@ -241,6 +241,7 @@ aep_wrapper(x) = aep_wrapper(x, params)
 boundary_wrapper(x) = boundary_wrapper(x, params)
 
 # run and time optimization
+println
 t1 = time()
 xopt, fopt, info = snopt(obj_func, x, lb, ub, options)
 t2 = time()

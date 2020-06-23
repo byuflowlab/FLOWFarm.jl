@@ -132,7 +132,7 @@ function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, ksta
         # wake of the upstream turbine
         ti_added = 0.73*(axial_induction_ust^0.8325)*(ti_ust^0.0325)*((x/d_ust)^(-0.32))
 
-        rotor_area_dst = 0.25*pi*d_dst^2.0
+        rotor_area_dst = 0.25*pi*d_dst^2
         ti_area_ratio_tmp = ti_added*(wake_overlap/rotor_area_dst)
 
         # Run through the smooth max to get an approximation of the true max TI area ratio
@@ -140,7 +140,7 @@ function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, ksta
 
         # Calculate the total turbulence intensity at the downstream turbine based on
         # the result of the smooth max function
-        ti_dst = sqrt(ti_amb^2.0 + ti_area_ratio^2.0)
+        ti_dst = sqrt(ti_amb^2 + ti_area_ratio^2)
 
     end
 

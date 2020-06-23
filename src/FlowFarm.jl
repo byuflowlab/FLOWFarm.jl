@@ -1,5 +1,6 @@
 module FlowFarm
 using Geodesy; const gd = Geodesy
+using ForwardDiff
 
 # using CCBlade
 # using PyPlot
@@ -22,5 +23,4 @@ include("power_models.jl")
 include("user_functions.jl")
 include("optimization_functions.jl")
 include("fatigue_model.jl")
-
 end # module
