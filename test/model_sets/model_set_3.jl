@@ -26,12 +26,16 @@ rated_power = zeros(nturbines).+3.6E6  # W
 cpdata = readdlm("inputfiles/power_curve_siemens_swp3.6-120.txt",  ',', skipstart=1)
 vel_points = cpdata[:, 1]
 power_points = cpdata[:, 2]
+
 power_model = ff.PowerModelPowerPoints(vel_points, power_points)
+power_models = Vector{typeof(power_model)}(undef, nturbines)
+for i = 1:nturbines
+    power_models[i] = power_model
+end
 
 # rotor sample points
 rotor_points_y = [0.0]
 rotor_points_z = [0.0]
-
 
 winddirections = deg2rad.(range(0,stop=350,length=36))
 windspeeds = zeros(36).+(9.23)
@@ -47,9 +51,6 @@ ambient_tis = ones(length(winddirections)).*ambient_ti
 shearexponent = 0.15
 wind_shear_model = ff.PowerLawWindShear(shearexponent)
 windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, wind_shear_model)
-
-
-
 
 alpha = 0.04
 wakedeficitmodel = ff.JensenTopHat(alpha)

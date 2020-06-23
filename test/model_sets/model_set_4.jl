@@ -1,6 +1,21 @@
 import FlowFarm; const ff = FlowFarm
 
-diam = 80.0
+rotor_diameter = 80.0
+hub_height = 70.0
+yaw = 0.0
+
+cut_in_speed = 4.  # m/s
+cut_out_speed = 25.  # m/s
+rated_speed = 16.  # m/s
+rated_power = 2.0E6  # W
+generator_efficiency = 0.944
+
+ai = 1.0/3.0
+ct = 0.689
+wind_speed = 8.0
+air_density = 1.1716  # kg/m^3
+ambient_ti = 0.077
+
 data = readdlm("inputfiles/horns_rev_locations.txt",  ',', skipstart=1)
 turbine_x = data[:, 1].*diam
 nturbines = length(turbine_x)
@@ -11,6 +26,7 @@ rotor_diameter = zeros(nturbines) .+ 80.0
 hub_height = zeros(nturbines) .+ 70.0
 sorted_turbine_index = sortperm(turbine_x)
 turbine_ct = zeros(nturbines)
+turbine_ai = zeros(nturbines)
 turbine_inflow_velcities = zeros(nturbines)
 turbine_local_ti = zeros(nturbines)
 turbine_yaw = zeros(nturbines)

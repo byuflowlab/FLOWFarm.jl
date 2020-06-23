@@ -3,3 +3,7 @@
 /dev/
 /docs/build/
 /docs/site/
+*/.ipynb_checkpoints/*
+Untitled.ipynb
+snopt-print.out
+snopt-summary.out

@@ -69,7 +69,14 @@ function calculate_ct(inflow_velocity, thrust_model::ThrustModelCtPoints)
     return ct
 end
 
-# calculate axial induction from Ct
+"""
+    _ct_to_axial_ind_func(ct)
+
+Calculate axial induction from the thrust coefficient
+
+# Arguments
+- `ct::Float`: thrust coefficient
+"""
 function _ct_to_axial_ind_func(ct)
 
     # initialize axial induction to zero

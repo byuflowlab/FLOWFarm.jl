@@ -1,0 +1,50 @@
+title: Turbine definition GE 1.5MW 77
+description: Onshore turbine
+
+definitions:
+# turbine definition
+  wind_turbine:
+    description: GE 1.5MW 77
+    id: GE1.5-77
+
+    rated_power:
+      units: W
+      minimum: 0.0
+      maximum: 1500000.0
+
+# rotor definition
+  rotor:
+    diameter:
+      units: m
+      default: 77.0
+
+    radius:
+      units: m
+      default: 38.5
+
+# hub definition
+  hub:
+    height:
+      units: m
+      default: 
+
+# operating mode can vary and the power/thrust curves will change as a result
+  operating_mode:
+    id: normal
+
+    cut_in_wind_speed:
+      units: m/s
+      default: 3.5
+
+    cut_out_wind_speed:
+      units: m/s
+      default: 25.0
+
+    rated_wind_speed:
+      units: m/s
+      default: 12.0
+
+    power_curve:
+      units:
+
+

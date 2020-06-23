@@ -1,10 +1,13 @@
 module FlowFarm
+using Geodesy; const gd = Geodesy
+using ForwardDiff
 
 # using CCBlade
 # using PyPlot
 using FLOWMath: linear,trapz
 # using Statistics
 
+include("io.jl")
 include("utilities.jl")
 include("turbines.jl")
 include("windfarms.jl")
@@ -20,5 +23,4 @@ include("power_models.jl")
 include("user_functions.jl")
 include("optimization_functions.jl")
 include("fatigue_model.jl")
-
 end # module

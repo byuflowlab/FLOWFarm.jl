@@ -16,10 +16,6 @@ turbine_local_ti = [ambient_ti]
 
 sorted_turbine_index = [1]
 
-
-
-
-
 wind_speed = 8.1
 air_density = 1.1716  # kg/m^3
 winddirections = [270.0*pi/180.0]
@@ -39,8 +35,6 @@ wakedeflectionmodel = ff.JiminezYawDeflection(horizontal_spread_rate)
 wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
 localtimodel = ff.LocalTIModelNoLocalTI()
 model_set = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
-
-
 
 # loc = [7.0*rotor_diameter, 0.0, hub_height]
 # cp = 0.8
