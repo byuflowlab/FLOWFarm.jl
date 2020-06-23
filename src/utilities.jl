@@ -47,10 +47,12 @@ function overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y,
 
         # perfect overlap case where the wake is larger than the rotor
         elseif (OVRR > OVr)
-            wake_overlap = pi*OVr*OVr
+            # wake_overlap = pi*OVr*OVr
+            wake_overlap = 3.1415926535897*OVr*OVr
         # perfect overlap case where the rotor is larger than the wake
         else
-            wake_overlap = pi*OVRR*OVRR
+            # wake_overlap = pi*OVRR*OVRR
+            wake_overlap = 3.1415926535897*OVRR*OVRR
         end
 
     # case with no overlap

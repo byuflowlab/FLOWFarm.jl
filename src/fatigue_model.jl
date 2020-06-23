@@ -1,5 +1,6 @@
 using FlowFarm
 using CCBlade
+using PyPlot
 
 const ff=FlowFarm
 
@@ -190,11 +191,25 @@ function calc_moment_stress(mx,my,dx,dy,Rcyl=1.771,tcyl=0.06)
 end
 
 
+function calc_moment_stress_resultant(edge,flap,dx,dy,Rcyl=1.771,tcyl=0.06)
+
+        I = 0.25*pi*(Rcyl^4-(Rcyl-tcyl)^4)
+
+        magnitude = sqrt(edge^2 + flap^2)
+        distance = abs(dy*edge - dx*flap)/sqrt(flap^2 + edge^2)
+        stress = magnitude*distance/I
+
+        return stress
+end
+
+
 function get_speeds(turbine_x,turbine_y,turbine_z,turb_index,hub_height,r,turbine_yaw,azimuth,turbine_ct,turbine_ai,rotor_diameter,turbine_local_ti,
                     sorted_turbine_index,wtvelocities,wind_resource,model_set;wind_farm_state_id=1,downwind_turbine_id=0)
         x_locs, y_locs, z_locs = find_xyz_simple(turbine_x[turb_index],turbine_y[turb_index],hub_height[turb_index],r,turbine_yaw[turb_index],azimuth)
         npts = length(x_locs)
-        point_velocities = zeros(npts)
+        arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
+                                typeof(hub_height[1]),typeof(turbine_yaw[1]),typeof(turbine_ai[1]))
+        point_velocities = zeros(arr_type,npts)
             for i in 1:npts
                 loc = [x_locs[i], y_locs[i], z_locs[i]]
                 # point_velocities[i] = FlowFarm.point_velocity(loc, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, 0)
@@ -229,12 +244,12 @@ Rainflow counting of a signal's turning points
 function rainflow(array_ext,uc_mult=0.5)
 
     tot_num = length(array_ext)             # total size of input array
-    array_out = zeros(3, tot_num-1)         # initialize output array
+    array_out = zeros(typeof(array_ext[1]),(3, tot_num-1))        # initialize output array
 
     pr = 1                                  # index of input array
     po = 1                                  # index of output array
     j = 0                                   # index of temporary array "a"
-    a  = zeros(tot_num)                     # temporary array for algorithm
+    a  = zeros(typeof(array_ext[1]),tot_num)                     # temporary array for algorithm
 
     # loop through each turning point stored in input array
     for i = 1:tot_num
@@ -398,12 +413,29 @@ Trapezoidal integration to find the blade root bending moment using the loads di
 function get_moments(out,Rhub,Rtip,r,az,precone,tilt)
     nr = length(r)+2
 
-    loads_flap = zeros(nr)
-    loads_edge = zeros(nr)
+    arr_type = promote_type(typeof(out[1].Np),typeof(out[1].Tp))
+    loads_flap = zeros(arr_type,nr)
+    loads_edge = zeros(arr_type,nr)
     r_arr = zeros(nr)
 
-    loads_flap[2:end-1] = out.Np/1000.0
-    loads_edge[2:end-1] = out.Tp/1000.0
+    counter = 2
+    for i = 1:length(r)
+        loads_flap[counter] = out[i].Np/1000.0
+        loads_edge[counter] = out[i].Tp/1000.0
+        counter += 1
+    end
+
+
+    # arr_type = promote_type(typeof(out.Np[1]),typeof(out.Tp[1]))
+    # loads_flap = zeros(arr_type,nr)
+    # loads_edge = zeros(arr_type,nr)
+    # r_arr = zeros(nr)
+    # loads_flap[2:end-1] = out.Np/1000.0
+    # loads_edge[2:end-1] = out.Tp/1000.0
+
+    # println("loads_flap: ", loads_flap[5:8])
+    # println("loads_edge: ", loads_edge[5:8])
+
     r_arr[2:end-1] = r
     #
     #approximate loads at r = Rhub
@@ -448,177 +480,211 @@ function get_moments(out,Rhub,Rtip,r,az,precone,tilt)
 end
 
 
-function get_single_damage(model_set,problem_description,turbine_ID,state_ID,nCycles,az_arr,
-    turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho;
-    Nlocs=20,fos=1.15)
-
-        naz = length(az_arr)
-
-        turbine_x = problem_description.wind_farm_states[state_ID].turbine_x
-        turbine_y = problem_description.wind_farm_states[state_ID].turbine_y
-        turbine_z = problem_description.wind_farm_states[state_ID].turbine_z
-        nturbines = length(turbine_x)
-
-        naz = length(az_arr)
-        ws = problem_description.wind_resource.wind_speeds[state_ID]
-        # println("ws: ", ws)
-        measurementheight = problem_description.wind_resource.measurement_heights
-        air_density = problem_description.wind_resource.air_density
-        wind_shear_model = problem_description.wind_resource.wind_shear_model
-        ambient_tis = problem_description.wind_resource.ambient_tis
-        windfarm = problem_description.wind_farm
-        windfarmstate = problem_description.wind_farm_states[state_ID]
-        turb_type = problem_description.wind_farm.turbine_definition_ids[turbine_ID]
-        hub_height = problem_description.wind_farm.turbine_definitions[turb_type].hub_height
-        yaw = problem_description.wind_farm_states[state_ID].turbine_yaw[turbine_ID]
-
-        # flap = []
-        # edge = []
-        # oms = []
-        flap = zeros(nCycles*naz)
-        edge = zeros(nCycles*naz)
-        oms = zeros(nCycles*naz)
-
-        turbine_inflow_velcities = zeros(nturbines) .+ ws
-        temp_resource = ff.DiscretizedWindResource([3*pi/2], [ws], [1.0], measurementheight, air_density,ambient_tis, wind_shear_model)
-        temp_pd = ff.WindFarmProblemDescription(windfarm, temp_resource, [windfarmstate])
-        ff.turbine_velocities_one_direction!(points_x, points_y, model_set, temp_pd)
-
-        wfs_temp = temp_pd.wind_farm_states[1]
-        for i = 1:nCycles*naz
-            az = az_arr[(i+1)%naz+1]
-
-            """need to figure this out"""
-            x_locs, y_locs, z_locs = ff.find_xyz_simple(turbine_x[turbine_ID],turbine_y[turbine_ID],turbine_z[turbine_ID].+hub_height,r,yaw,az)
-
-            TI_arr = zeros(length(r))
-            for k = 1:length(r)
-                loc = [x_locs[k],y_locs[k],z_locs[k]]
-                # TI_arr[k] = turbulence_func(loc,windfarm,windfarmstate,ambient_tis[state_ID])
-                TI_arr[k] = turbulence_func(loc,windfarm,wfs_temp,ambient_tis[state_ID])
-            end
-
-            TI_inst = 0.0
-            for k = 1:length(r)
-                if k == length(r)
-                    TI_inst += (Rtip-r[end])*TI_arr[end]/Rtip
-                else
-                    TI_inst += (r[k+1]-r[k])*TI_arr[k]/Rtip
-                end
-            end
-
-
-            turbine_inflow_velcities = temp_pd.wind_farm_states[state_ID].turbine_inflow_velcities
-            turbine_inflow_velcities = turbine_inflow_velcities + turb_samples[i]*TI_inst.*turbine_inflow_velcities
-            Omega_rpm = omega_func(turbine_inflow_velcities[turbine_ID]) #in rpm
-            Omega = Omega_rpm*0.10471975512 #convert to rad/s
-            pitch_deg = pitch_func(turbine_inflow_velcities[turbine_ID]) #in degrees
-            pitch = pitch_deg*pi/180.0 #convert to rad
-            U = get_speeds(turbine_x,turbine_y,turbine_ID,hub_height,r,yaw,az,model_set,temp_pd)
-            U = U + turb_samples[i]*TI_inst.*U
-            op = distributed_velocity_op.(U, Omega, r, precone, yaw, tilt, az, rho)
-            out = CCBlade.solve.(Ref(rotor), sections, op)
-            flap[i],edge[i] = ff.get_moments(out,Rhub,Rtip,r,az,precone,tilt)
-            oms[i] = Omega
-
-
-        end
-
-        xlocs = zeros(Nlocs)
-        ylocs = zeros(Nlocs)
-        angles = range(-pi/2.0,stop=pi/2.0,length=Nlocs)
-        root_rad=3.542/2.0
-        for i in 1:Nlocs
-            xlocs[i] = cos(angles[i])*root_rad
-            ylocs[i] = sin(angles[i])*root_rad
-        end
-
-        avg_omega = sum(oms)/length(oms)
-        total_time = nCycles/(avg_omega/(2.0*pi))
-
-        d_arr = zeros(Nlocs)
-        damage = 0.0
-        ind = 0
-        for i  = 1:Nlocs
-            sigma = calc_moment_stress.(edge,flap,xlocs[i],ylocs[i])
-            peaks = get_peaks(sigma)
-            out = rainflow(peaks)
-
-            alternate = out[1,:]/2.
-            mean = out[2,:]
-            count = out[3,:]
-
-            su = 70000.0
-            m = 10.0
-            years = 25.0
-            freq = 1.0
-
-            mar = alternate./(1.0.-mean./su)
-
-            npts = length(mar)
-            #damage calculations
-            d = 0.0
-            for i = 1:npts
-                Nfail = ((su)/(mar[i]*fos))^m
-                mult = years*365.25*24.0*3600.0*freq/total_time
-                d += count[i]*mult/Nfail
-            end
-            d_arr[i] = d
-            if d > damage
-                damage = d
-                ind = i
-            end
-        end
-        # println("angle: ", rad2deg.(angles[ind]))
-        return damage
-end
-
-
-function get_single_state_damage(model_set,problem_description,state_ID,nCycles,az_arr,
-    turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho;
-    Nlocs=20,fos=1.15)
-
-    turbine_x = problem_description.wind_farm_states[state_ID].turbine_x
-    nturbines = length(turbine_x)
-    damage = zeros(nturbines)
-    for k = 1:nturbines
-        damage[k] = ff.get_single_damage(model_set,problem_description,k,state_ID,nCycles,az_arr,
-            turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho,
-            Nlocs=Nlocs,fos=fos)
-    end
-
-    return damage
-end
-
-
-function get_total_farm_damage(model_set,problem_description,nCycles,az_arr,
-    turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho;
-    Nlocs=20,fos=1.15)
-
-    wind_farm = problem_description.wind_farm
-    wind_resource = problem_description.wind_resource
-    turbine_x = problem_description.wind_farm_states[1].turbine_x
-    nturbines = length(turbine_x)
-
-    frequencies = problem_description.wind_resource.wind_probabilities
-    ndirections = length(frequencies)
-
-    damage = zeros(nturbines)
-    for k = 1:ndirections
-
-        problem_description.wind_farm_states[k].turbine_x[:],problem_description.wind_farm_states[k].turbine_y[:] =
-                ff.rotate_to_wind_direction(wind_farm.turbine_x, wind_farm.turbine_y, wind_resource.wind_directions[k])
-
-        problem_description.wind_farm_states[k].sorted_turbine_index[:] = sortperm(problem_description.wind_farm_states[k].turbine_x)
-
-        state_damage = ff.get_single_state_damage(model_set,problem_description,k,nCycles,az_arr,
-            turb_samples,points_x,points_y,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho,
-            Nlocs=Nlocs,fos=fos)
-        damage = damage + state_damage.*frequencies[k]
-    end
-
-    return damage
-end
+# function get_single_damage(turbine_x,turbine_y,turbine_z,rotor_diameter,hub_height,turbine_yaw,turbine_ai,sorted_turbine_index,ct_model,turbine_ID,state_ID,nCycles,az_arr,
+#     turb_samples,omega_func,pitch_func,turbulence_func,r,sections,Rhub,Rtip,precone,tilt,rho,wind_resource,model_set,
+#     turbine_velocities, turbine_ct,turbine_local_ti;
+#     Nlocs=20,fos=1.15,rotor_sample_points_y=[0.69,0.69,-0.69,-0.69],rotor_sample_points_z=[0.69,-0.69,0.69,-0.69],div_sigma=2.5,div_ti=1.2)
+#
+#
+#         arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
+#                             typeof(hub_height[1]),typeof(turbine_yaw[1]),typeof(turbine_ai[1]))
+#
+#         naz = length(az_arr)
+#
+#         nturbines = length(turbine_x)
+#
+#         naz = length(az_arr)
+#         ws = wind_resource.wind_speeds[state_ID]
+#         measurementheight = wind_resource.measurement_heights
+#         air_density = wind_resource.air_density
+#         wind_shear_model = wind_resource.wind_shear_model
+#         ambient_tis = wind_resource.ambient_tis
+#
+#         flap = zeros(arr_type,nCycles*naz)
+#         edge = zeros(arr_type,nCycles*naz)
+#         oms = zeros(arr_type,nCycles*naz)
+#
+#         # turbine_velocities, turbine_ct, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+#         #                     turbine_ai, sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+#         #                     model_set; wind_farm_state_id=state_ID)
+#
+#         TI_inst_arr = zeros(arr_type,length(az_arr))
+#         for i = 1:length(az_arr)
+#             az = az_arr[i]
+#
+#             x_locs, y_locs, z_locs = ff.find_xyz_simple(turbine_x[turbine_ID],turbine_y[turbine_ID],turbine_z[turbine_ID].+hub_height[turbine_ID],r,turbine_yaw[turbine_ID],az)
+#
+#             TI_arr = zeros(arr_type,length(r))
+#             for k = 1:length(r)
+#                 loc = [x_locs[k],y_locs[k],z_locs[k]]
+#                 TI_arr[k] = turbulence_func(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, sorted_turbine_index, ambient_tis[state_ID], div_sigma=div_sigma, div_ti=div_ti)
+#             end
+#
+#             TI_inst = 0.0
+#             for k = 1:length(r)
+#                 if k == length(r)
+#                     TI_inst += (Rtip-r[end])*TI_arr[end]/Rtip
+#                 else
+#                     TI_inst += (r[k+1]-r[k])*TI_arr[k]/Rtip
+#                 end
+#             end
+#             TI_inst_arr[i] = TI_inst
+#         end
+#
+#         U_arr = zeros(arr_type,(length(az_arr),length(r)))
+#         for i = 1:length(az_arr)
+#             az = az_arr[i]
+#             U_arr[i,:] = get_speeds(turbine_x,turbine_y,turbine_z,turbine_ID,hub_height,r,turbine_yaw,az,turbine_ct,turbine_ai,rotor_diameter,turbine_local_ti,
+#                                 sorted_turbine_index,turbine_velocities,wind_resource,model_set;wind_farm_state_id=state_ID,downwind_turbine_id=turbine_ID)
+#         end
+#
+#         time1 = time()
+#         for i = 1:nCycles*naz
+#             az = az_arr[(i+1)%naz+1]
+#
+#             # x_locs, y_locs, z_locs = ff.find_xyz_simple(turbine_x[turbine_ID],turbine_y[turbine_ID],turbine_z[turbine_ID].+hub_height[turbine_ID],r,turbine_yaw[turbine_ID],az)
+#             #
+#             # TI_arr = zeros(length(r))
+#             # for k = 1:length(r)
+#             #     loc = [x_locs[k],y_locs[k],z_locs[k]]
+#             #     TI_arr[k] = turbulence_func(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, sorted_turbine_index, ambient_tis[state_ID], div_sigma=div_sigma, div_ti=div_ti)
+#             # end
+#             #
+#             # TI_inst = 0.0
+#             # for k = 1:length(r)
+#             #     if k == length(r)
+#             #         TI_inst += (Rtip-r[end])*TI_arr[end]/Rtip
+#             #     else
+#             #         TI_inst += (r[k+1]-r[k])*TI_arr[k]/Rtip
+#             #     end
+#             # end
+#             TI_inst = TI_inst_arr[(i+1)%naz+1]
+#
+#             turbine_velocity_with_turb = arr_type(turbine_velocities[turbine_ID] + turb_samples[i]*TI_inst*turbine_velocities[turbine_ID])
+#             Omega_rpm = omega_func(turbine_velocity_with_turb) #in rpm
+#             Omega = Omega_rpm*0.10471975512 #convert to rad/s
+#             pitch_deg = pitch_func(turbine_velocity_with_turb) #in degrees
+#             pitch = pitch_deg*pi/180.0 #convert to rad
+#             # U = get_speeds(turbine_x,turbine_y,turbine_z,turbine_ID,hub_height,r,turbine_yaw,az,turbine_ct,turbine_ai,rotor_diameter,turbine_local_ti,
+#             #                     sorted_turbine_index,turbine_velocities,wind_resource,model_set;wind_farm_state_id=state_ID,downwind_turbine_id=turbine_ID)
+#             U = U_arr[(i+1)%naz+1,:]
+#             U = U + turb_samples[i]*TI_inst.*U
+#
+#             rotor = CCBlade.Rotor(Rhub, Rtip, B, true, pitch, precone)
+#             op = ff.distributed_velocity_op.(U, Omega, r, precone, turbine_yaw[turbine_ID], tilt, az, air_density)
+#             out = CCBlade.solve.(Ref(rotor), sections, op)
+#
+#             flap[i],edge[i] = ff.get_moments(out,Rhub,Rtip,r,az,precone,tilt)
+#             oms[i] = Omega
+#         end
+#         # println("loop 1: ", time()-time1)
+#
+#         # println("flap: ", flap)
+#         # println("edge: ", edge)
+#         xlocs = zeros(Nlocs)
+#         ylocs = zeros(Nlocs)
+#         angles = range(-pi/2.0,stop=pi/2.0,length=Nlocs)
+#         root_rad=3.542/2.0
+#         for i in 1:Nlocs
+#             xlocs[i] = cos(angles[i])*root_rad
+#             ylocs[i] = sin(angles[i])*root_rad
+#         end
+#
+#         avg_omega = sum(oms)/length(oms)
+#         total_time = nCycles/(avg_omega/(2.0*pi))
+#
+#         d_arr = zeros(arr_type,Nlocs)
+#         damage = 0.0
+#         ind = 0
+#         time2 = time()
+#         for i  = 1:Nlocs
+#             sigma = calc_moment_stress.(edge,flap,xlocs[i],ylocs[i])
+#             peaks = get_peaks(sigma)
+#             out = rainflow(peaks)
+#
+#             alternate = out[1,:]/2.
+#             mean = out[2,:]
+#             count = out[3,:]
+#
+#             su = 70000.0
+#             m = 10.0
+#             years = 25.0
+#             freq = 1.0
+#
+#             mar = alternate./(1.0.-mean./su)
+#
+#             npts = length(mar)
+#             #damage calculations
+#             d = 0.0
+#             for i = 1:npts
+#                 Nfail = ((su)/(mar[i]*fos))^m
+#                 mult = years*365.25*24.0*3600.0*freq/total_time
+#                 d += count[i]*mult/Nfail
+#             end
+#             d_arr[i] = d
+#             if d > damage
+#                 damage = d
+#                 ind = i
+#             end
+#         end
+#         # println("loop 2: ", time()-time2)
+#         return damage
+# end
+#
+#
+#
+#
+# function get_single_state_damage_surr(turbine_x,turbine_y,turbine_z,rotor_diameter,hub_height,turbine_yaw,turbine_ai,sorted_turbine_index,ct_model,
+#                 state_ID,nCycles,az_arr,turb_samples,flap_func,edge_func,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho,
+#                 wind_resource,model_set;
+#                 Nlocs=20,fos=1.15,rotor_sample_points_y=[0.69,0.69,-0.69,-0.69],rotor_sample_points_z=[0.69,-0.69,0.69,-0.69],div_sigma=2.5,div_ti=1.2)
+#
+#     arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
+#                         typeof(hub_height[1]),typeof(turbine_yaw[1]),typeof(turbine_ai[1]))
+#
+#     nturbines = length(turbine_x)
+#     damage = zeros(arr_type,nturbines)
+#
+#     turbine_velocities, turbine_ct, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+#                         turbine_ai, sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+#                         model_set; wind_farm_state_id=state_ID)
+#     for k = 1:nturbines
+#         damage[k] = ff.get_single_damage_surr(turbine_x,turbine_y,turbine_z,rotor_diameter,hub_height,turbine_yaw,turbine_ai,sorted_turbine_index,ct_model,k,state_ID,nCycles,az_arr,
+#             turb_samples,flap_func,edge_func,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho,wind_resource,model_set,
+#             turbine_velocities,turbine_ct,turbine_local_ti;
+#             Nlocs=Nlocs,fos=fos,rotor_sample_points_y=rotor_sample_points_y,rotor_sample_points_z=rotor_sample_points_z,div_sigma=div_sigma,div_ti=div_ti)
+#     end
+#
+#     return damage
+# end
+#
+#
+# function get_total_farm_damage_surr(turbine_x,turbine_y,turbine_z,rotor_diameter,hub_height,turbine_yaw,turbine_ai,ct_model,
+#         nCycles,az_arr,turb_samples,flap_func,edge_func,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho,wind_resource,model_set;
+#         Nlocs=20,fos=1.15,rotor_sample_points_y=[0.69,0.69,-0.69,-0.69],rotor_sample_points_z=[0.69,-0.69,0.69,-0.69],div_sigma=2.5,div_ti=1.2)
+#
+#     arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
+#                         typeof(hub_height[1]),typeof(turbine_yaw[1]),typeof(turbine_ai[1]))
+#
+#     nturbines = length(turbine_x)
+#
+#     frequencies = wind_resource.wind_probabilities
+#     directions = wind_resource.wind_directions
+#     ndirections = length(frequencies)
+#
+#     damage = zeros(arr_type,nturbines)
+#     for k = 1:ndirections
+#         rot_x, rot_y =  ff.rotate_to_wind_direction(turbine_x, turbine_y, directions[k])
+#         sorted_turbine_index = sortperm(rot_x)
+#         state_damage = ff.get_single_state_damage_surr(rot_x,rot_y,turbine_z,rotor_diameter,hub_height,turbine_yaw,turbine_ai,sorted_turbine_index,ct_model,
+#                         k,nCycles,az_arr,turb_samples,flap_func,edge_func,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho,
+#                         wind_resource,model_set,
+#                         Nlocs=Nlocs,fos=fos,rotor_sample_points_y=rotor_sample_points_y,rotor_sample_points_z=rotor_sample_points_z,div_sigma=div_sigma,div_ti=div_ti)
+#         damage = damage + state_damage.*frequencies[k]
+#     end
+#
+#     return damage
+# end
 
 
 
@@ -629,8 +695,13 @@ end
 
 
 function get_single_damage_surr(turbine_x,turbine_y,turbine_z,rotor_diameter,hub_height,turbine_yaw,turbine_ai,sorted_turbine_index,ct_model,turbine_ID,state_ID,nCycles,az_arr,
-    turb_samples,flap_func,edge_func,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho,wind_resource,model_set;
-    Nlocs=20,fos=1.15,rotor_sample_points_y=[0.69,0.69,-0.69,-0.69],rotor_sample_points_z=[0.69,-0.69,0.69,-0.69],div_sigma=2.5,div_ti=1.2)
+    turb_samples,flap_func,edge_func,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho,wind_resource,model_set,
+    turbine_velocities, turbine_ct,turbine_local_ti;
+    Nlocs=20,fos=1.15,rotor_sample_points_y=[0.69,0.69,-0.69,-0.69],rotor_sample_points_z=[0.69,-0.69,0.69,-0.69],div_sigma=2.5,div_ti=1.2,B=3)
+
+
+        arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
+                            typeof(hub_height[1]),typeof(turbine_yaw[1]),typeof(turbine_ai[1]))
 
         naz = length(az_arr)
 
@@ -638,34 +709,24 @@ function get_single_damage_surr(turbine_x,turbine_y,turbine_z,rotor_diameter,hub
 
         naz = length(az_arr)
         ws = wind_resource.wind_speeds[state_ID]
-        # println("ws: ", ws)
         measurementheight = wind_resource.measurement_heights
         air_density = wind_resource.air_density
         wind_shear_model = wind_resource.wind_shear_model
         ambient_tis = wind_resource.ambient_tis
 
-        flap = zeros(nCycles*naz)
-        edge = zeros(nCycles*naz)
-        oms = zeros(nCycles*naz)
+        flap = zeros(arr_type,nCycles*naz)
+        edge = zeros(arr_type,nCycles*naz)
+        oms = zeros(arr_type,nCycles*naz)
 
-        temp_resource = ff.DiscretizedWindResource([3*pi/2], [ws], [1.0], measurementheight, air_density, ambient_tis, wind_shear_model)
+        TI_inst_arr = zeros(arr_type,length(az_arr))
+        for i = 1:length(az_arr)
+            az = az_arr[i]
 
-        turbine_velocities, turbine_ct, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
-                            turbine_ai, sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                            model_set; wind_farm_state_id=state_ID)
-
-
-        for i = 1:nCycles*naz
-            az = az_arr[(i+1)%naz+1]
-
-            """need to figure this out"""
             x_locs, y_locs, z_locs = ff.find_xyz_simple(turbine_x[turbine_ID],turbine_y[turbine_ID],turbine_z[turbine_ID].+hub_height[turbine_ID],r,turbine_yaw[turbine_ID],az)
 
-            TI_arr = zeros(length(r))
+            TI_arr = zeros(arr_type,length(r))
             for k = 1:length(r)
                 loc = [x_locs[k],y_locs[k],z_locs[k]]
-                # TI_arr[k] = turbulence_func(loc,windfarm,windfarmstate,ambient_tis[state_ID])
-                # TI_arr[k] = turbulence_func(loc,windfarm,wfs_temp,ambient_tis[state_ID])
                 TI_arr[k] = turbulence_func(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, sorted_turbine_index, ambient_tis[state_ID], div_sigma=div_sigma, div_ti=div_ti)
             end
 
@@ -677,31 +738,44 @@ function get_single_damage_surr(turbine_x,turbine_y,turbine_z,rotor_diameter,hub
                     TI_inst += (r[k+1]-r[k])*TI_arr[k]/Rtip
                 end
             end
+            TI_inst_arr[i] = TI_inst
+        end
 
+        U_arr = zeros(arr_type,(length(az_arr),length(r)))
+        for i = 1:length(az_arr)
+            az = az_arr[i]
+            U_arr[i,:] = get_speeds(turbine_x,turbine_y,turbine_z,turbine_ID,hub_height,r,turbine_yaw,az,turbine_ct,turbine_ai,rotor_diameter,turbine_local_ti,
+                                sorted_turbine_index,turbine_velocities,wind_resource,model_set;wind_farm_state_id=state_ID,downwind_turbine_id=turbine_ID)
+        end
 
-            time1 = time()
-            turbine_velocity_with_turb = turbine_velocities[turbine_ID] + turb_samples[i]*TI_inst*turbine_velocities[turbine_ID]
+        time1 = time()
+        for i = 1:nCycles*naz
+            az = az_arr[(i+1)%naz+1]
+
+            TI_inst = TI_inst_arr[(i+1)%naz+1]
+
+            turbine_velocity_with_turb = arr_type(turbine_velocities[turbine_ID] + turb_samples[i]*TI_inst*turbine_velocities[turbine_ID])
             Omega_rpm = omega_func(turbine_velocity_with_turb) #in rpm
             Omega = Omega_rpm*0.10471975512 #convert to rad/s
             pitch_deg = pitch_func(turbine_velocity_with_turb) #in degrees
             pitch = pitch_deg*pi/180.0 #convert to rad
-            U = get_speeds(turbine_x,turbine_y,turbine_z,turbine_ID,hub_height,r,turbine_yaw,az,turbine_ct,turbine_ai,rotor_diameter,turbine_local_ti,
-                                sorted_turbine_index,turbine_velocities,wind_resource,model_set;wind_farm_state_id=state_ID,downwind_turbine_id=turbine_ID)
+
+            U = U_arr[(i+1)%naz+1,:]
             U = U + turb_samples[i]*TI_inst.*U
 
+            # println("U: ", U)
+            # println("turbine_velocity_with_turb: ", turbine_velocity_with_turb)
+            # np = flap_func(U,turbine_velocity_with_turb)
+            # tp = edge_func(U,turbine_velocity_with_turb)
+            # # # tp = tp .* cos(az-3.1415926535897/2.0)
+            # out = NpTp(np,tp)
 
-            # op = distributed_velocity_op.(U, Omega, r, precone, turbine_yaw[turbine_ID], tilt, az, rho)
-            # out_CC = CCBlade.solve.(Ref(rotor), sections, op)
-            # println("CC: ", out_CC.Np[1], " ", out_CC.Tp[1])
+            rotor = CCBlade.Rotor(Rhub, Rtip, B, true, pitch, precone)
+            op = ff.distributed_velocity_op.(U, Omega, r, precone, turbine_yaw[turbine_ID], tilt, az, air_density)
+            out = CCBlade.solve.(Ref(rotor), sections, op)
 
-            np = flap_func(U,turbine_velocity_with_turb)
-            tp = edge_func(U,turbine_velocity_with_turb)
-            out = NpTp(np,tp)
-            # println("spline: ", out.Np[1], " ", out.Tp[1])
-            # println("___________________________")
             flap[i],edge[i] = ff.get_moments(out,Rhub,Rtip,r,az,precone,tilt)
             oms[i] = Omega
-            println("loop time: ", time()-time1)
         end
 
         xlocs = zeros(Nlocs)
@@ -716,9 +790,10 @@ function get_single_damage_surr(turbine_x,turbine_y,turbine_z,rotor_diameter,hub
         avg_omega = sum(oms)/length(oms)
         total_time = nCycles/(avg_omega/(2.0*pi))
 
-        d_arr = zeros(Nlocs)
+        d_arr = zeros(arr_type,Nlocs)
         damage = 0.0
         ind = 0
+        time2 = time()
         for i  = 1:Nlocs
             sigma = calc_moment_stress.(edge,flap,xlocs[i],ylocs[i])
             peaks = get_peaks(sigma)
@@ -749,6 +824,374 @@ function get_single_damage_surr(turbine_x,turbine_y,turbine_z,rotor_diameter,hub
                 ind = i
             end
         end
-        # println("angle: ", rad2deg.(angles[ind]))
         return damage
+end
+
+
+
+
+function get_single_state_damage_surr(turbine_x,turbine_y,turbine_z,rotor_diameter,hub_height,turbine_yaw,turbine_ai,sorted_turbine_index,ct_model,
+                state_ID,nCycles,az_arr,turb_samples,flap_func,edge_func,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho,
+                wind_resource,model_set;
+                Nlocs=20,fos=1.15,rotor_sample_points_y=[0.69,0.69,-0.69,-0.69],rotor_sample_points_z=[0.69,-0.69,0.69,-0.69],div_sigma=2.5,div_ti=1.2)
+
+    arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
+                        typeof(hub_height[1]),typeof(turbine_yaw[1]),typeof(turbine_ai[1]))
+
+    nturbines = length(turbine_x)
+    damage = zeros(arr_type,nturbines)
+
+    turbine_velocities, turbine_ct, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+                        turbine_ai, sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+                        model_set; wind_farm_state_id=state_ID)
+    for k = 1:nturbines
+        damage[k] = ff.get_single_damage_surr(turbine_x,turbine_y,turbine_z,rotor_diameter,hub_height,turbine_yaw,turbine_ai,sorted_turbine_index,ct_model,k,state_ID,nCycles,az_arr,
+            turb_samples,flap_func,edge_func,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho,wind_resource,model_set,
+            turbine_velocities,turbine_ct,turbine_local_ti;
+            Nlocs=Nlocs,fos=fos,rotor_sample_points_y=rotor_sample_points_y,rotor_sample_points_z=rotor_sample_points_z,div_sigma=div_sigma,div_ti=div_ti)
+    end
+
+    return damage
+end
+
+
+function get_total_farm_damage_surr(turbine_x,turbine_y,turbine_z,rotor_diameter,hub_height,turbine_yaw,turbine_ai,ct_model,
+        nCycles,az_arr,turb_samples,flap_func,edge_func,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho,wind_resource,model_set;
+        Nlocs=20,fos=1.15,rotor_sample_points_y=[0.69,0.69,-0.69,-0.69],rotor_sample_points_z=[0.69,-0.69,0.69,-0.69],div_sigma=2.5,div_ti=1.2)
+
+    arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
+                        typeof(hub_height[1]),typeof(turbine_yaw[1]),typeof(turbine_ai[1]))
+
+    nturbines = length(turbine_x)
+
+    frequencies = wind_resource.wind_probabilities
+    directions = wind_resource.wind_directions
+    ndirections = length(frequencies)
+
+    damage = zeros(arr_type,nturbines)
+    for k = 1:ndirections
+        rot_x, rot_y =  ff.rotate_to_wind_direction(turbine_x, turbine_y, directions[k])
+        sorted_turbine_index = sortperm(rot_x)
+        state_damage = ff.get_single_state_damage_surr(rot_x,rot_y,turbine_z,rotor_diameter,hub_height,turbine_yaw,turbine_ai,sorted_turbine_index,ct_model,
+                        k,nCycles,az_arr,turb_samples,flap_func,edge_func,omega_func,pitch_func,turbulence_func,r,rotor,sections,Rhub,Rtip,precone,tilt,rho,
+                        wind_resource,model_set,
+                        Nlocs=Nlocs,fos=fos,rotor_sample_points_y=rotor_sample_points_y,rotor_sample_points_z=rotor_sample_points_z,div_sigma=div_sigma,div_ti=div_ti)
+        damage = damage + state_damage.*frequencies[k]
+    end
+
+    return damage
+end
+
+
+
+
+function get_single_damage_super(turbine_x,turbine_y,turbine_z,rotor_diameter,hub_height,turbine_yaw,turbine_ai,sorted_turbine_index,turbine_ID,state_ID,nCycles,az_arr,
+    turb_samples,omega_func,pitch_func,turbulence_func,r,sections,Rhub,Rtip,precone,tilt,wind_resource,model_set,
+    turbine_velocities, turbine_ct,turbine_local_ti;
+    Nlocs=20,fos=1.15,rotor_sample_points_y=[0.69,0.69,-0.69,-0.69],rotor_sample_points_z=[0.69,-0.69,0.69,-0.69],div_sigma=2.5,div_ti=1.2,B=3)
+
+
+        arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
+                            typeof(hub_height[1]),typeof(turbine_yaw[1]),typeof(turbine_ai[1]))
+
+        naz = length(az_arr)
+
+        nturbines = length(turbine_x)
+
+        naz = length(az_arr)
+        ws = wind_resource.wind_speeds[state_ID]
+        measurementheight = wind_resource.measurement_heights
+        air_density = wind_resource.air_density
+        wind_shear_model = wind_resource.wind_shear_model
+        ambient_tis = wind_resource.ambient_tis
+
+        flap = zeros(arr_type,nCycles*naz)
+        edge = zeros(arr_type,nCycles*naz)
+        oms = zeros(arr_type,nCycles*naz)
+
+        TI_inst_arr = zeros(arr_type,length(az_arr))
+        for i = 1:length(az_arr)
+            az = az_arr[i]
+
+            x_locs, y_locs, z_locs = ff.find_xyz_simple(turbine_x[turbine_ID],turbine_y[turbine_ID],turbine_z[turbine_ID].+hub_height[turbine_ID],r,turbine_yaw[turbine_ID],az)
+
+            TI_arr = zeros(arr_type,length(r))
+            for k = 1:length(r)
+                loc = [x_locs[k],y_locs[k],z_locs[k]]
+                TI_arr[k] = turbulence_func(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, sorted_turbine_index, ambient_tis[state_ID], div_sigma=div_sigma, div_ti=div_ti)
+            end
+
+            TI_inst = 0.0
+            for k = 1:length(r)
+                if k == length(r)
+                    TI_inst += (Rtip-r[end])*TI_arr[end]/Rtip
+                else
+                    TI_inst += (r[k+1]-r[k])*TI_arr[k]/Rtip
+                end
+            end
+            TI_inst_arr[i] = TI_inst
+        end
+
+        # loc_arr_y = [0.69,0.69,-0.69,-0.69]
+        # loc_arr_z = [0.69,-0.69,-0.69,0.69]
+        # eff_TI = 0.0
+        # for i = 1:4
+        #     loc = [turbine_x[turbine_ID],turbine_y[turbine_ID]+loc_arr_y[i]*rotor_diameter[turbine_ID],turbine_z[turbine_ID]+hub_height[turbine_ID]+loc_arr_z[i]*rotor_diameter[turbine_ID]]
+        #     eff_TI += turbulence_func(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, sorted_turbine_index, ambient_tis[state_ID], div_sigma=div_sigma, div_ti=div_ti)^2
+        # end
+        # eff_TI = sqrt(eff_TI)/4.0 + 0.0
+        eff_TI = sum(TI_inst_arr)/length(TI_inst_arr)
+
+        Omega_rpm = omega_func(turbine_velocities[turbine_ID]) #in rpm
+        Omega = Omega_rpm*0.10471975512 #convert to rad/s
+        pitch_deg = pitch_func(turbine_velocities[turbine_ID]) #in degrees
+        # pitch_deg = pitch_deg/1.5
+        # println("pitch_deg: ", pitch_deg)
+        # pitch_deg = 1.979211195533589
+        # pitch_deg = 5.0
+        # pitch_deg = 0.0
+        pitch = pitch_deg*3.1415926535897/180.0 #convert to rad
+
+        m_arr_flap = zeros(arr_type,length(az_arr))
+        m_arr_edge = zeros(arr_type,length(az_arr))
+        for i = 1:length(az_arr)
+            az = az_arr[i]
+            U = get_speeds(turbine_x,turbine_y,turbine_z,turbine_ID,hub_height,r,turbine_yaw,az,turbine_ct,turbine_ai,rotor_diameter,turbine_local_ti,
+                                sorted_turbine_index,turbine_velocities,wind_resource,model_set;wind_farm_state_id=state_ID,downwind_turbine_id=turbine_ID)
+
+            rotor = CCBlade.Rotor(Rhub, Rtip, B, true, pitch, precone)
+            # op = ff.distributed_velocity_op.(U, Omega, r, precone, turbine_yaw[turbine_ID], tilt, az, air_density)
+
+            V = zeros(length(U)).+10.0*cos(az)
+            W = zeros(length(U)).-10.0*sin(az)
+            op = ff.multiple_components_op.(U, V, W, Omega, r, precone, turbine_yaw[turbine_ID], tilt, az, air_density)
+            out = CCBlade.solve.(Ref(rotor), sections, op)
+
+            m_arr_flap[i],m_arr_edge[i] = ff.get_moments(out,Rhub,Rtip,r,az,precone,tilt)
+        end
+
+        m_arr_flap_0 = zeros(arr_type,length(az_arr))
+        m_arr_edge_0 = zeros(arr_type,length(az_arr))
+        wr = ff.DiscretizedWindResource(wind_resource.wind_directions, [11.4], wind_resource.wind_probabilities, wind_resource.measurement_heights, wind_resource.air_density, wind_resource.ambient_tis, wind_resource.wind_shear_model)
+        for i = 1:length(az_arr)
+            az = az_arr[i]
+            U = get_speeds(turbine_x,turbine_y,turbine_z,turbine_ID,hub_height,r,turbine_yaw,az,turbine_ct,turbine_ai,rotor_diameter,turbine_local_ti,
+                                sorted_turbine_index,turbine_velocities,wr,model_set;wind_farm_state_id=1,downwind_turbine_id=turbine_ID)
+
+            pitch = 0.0
+            rotor = CCBlade.Rotor(Rhub, Rtip, B, true, pitch, precone)
+            op = ff.distributed_velocity_op.(U, Omega, r, precone, turbine_yaw[turbine_ID], tilt, az, air_density)
+            out = CCBlade.solve.(Ref(rotor), sections, op)
+
+            m_arr_flap_0[i],m_arr_edge_0[i] = ff.get_moments(out,Rhub,Rtip,r,az,precone,tilt)
+        end
+
+
+        m_arr_flap_P = zeros(arr_type,length(az_arr))
+        m_arr_edge_P = zeros(arr_type,length(az_arr))
+        wr = ff.DiscretizedWindResource(wind_resource.wind_directions, [13.0], wind_resource.wind_probabilities, wind_resource.measurement_heights, wind_resource.air_density, wind_resource.ambient_tis, wind_resource.wind_shear_model)
+        for i = 1:length(az_arr)
+            az = az_arr[i]
+            U = get_speeds(turbine_x,turbine_y,turbine_z,turbine_ID,hub_height,r,turbine_yaw,az,turbine_ct,turbine_ai,rotor_diameter,turbine_local_ti,
+                                sorted_turbine_index,turbine_velocities,wr,model_set;wind_farm_state_id=1,downwind_turbine_id=turbine_ID)
+
+            pitch_deg = pitch_func(13.0) #in degrees
+            pitch = pitch_deg*3.1415926535897/180.0 #convert to rad
+            rotor = CCBlade.Rotor(Rhub, Rtip, B, true, pitch, precone)
+            op = ff.distributed_velocity_op.(U, Omega, r, precone, turbine_yaw[turbine_ID], tilt, az, air_density)
+            out = CCBlade.solve.(Ref(rotor), sections, op)
+
+            m_arr_flap_P[i],m_arr_edge_P[i] = ff.get_moments(out,Rhub,Rtip,r,az,precone,tilt)
+        end
+
+
+
+        switch_num = 0
+        for i = 1:nCycles*naz
+            az = az_arr[(i+1)%naz+1]
+
+            TI_inst = TI_inst_arr[(i+1)%naz+1]
+
+            # turbine_velocity_with_turb = arr_type(turbine_velocities[turbine_ID] + turb_samples[i]*TI_inst*turbine_velocities[turbine_ID])
+            turbine_velocity_with_turb = arr_type(turbine_velocities[turbine_ID] + turb_samples[i]*eff_TI*turbine_velocities[turbine_ID])
+            Omega_rpm = omega_func(turbine_velocity_with_turb) #in rpm
+            Omega = Omega_rpm*0.10471975512 #convert to rad/s
+
+            # if turbine_velocity_with_turb > 11.4
+            flap[i] = m_arr_flap[(i+1)%naz+1] * (1.0+turb_samples[i]*TI_inst)
+            # edge[i] = m_arr_edge[(i+1)%naz+1] * (1.0+turb_samples[i]*TI_inst)
+
+            blade_mass=17536.617
+            blade_cm=20.650
+            grav=9.81
+            aero_edge = m_arr_edge[(i+1)%naz+1] - sin(az)*cos(precone)*cos(tilt)*blade_mass*grav*blade_cm/1000.0
+            aero_edge = aero_edge * (1.0+turb_samples[i]*TI_inst)
+            edge[i] = aero_edge + sin(az)*cos(precone)*cos(tilt)*blade_mass*grav*blade_cm/1000.0
+                # flap[i] = m_arr_flap[(i+1)%naz+1]
+                # edge[i] = m_arr_edge[(i+1)%naz+1]
+
+            # else
+            #     flap[i] = m_arr_flap_0[(i+1)%naz+1] * (turbine_velocity_with_turb/11.4)
+            #     # edge[i] = m_arr_edge[(i+1)%naz+1] * (1.0+turb_samples[i]*TI_inst)
+            #
+            #     blade_mass=17536.617
+            #     blade_cm=20.650
+            #     grav=9.81
+            #     aero_edge = m_arr_edge_0[(i+1)%naz+1] - sin(az)*cos(precone)*cos(tilt)*blade_mass*grav*blade_cm/1000.0
+            #     aero_edge = aero_edge * (1.0+turb_samples[i]*TI_inst)
+            #     edge[i] = aero_edge + sin(az)*cos(precone)*cos(tilt)*blade_mass*grav*blade_cm/1000.0
+            #     # flap[i] = m_arr_flap[(i+1)%naz+1]
+            #     # edge[i] = m_arr_edge[(i+1)%naz+1]
+            # end
+
+            oms[i] = Omega
+
+            if i == 1
+                global sign
+                if turbine_velocity_with_turb > 11.4
+                    sign = "above"
+                else
+                    sign = "below"
+                end
+            else
+                global sign
+                if sign == "above"
+                    if turbine_velocity_with_turb < 11.4
+                        sign = "below"
+                        switch_num += 1
+                    end
+                elseif sign == "below"
+                    if turbine_velocity_with_turb > 11.4
+                        sign = "above"
+                        switch_num += 1
+                    end
+                end
+            end
+        end
+
+        plot(edge)
+        plot(flap)
+        ylim(-4000,13000)
+
+        # println("switch_num: ", switch_num)
+        add_edge = zeros(switch_num*2)
+        add_flap = zeros(switch_num*2)
+        for i = 1:switch_num
+            if i%2 == 1
+                add_edge[i*2-1:i*2] = m_arr_edge_0[1:2]
+                add_flap[i*2-1:i*2] = m_arr_flap_0[1:2]
+            else
+                add_edge[i*2-1:i*2] = m_arr_edge_P[1:2]
+                add_flap[i*2-1:i*2] = m_arr_flap_P[1:2]
+            end
+        end
+
+        append!(edge,add_edge)
+        append!(flap,add_flap)
+
+        xlocs = zeros(Nlocs)
+        ylocs = zeros(Nlocs)
+        angles = range(-3.1415926535897/2.0,stop=3.1415926535897/2.0,length=Nlocs)
+        root_rad=3.542/2.0
+        for i in 1:Nlocs
+            xlocs[i] = cos(angles[i])*root_rad
+            ylocs[i] = sin(angles[i])*root_rad
+        end
+
+        avg_omega = sum(oms)/length(oms)
+        total_time = (nCycles)/(avg_omega/(2.0*3.1415926535897))
+
+        d_arr = zeros(arr_type,Nlocs)
+        damage = 0.0
+        ind = 0
+        time2 = time()
+        for i  = 1:Nlocs
+            sigma = calc_moment_stress.(edge,flap,xlocs[i],ylocs[i])
+            # sigma = calc_moment_stress_resultant.(edge,flap,xlocs[i],ylocs[i])
+            peaks = get_peaks(sigma)
+            out = rainflow(peaks)
+
+            alternate = out[1,:]/2.
+            mean = out[2,:]
+            count = out[3,:]
+
+            su = 70000.0
+            m = 10.0
+            years = 25.0
+            freq = 1.0
+
+            mar = alternate./(1.0.-mean./su)
+
+            npts = length(mar)
+            #damage calculations
+            d = 0.0
+            for i = 1:npts
+                Nfail = ((su)/(mar[i]*fos))^m
+                mult = years*365.25*24.0*3600.0*freq/total_time
+                d += count[i]*mult/Nfail
+            end
+            d_arr[i] = d
+            if d > damage
+                damage = d
+                ind = i
+            end
+        end
+        return damage
+end
+
+
+
+function get_single_state_damage_super(turbine_x,turbine_y,turbine_z,rotor_diameter,hub_height,turbine_yaw,turbine_ai,sorted_turbine_index,ct_model,
+                state_ID,nCycles,az_arr,turb_samples,omega_func,pitch_func,turbulence_func,r,sections,Rhub,Rtip,precone,tilt,
+                wind_resource,model_set;
+                Nlocs=20,fos=1.15,rotor_sample_points_y=[0.69,0.69,-0.69,-0.69],rotor_sample_points_z=[0.69,-0.69,0.69,-0.69],div_sigma=2.5,div_ti=1.2,B=3)
+
+    arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
+                        typeof(hub_height[1]),typeof(turbine_yaw[1]),typeof(turbine_ai[1]))
+
+    nturbines = length(turbine_x)
+    damage = zeros(arr_type,nturbines)
+
+    turbine_velocities, turbine_ct, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+                        turbine_ai, sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+                        model_set; wind_farm_state_id=state_ID)
+    for k = 1:nturbines
+        damage[k] = ff.get_single_damage_super(turbine_x,turbine_y,turbine_z,rotor_diameter,hub_height,turbine_yaw,turbine_ai,sorted_turbine_index,k,state_ID,nCycles,az_arr,
+            turb_samples,omega_func,pitch_func,turbulence_func,r,sections,Rhub,Rtip,precone,tilt,wind_resource,model_set,
+            turbine_velocities,turbine_ct,turbine_local_ti;
+            Nlocs=Nlocs,fos=fos,rotor_sample_points_y=rotor_sample_points_y,rotor_sample_points_z=rotor_sample_points_z,div_sigma=div_sigma,div_ti=div_ti,B=B)
+    end
+
+    return damage
+end
+
+
+function get_total_farm_damage_super(turbine_x,turbine_y,turbine_z,rotor_diameter,hub_height,turbine_yaw,turbine_ai,ct_model,
+        nCycles,az_arr,turb_samples,omega_func,pitch_func,turbulence_func,r,sections,Rhub,Rtip,precone,tilt,wind_resource,model_set;
+        Nlocs=20,fos=1.15,rotor_sample_points_y=[0.69,0.69,-0.69,-0.69],rotor_sample_points_z=[0.69,-0.69,0.69,-0.69],div_sigma=2.5,div_ti=1.2,B=3)
+
+    arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
+                        typeof(hub_height[1]),typeof(turbine_yaw[1]),typeof(turbine_ai[1]))
+
+    nturbines = length(turbine_x)
+
+    frequencies = wind_resource.wind_probabilities
+    directions = wind_resource.wind_directions
+    ndirections = length(frequencies)
+
+    damage = zeros(arr_type,nturbines)
+
+    for k = 1:ndirections
+        # t = time()
+        rot_x, rot_y =  ff.rotate_to_wind_direction(turbine_x, turbine_y, directions[k])
+        sorted_turbine_index = sortperm(rot_x)
+        state_damage = ff.get_single_state_damage_super(rot_x,rot_y,turbine_z,rotor_diameter,hub_height,turbine_yaw,turbine_ai,sorted_turbine_index,ct_model,
+                        k,nCycles,az_arr,turb_samples,omega_func,pitch_func,turbulence_func,r,sections,Rhub,Rtip,precone,tilt,
+                        wind_resource,model_set,
+                        Nlocs=Nlocs,fos=fos,rotor_sample_points_y=rotor_sample_points_y,rotor_sample_points_z=rotor_sample_points_z,div_sigma=div_sigma,div_ti=div_ti,B=B)
+        damage = damage + state_damage.*frequencies[k]
+        # println("state $k: ", time()-t)
+    end
+
+    return damage
 end

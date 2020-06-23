@@ -79,7 +79,11 @@ function _bpa_deflection(diam, ct, yaw, ky, kz, sigmay, sigmaz, theta0, x0)
     b = (theta0/14.7)*sqrt(cos(yaw)/(ky*kz*ct))*(2.9-1.3*sqrt(1.0-ct)-ct)
     c = (1.6+sqrt(ct))*(1.6*sqrt(8.0*sigmay*sigmaz/(cos(yaw)*diam^2))-ct)
     d = (1.6-sqrt(ct))*(1.6*sqrt(8.0*sigmay*sigmaz/(cos(yaw)*diam^2))+ct)
-    y_deflection = diam*(a+b*log(c/d))
+    if c/d > 0.0
+        y_deflection = diam*(a+b*log(c/d))
+    else
+        y_deflection = 0.0
+    end
     return y_deflection
 end
 
@@ -115,6 +119,14 @@ function wake_deflection_model(loc, turbine_x, turbine_yaw, turbine_ct, turbine_
     y_deflection = _bpa_deflection(diam, ct, yaw, ky, kz, sigmay, sigmaz, theta0, x0)
 
     return y_deflection
+end
+
+
+struct NoYawDeflection{} <: AbstractWakeDeflectionModel
+end
+
+function wake_deflection_model(loc, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::NoYawDeflection)
+    return 0.0
 end
 
 # function deflection_model(loc, turbine::Turbine)
