@@ -191,7 +191,7 @@ coordinates must be in the first quadrant of the Cartesian coordinate system
 function splined_boundary_discreet_regions(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies, turbs_per_region)
     """ Goes through numerous discrete splined-boundary regions and returns if the apportioned turbines are within their region """
     num_regions = length(turbs_per_region)
-    bndry_constraints = [ Float64[] for i in 1:num_regions ]  # To hold cnstrnts
+    bndry_constraints = zeros(sum(turbs_per_region)*4)#[ Float64[] for i in 1:num_regions ]  # To hold cnstrnts
 
     #-- Loop through and do all regions --#
     prev_turb_index = 1
@@ -199,7 +199,9 @@ function splined_boundary_discreet_regions(turbine_x, turbine_y, bndry_x_clsd, b
         next_turb_index = ((turbs_per_region[cntr]-1) + prev_turb_index)  # Next index for our Turbines
         region_turbine_x = turbine_x[prev_turb_index:next_turb_index]   # Simplified list of turbines preallocated to this region
         region_turbine_y = turbine_y[prev_turb_index:next_turb_index]
-        bndry_constraints[cntr] = append!(bndry_constraints[cntr],splined_boundary(region_turbine_x, region_turbine_y, bndry_x_clsd[cntr], bndry_y_clsd[cntr], bndry_corner_indcies[cntr]))
+        cnstrnts_index_strt = ((prev_turb_index-1)*4)+1
+        cnstrnts_index_end = ((next_turb_index-1)*4)+4
+        bndry_constraints[cnstrnts_index_strt:cnstrnts_index_end] = splined_boundary(region_turbine_x, region_turbine_y, bndry_x_clsd[cntr], bndry_y_clsd[cntr], bndry_corner_indcies[cntr])
         prev_turb_index = (turbs_per_region[cntr] + prev_turb_index)
     end
 
