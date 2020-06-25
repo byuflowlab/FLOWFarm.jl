@@ -32,7 +32,7 @@ The example scripts can be found in the test directory.
 
 There are four main steps to setting up and running an analysis in FlowFarm. 
 (1) setting up the problem description, (2) setting up the analysis model set, and 
-(3) running the analysis. Details for settin up an optmization will depend heavily on the
+(3) running the analysis. Details for settin up an optimization will depend heavily on the
 optimization package you are using, your objective, and your design variables. Optimization
 examples using various packages are provided in the example scripts located in the test directory.
 
