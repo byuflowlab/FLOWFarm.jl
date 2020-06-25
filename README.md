@@ -1,7 +1,7 @@
 # FlowFarm.jl
 Wind farm optimization tools based in Julia. 
 
-FlowFarm provides a modular framework of common wind farm analyis models written specifically for optimization use.
+FlowFarm provides a modular framework of common wind farm analyis models written specifically for optimization.
 
 ## Installation
 
