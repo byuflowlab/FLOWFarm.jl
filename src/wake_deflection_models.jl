@@ -184,6 +184,7 @@ end
 struct NoYawDeflection{} <: AbstractWakeDeflectionModel
 end
 
-function wake_deflection_model(loc, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::NoYawDeflection)
+function wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::NoYawDeflection)
+# function wake_deflection_model(loc, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::NoYawDeflection)
     return 0.0
 end

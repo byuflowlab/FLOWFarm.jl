@@ -211,14 +211,23 @@ function get_speeds(turbine_x,turbine_y,turbine_z,turb_index,hub_height,r,turbin
                                 typeof(hub_height[1]),typeof(turbine_yaw[1]),typeof(turbine_ai[1]))
         point_velocities = zeros(arr_type,npts)
             for i in 1:npts
-                loc = [x_locs[i], y_locs[i], z_locs[i]]
+                # loc = [x_locs[i], y_locs[i], z_locs[i]]
                 # point_velocities[i] = FlowFarm.point_velocity(loc, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, 0)
 
                 # point_velocities[i] = FlowFarm.point_velocity(loc, model_set, problem_description)
-                point_velocities[i] = FlowFarm.point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+
+                point_velocities[i] = FlowFarm.point_velocity(x_locs[i], y_locs[i], z_locs[i], turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
                                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
-                                    wind_resource, model_set;
-                                    wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=downwind_turbine_id)
+                                    wind_resource, model_set,
+                                    wind_farm_state_id=1, downwind_turbine_id=0)
+
+
+
+                # loc = [x_locs[i], y_locs[i], z_locs[i]]
+                # point_velocities[i] = FlowFarm.point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+                #                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
+                #                     wind_resource, model_set;
+                #                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=downwind_turbine_id)
             end
         return point_velocities
 end
@@ -478,6 +487,72 @@ function get_moments(out,Rhub,Rtip,r,az,precone,tilt)
     M_edge += sin(az)*cos(precone)*cos(tilt)*blade_mass*grav*blade_cm/1000.0
     return M_flap, M_edge
 end
+
+
+function get_moments_twist(out,Rhub,Rtip,r,az,precone,tilt,rotor,sections)
+
+    pitch = rotor.pitch
+
+    nr = length(r)+2
+
+    arr_type = promote_type(typeof(out[1].Np),typeof(out[1].Tp))
+    loads_hor = zeros(arr_type,nr)
+    loads_vert = zeros(arr_type,nr)
+    r_arr = zeros(nr)
+
+    counter = 2
+    for i = 1:length(r)
+        twist = sections[counter-1].theta
+        loads_hor[counter] = ((out[i].Np*cos(twist) + out[i].Tp*sin(twist))*cos(pitch) +
+                            (out[i].Tp*cos(twist) + out[i].Np*sin(twist))*sin(pitch))/1000.0
+        loads_vert[counter] = ((out[i].Tp*cos(twist) + out[i].Np*sin(twist))*cos(pitch) +
+                            (out[i].Np*cos(twist) + out[i].Tp*sin(twist))*sin(pitch))/1000.0
+        counter += 1
+    end
+
+    r_arr[2:end-1] = r
+    #
+    #approximate loads at r = Rhub
+    dL_flap = loads_hor[3]-loads_hor[2]
+    dL_edge = loads_vert[3]-loads_vert[2]
+    dr = r_arr[3]-r_arr[2]
+
+    m_flap = dL_flap/dr
+    m_edge = dL_edge/dr
+
+    Lhub_flap = loads_hor[2] + m_flap*(Rhub-r_arr[2])
+    Lhub_edge = loads_vert[2] + m_edge*(Rhub-r_arr[2])
+
+    loads_hor[1] = Lhub_flap
+    loads_vert[1] = Lhub_edge
+    r_arr[1] = Rhub
+
+    #approximate loads at r = Rtip
+    dL_flap = loads_hor[end-1]-loads_hor[end-2]
+    dL_edge = loads_vert[end-1]-loads_vert[end-2]
+    dr = r_arr[end-1]-r_arr[end-2]
+
+    m_flap = dL_flap/dr
+    m_edge = dL_edge/dr
+
+    Lhub_flap = loads_hor[end] + m_flap*(Rtip-r_arr[end-1])
+    Lhub_edge = loads_vert[end] + m_edge*(Rtip-r_arr[end-1])
+
+    loads_hor[end] = Lhub_flap
+    loads_vert[end] = Lhub_edge
+    r_arr[end] = Rtip
+
+    M_hor = trapz(r_arr,loads_hor.*(r_arr.-Rhub))
+    M_vert = trapz(r_arr,loads_vert.*(r_arr.-Rhub))
+
+    # add gravity loads
+    blade_mass=17536.617
+    blade_cm=20.650
+    grav=9.81
+    M_vert += sin(az)*cos(precone)*cos(tilt)*blade_mass*grav*blade_cm/1000.0
+    return M_hor, M_vert
+end
+
 
 
 # function get_single_damage(turbine_x,turbine_y,turbine_z,rotor_diameter,hub_height,turbine_yaw,turbine_ai,sorted_turbine_index,ct_model,turbine_ID,state_ID,nCycles,az_arr,
@@ -942,8 +1017,13 @@ function get_single_damage_super(turbine_x,turbine_y,turbine_z,rotor_diameter,hu
         # eff_TI = sqrt(eff_TI)/4.0 + 0.0
         eff_TI = sum(TI_inst_arr)/length(TI_inst_arr)
 
-        Omega_rpm = omega_func(turbine_velocities[turbine_ID]) #in rpm
-        Omega = Omega_rpm*0.10471975512 #convert to rad/s
+        # Omega_rpm = omega_func(turbine_velocities[turbine_ID]) #in rpm
+        # Omega_rpm = 22.0
+        # Omega = Omega_rpm*0.10471975512 #convert to rad/s
+        Omega = 7.571322070955497*turbine_velocities[turbine_ID]/(rotor_diameter[turbine_ID]/2.0)
+        if Omega > 1.267109036952
+            Omega = 1.267109036952
+        end
         pitch_deg = pitch_func(turbine_velocities[turbine_ID]) #in degrees
         # pitch_deg = pitch_deg/1.5
         # println("pitch_deg: ", pitch_deg)
@@ -960,14 +1040,16 @@ function get_single_damage_super(turbine_x,turbine_y,turbine_z,rotor_diameter,hu
                                 sorted_turbine_index,turbine_velocities,wind_resource,model_set;wind_farm_state_id=state_ID,downwind_turbine_id=turbine_ID)
 
             rotor = CCBlade.Rotor(Rhub, Rtip, B, true, pitch, precone)
-            # op = ff.distributed_velocity_op.(U, Omega, r, precone, turbine_yaw[turbine_ID], tilt, az, air_density)
+            op = ff.distributed_velocity_op.(U, Omega, r, precone, turbine_yaw[turbine_ID], tilt, az, air_density)
 
-            V = zeros(length(U)).+10.0*cos(az)
-            W = zeros(length(U)).-10.0*sin(az)
-            op = ff.multiple_components_op.(U, V, W, Omega, r, precone, turbine_yaw[turbine_ID], tilt, az, air_density)
+            # V = zeros(length(U)).+10.0*cos(az)
+            # W = zeros(length(U)).-10.0*sin(az)
+            # op = ff.multiple_components_op.(U, V, W, Omega, r, precone, turbine_yaw[turbine_ID], tilt, az, air_density)
             out = CCBlade.solve.(Ref(rotor), sections, op)
 
-            m_arr_flap[i],m_arr_edge[i] = ff.get_moments(out,Rhub,Rtip,r,az,precone,tilt)
+            """testing the correct theta"""
+            # m_arr_flap[i],m_arr_edge[i] = ff.get_moments(out,Rhub,Rtip,r,az,precone,tilt)
+            m_arr_flap[i],m_arr_edge[i] = ff.get_moments_twist(out,Rhub,Rtip,r,az,precone,tilt,rotor,sections)
         end
 
         m_arr_flap_0 = zeros(arr_type,length(az_arr))
@@ -989,13 +1071,13 @@ function get_single_damage_super(turbine_x,turbine_y,turbine_z,rotor_diameter,hu
 
         m_arr_flap_P = zeros(arr_type,length(az_arr))
         m_arr_edge_P = zeros(arr_type,length(az_arr))
-        wr = ff.DiscretizedWindResource(wind_resource.wind_directions, [13.0], wind_resource.wind_probabilities, wind_resource.measurement_heights, wind_resource.air_density, wind_resource.ambient_tis, wind_resource.wind_shear_model)
+        wr = ff.DiscretizedWindResource(wind_resource.wind_directions, [20.0], wind_resource.wind_probabilities, wind_resource.measurement_heights, wind_resource.air_density, wind_resource.ambient_tis, wind_resource.wind_shear_model)
         for i = 1:length(az_arr)
             az = az_arr[i]
-            U = get_speeds(turbine_x,turbine_y,turbine_z,turbine_ID,hub_height,r,turbine_yaw,az,turbine_ct,turbine_ai,rotor_diameter,turbine_local_ti,
-                                sorted_turbine_index,turbine_velocities,wr,model_set;wind_farm_state_id=1,downwind_turbine_id=turbine_ID)
-
-            pitch_deg = pitch_func(13.0) #in degrees
+            # U = get_speeds(turbine_x,turbine_y,turbine_z,turbine_ID,hub_height,r,turbine_yaw,az,turbine_ct,turbine_ai,rotor_diameter,turbine_local_ti,
+            #                     sorted_turbine_index,turbine_velocities,wr,model_set;wind_farm_state_id=1,downwind_turbine_id=turbine_ID)
+            U = ones(length(r)) .* 20.0
+            pitch_deg = pitch_func(20.0) #in degrees
             pitch = pitch_deg*3.1415926535897/180.0 #convert to rad
             rotor = CCBlade.Rotor(Rhub, Rtip, B, true, pitch, precone)
             op = ff.distributed_velocity_op.(U, Omega, r, precone, turbine_yaw[turbine_ID], tilt, az, air_density)
@@ -1014,19 +1096,43 @@ function get_single_damage_super(turbine_x,turbine_y,turbine_z,rotor_diameter,hu
 
             # turbine_velocity_with_turb = arr_type(turbine_velocities[turbine_ID] + turb_samples[i]*TI_inst*turbine_velocities[turbine_ID])
             turbine_velocity_with_turb = arr_type(turbine_velocities[turbine_ID] + turb_samples[i]*eff_TI*turbine_velocities[turbine_ID])
-            Omega_rpm = omega_func(turbine_velocity_with_turb) #in rpm
-            Omega = Omega_rpm*0.10471975512 #convert to rad/s
+            # Omega_rpm = omega_func(turbine_velocity_with_turb) #in rpm
+            # Omega_rpm = 22.0
+            # Omega = Omega_rpm*0.10471975512 #convert to rad/s
+            Omega = 7.571322070955497*turbine_velocity_with_turb/(rotor_diameter[turbine_ID]/2.0)
+            if Omega > 1.267109036952
+                Omega = 1.267109036952
+            end
 
             # if turbine_velocity_with_turb > 11.4
-            flap[i] = m_arr_flap[(i+1)%naz+1] * (1.0+turb_samples[i]*TI_inst)
+            # flap[i] = m_arr_flap[(i+1)%naz+1] * (1.0+turb_samples[i]*TI_inst)^2
             # edge[i] = m_arr_edge[(i+1)%naz+1] * (1.0+turb_samples[i]*TI_inst)
 
             blade_mass=17536.617
             blade_cm=20.650
             grav=9.81
-            aero_edge = m_arr_edge[(i+1)%naz+1] - sin(az)*cos(precone)*cos(tilt)*blade_mass*grav*blade_cm/1000.0
-            aero_edge = aero_edge * (1.0+turb_samples[i]*TI_inst)
-            edge[i] = aero_edge + sin(az)*cos(precone)*cos(tilt)*blade_mass*grav*blade_cm/1000.0
+            # aero_edge = m_arr_edge[(i+1)%naz+1] - sin(az)*cos(precone)*cos(tilt)*blade_mass*grav*blade_cm/1000.0
+
+            if turbine_velocity_with_turb < 11.4
+                flap[i] = m_arr_flap[(i+1)%naz+1] * (1.0+turb_samples[i]*TI_inst)^2
+                # aero_edge = aero_edge * (1.0+turb_samples[i]*TI_inst)^2
+                aero_edge = m_arr_edge_0[(i+1)%naz+1]
+                edge[i] = aero_edge
+            else
+                # flap[i] = m_arr_flap[(i+1)%naz+1] * (1.0+turb_samples[i]*TI_inst)^-1
+                # aero_edge = aero_edge * (1.0+turb_samples[i]*TI_inst)^-1
+                aero_edge = m_arr_edge[(i+1)%naz+1] - sin(az)*cos(precone)*cos(tilt)*blade_mass*grav*blade_cm/1000.0
+                slope_edge = -604.12
+                aero_edge = aero_edge + (turb_samples[i]*TI_inst)*slope_edge*turbine_velocities[turbine_ID]
+                edge[i] = aero_edge + sin(az)*cos(precone)*cos(tilt)*blade_mass*grav*blade_cm/1000.0
+
+                slope_flap = -1781.08
+                flap[i] = m_arr_flap[(i+1)%naz+1] + (turb_samples[i]*TI_inst)*slope_flap*turbine_velocities[turbine_ID]
+            end
+            # edge[i] = aero_edge + sin(az)*cos(precone)*cos(tilt)*blade_mass*grav*blade_cm/1000.0
+
+
+
                 # flap[i] = m_arr_flap[(i+1)%naz+1]
                 # edge[i] = m_arr_edge[(i+1)%naz+1]
 
@@ -1069,9 +1175,9 @@ function get_single_damage_super(turbine_x,turbine_y,turbine_z,rotor_diameter,hu
             end
         end
 
-        plot(edge)
-        plot(flap)
-        ylim(-4000,13000)
+        # plot(edge)
+        # plot(flap)
+        # ylim(-4000,13000)
 
         # println("switch_num: ", switch_num)
         add_edge = zeros(switch_num*2)
@@ -1086,8 +1192,8 @@ function get_single_damage_super(turbine_x,turbine_y,turbine_z,rotor_diameter,hu
             end
         end
 
-        append!(edge,add_edge)
-        append!(flap,add_flap)
+        # append!(edge,add_edge)
+        # append!(flap,add_flap)
 
         xlocs = zeros(Nlocs)
         ylocs = zeros(Nlocs)
