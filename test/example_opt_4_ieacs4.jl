@@ -109,15 +109,15 @@ struct params_struct{}
     power_models
 end
 
-# #--- Read in windfarm boundary data ---#
-# # Which case study we're doing. 'cs3' or 'cs4'
-# str_case = "4"
-# #- Rip the boundary coordinates from the .yaml file -#
-# file_dir = "./inputfiles/"
-# bnry_file_name_orig = "iea37-boundary-cs" * str_case * ".yaml"
-# bnry_file_name = string(file_dir,bnry_file_name_orig)
-# bndry_x, bndry_y = getBndryCs4YAML(bnry_file_name)
-# bndry_x_clsd, bndry_y_clsd = ff.closeBndryLists(bndry_x, bndry_y)
+#--- Read in windfarm boundary data ---#
+# Which case study we're doing. 'cs3' or 'cs4'
+str_case = "4"
+#- Rip the boundary coordinates from the .yaml file -#
+file_dir = "./inputfiles/"
+bnry_file_name_orig = "iea37-boundary-cs" * str_case * ".yaml"
+bnry_file_name = string(file_dir,bnry_file_name_orig)
+bndry_x, bndry_y = getBndryCs4YAML(bnry_file_name)
+bndry_x_clsd, bndry_y_clsd = ff.closeBndryLists(bndry_x, bndry_y)
 
 # #--- Read in turbine data to calculate AEP ---#
 # file_name_orig = "iea37-ex-opt" * str_case * ".yaml"
