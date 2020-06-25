@@ -19,7 +19,7 @@ To test FlowFarm, run the following in the test directory:
 include("runtests.jl")
 ```
 
-Currently, all tests should pass except for the Gaussian turbulene intensity. This model
+Currently, all tests should pass except for the Gaussian turbulence intensity. This model
 has not been fully integrated into the FlowFarm architecture.
 
 ## Documentation
@@ -32,7 +32,9 @@ The example scripts can be found in the test directory.
 
 There are four main steps to setting up and running an analysis in FlowFarm. 
 (1) setting up the problem description, (2) setting up the analysis model set, and 
-(3) running the analysis.
+(3) running the analysis. Details for settin up an optmization will depend heavily on the
+optimization package you are using, your objective, and your design variables. Optimization
+examples using various packages are provided in the example scripts located in the test directory.
 
 ### (1) Setting up the problem description
 
@@ -99,7 +101,7 @@ not accurate. For examples on how to use more accurate power models, look at the
 optimization scripts)```
 power_model = ff.PowerModelPowerCurveCubic()
 
-``` The user can define different power models to different wind turbines, but here we use the
+``` The user can define different power models for different wind turbines, but here we use the
 same power model for every turbine. The initialization of the power_models vector is important
 for optmization using algorithmic differentiation via the ForwardDiff.jl package.```
 power_models = Vector{typeof(power_model)}(undef, nturbines)
@@ -107,12 +109,7 @@ for i = 1:nturbines
     power_models[i] = power_model
 end
 
-# load thrust curve
-ctdata = readdlm("inputfiles/predicted_ct_vestas_v80_niayifar2016.txt",  ',', skipstart=1)
-ctvelpoints = ctdata[:,1]
-ctpoints = ctdata[:,2]
-
-``` Initialize thrust model. More complete thrust models are available. See the example 
+``` Initialize thrust model. The user can provide a complete thrust curve. See the example 
 scripts for details on initializing them. The initialization of ct_models vector is important
 for optmization using algorithmic differentiation via the ForwardDiff.jl package.```
 ct_model = ff.ThrustModelConstantCt(0.65)
@@ -120,7 +117,6 @@ ct_models = Vector{typeof(ct_model)}(undef, nturbines)
 for i = 1:nturbines
     ct_models[i] = ct_model
 end
-
 
 ``` set up wake and related models. Here we will use the default values provided in FlowFarm.
 However, it is important to use the correct model parameters. More information and references
