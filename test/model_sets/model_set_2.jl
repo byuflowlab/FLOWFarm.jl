@@ -32,6 +32,10 @@ air_density = 1.1716  # kg/m^3
 
 constcp = 0.8
 power_model = ff.PowerModelConstantCp(constcp)
+power_models = Vector{typeof(power_model)}(undef, nturbines)
+for i = 1:nturbines
+    power_models[i] = power_model
+end
 
 ct_model1 = ff.ThrustModelConstantCt(ct)
 ct_model = Vector{typeof(ct_model1)}(undef, nturbines)

@@ -1,19 +1,54 @@
 abstract type AbstractPowerModel end
 
+"""
+    PowerModelConstantCp(cp)
+
+Models will assume a constant cp value as provided
+
+# Arguments
+- `cp::Float`: constant power coefficient value
+"""
 struct PowerModelConstantCp{TF} <: AbstractPowerModel
     cp::TF
 end
 
+"""
+    PowerModelCpPoints(vel_points, cp_points)
+
+Models will use adjust cp based on cp curve using linear interpolation of provided points
+
+# Arguments
+- `vel_points::Array{N,Float}`: wind speed values in m/s
+- `cp_points::Array{N,Float}`: power coefficient values corresponding to the provided speeds
+"""
 struct PowerModelCpPoints{ATF} <: AbstractPowerModel
     vel_points::ATF
     cp_points::ATF
 end
 
+"""
+    PowerModelPowerPoints(vel_points, cp_points)
+
+Models will use adjust wind turbine power based on power curve using linear interpolation of 
+provided points
+
+# Arguments
+- `vel_points::Array{N,Float}`: wind speed values in m/s
+- `power_points::Array{N,Float}`: power values corresponding to the provided speeds
+"""
 struct PowerModelPowerPoints{ATF} <: AbstractPowerModel
     vel_points::ATF
     power_points::ATF
 end
 
+"""
+    PowerModelPowerCurveCubic()
+
+Power will be calculated based on turbine specifications assuming a cubic power curve. Note
+that this method is inherently incorrect and should only be used for theoretical purposes 
+or after careful validation.
+
+"""
 struct PowerModelPowerCurveCubic{} <: AbstractPowerModel
 end
 
@@ -87,7 +122,8 @@ Calculate the power for a wind turbine based on a cp curve with linear interpola
 - `rated_power::Float`: rated power of the wind turbine
 - `power_model::PowerModelCpPoints`: Struct containing the velocity and cp values defining the cp curve
 """
-function calculate_power(generator_efficiency, air_density, rotor_area, wt_velocity, cut_in_speed, rated_speed, cut_out_speed, rated_power, power_model::PowerModelCpPoints)
+function calculate_power(generator_efficiency, air_density, rotor_area, wt_velocity, 
+    cut_in_speed, rated_speed, cut_out_speed, rated_power, power_model::PowerModelCpPoints)
 
     # use specs if inflow wind speed is less than the wind speeds provided in the power curve
     if wt_velocity < power_model.vel_points[1]
@@ -147,7 +183,9 @@ Calculate the power for a wind turbine based on a pre-determined power curve wit
 - `power_model::PowerModelPowerPoints`: Struct containing the velocity and power values
     defining the power curve
 """
-function calculate_power(generator_efficiency, air_density, rotor_area, wt_velocity, cut_in_speed, rated_speed, cut_out_speed, rated_power, power_model::PowerModelPowerPoints)
+function calculate_power(generator_efficiency, air_density, rotor_area, wt_velocity, 
+    cut_in_speed, rated_speed, cut_out_speed, rated_power, 
+    power_model::PowerModelPowerPoints)
 
     # use specs if inflow wind speed is less than the wind speeds provided in the power curve
     if wt_velocity < power_model.vel_points[1]
@@ -199,7 +237,9 @@ Calculates wind turbine power using a cubic estimation based on turbine specific
 - `rated_power::Float`: rated power of the wind turbine
 - `power_model::PowerModelPowerCurveCubic`: Empty struct
 """
-function calculate_power(generator_efficiency, air_density, rotor_area, wt_velocity, cut_in_speed, rated_speed, cut_out_speed, rated_power, power_model::PowerModelPowerCurveCubic)
+function calculate_power(generator_efficiency, air_density, rotor_area, wt_velocity, 
+    cut_in_speed, rated_speed, cut_out_speed, rated_power, 
+    power_model::PowerModelPowerCurveCubic)
 
 
     if wt_velocity < cut_in_speed
@@ -218,19 +258,25 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
 end
 
 """
-    calculate_turbine_power(turbine_id, turbine_definition::TurbineDefinition,
-        farmstate::SingleWindFarmState, wind_model::AbstractWindResourceModel)
+    calculate_turbine_power(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, 
+    rated_power, rotor_diameter, wt_velocity, power_model::AbstractPowerModel, air_density)
 
-Calculate the power for a wind turbine based on a pre-determined power curve with linear
-    interpolation
+Calculate the power for all wind turbines. Dispaches to desired power model.
 
 # Arguments
-- `turbine_id::Int`: Efficiency of the turbine generator
-- `turbine_definition::TurbineDefinition`: Struct containing the relevant wind turbine deffinition
-- `farmstate::SingleWindFarmState`: Struct contatining the current wind farm state, including correct inflow velocities
-- `wind_model::AbstractWindResourceModel`: Struct defining the wind resource
+- `generator_efficiency::Array{Float,nTurbines}`
+- `cut_in_speed::Array{Float,nTurbines}` 
+- `cut_out_speed::Array{Float,nTurbines}`
+- `rated_speed::Array{Float,nTurbines}`
+- `rated_power::Array{Float,nTurbines}`
+- `rotor_diameter::Array{Float,nTurbines}`
+- `wt_velocity::Array{Float,nTurbines}`: turbine effective wind speeds for current state only
+- `power_model::AbstractPowerModel)
+- `air_density::Float`
 """
-function calculate_turbine_power(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, rotor_diameter, wt_velocity, power_model::AbstractPowerModel, air_density)
+function calculate_turbine_power(generator_efficiency, cut_in_speed, cut_out_speed, 
+    rated_speed, rated_power, rotor_diameter, wt_velocity, power_model::AbstractPowerModel, 
+    air_density)
 
     # calculated wind turbine rotor-swept area
     rotor_area = pi*(rotor_diameter^2)/4.0
@@ -240,8 +286,26 @@ function calculate_turbine_power(generator_efficiency, cut_in_speed, cut_out_spe
     return wt_power
 end
 
+"""
+    turbine_powers_one_direction((generator_efficiency, cut_in_speed, cut_out_speed, 
+        rated_speed, rated_power, rotor_diameter, turbine_inflow_velcities, air_density, power_model::AbstractPowerModel)
 
-function turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, rotor_diameter, turbine_inflow_velcities, air_density, power_model::AbstractPowerModel)
+Calculate the power for all wind turbines for a given state
+
+# Arguments
+- `generator_efficiency::Array{Float,nTurbines}`
+- `cut_in_speed::Array{Float,nTurbines}` 
+- `cut_out_speed::Array{Float,nTurbines}`
+- `rated_speed::Array{Float,nTurbines}`
+- `rated_power::Array{Float,nTurbines}`
+- `rotor_diameter::Array{Float,nTurbines}`
+- `turbine_inflow_velcities::Array{Float,nTurbines}`: for current state only
+- `air_density::Float`
+- `power_models::Array{nturbines})` elements of array should be be of sub-types or AbstractPowerModel
+"""
+function turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, 
+    rated_speed, rated_power, rotor_diameter, turbine_inflow_velcities, air_density, 
+    power_models)
 
     # get number of turbines and rotor sample point
     nturbines = length(rotor_diameter)
@@ -250,28 +314,51 @@ function turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_ou
                             typeof(rated_power[1]),typeof(rotor_diameter[1]),typeof(turbine_inflow_velcities[1]))
     wt_power = zeros(arr_type, nturbines)
     for d=1:nturbines
-        wt_power[d] = calculate_turbine_power(generator_efficiency[d], cut_in_speed[d], cut_out_speed[d], rated_speed[d], rated_power[d], rotor_diameter[d], turbine_inflow_velcities[d], power_model, air_density)
+        wt_power[d] = calculate_turbine_power(generator_efficiency[d], cut_in_speed[d], cut_out_speed[d], rated_speed[d], rated_power[d], rotor_diameter[d], turbine_inflow_velcities[d], power_models[d], air_density)
     end
     return wt_power
 end
 
 """
-    calculate_state_aeps(urbine_x, turbine_y, turbine_z, rotor_diameter,
+    calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
     hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-    cut_out_speed, rated_speed, rated_power, wind_resource, power_model::AbstractPowerModel, model_set::AbstractModelSet;
+    cut_out_speed, rated_speed, rated_power, wind_resource, power_models::Array{AbstractPowerModel}, model_set::AbstractModelSet;
     rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0])
 
-Calculate AEP for each requested state
-
+Calculate AEP for each requested state respectively
 
 # Arguments
-
+- `turbine_x::Array{Float,nTurbines}`: turbine east-west locations in the global 
+    reference frame
+- `turbine_y::Array{Float,nTurbines}`: turbine north-south locations in the global 
+    reference frame
+- `turbine_z::Array{Float,nTurbines}`: turbine base height in the global reference frame
+- `rotor_diameter::Array{Float,nTurbines}`
+- `hub_height::Array{TF,nTurbines}`: turbine hub heights
+- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in 
+    radians
+- `ct_model::AbstractThrustCoefficientModel`: defines how the thrust coefficient changes 
+    with state etc
+- `generator_efficiency::Array{Float,nTurbines}`
+- `cut_in_speed::Array{Float,nTurbines}` 
+- `cut_out_speed::Array{Float,nTurbines}`
+- `rated_speed::Array{Float,nTurbines}`
+- `rated_power::Array{Float,nTurbines}`
+- `wind_resource::DiscretizedWindResource`: wind resource discreption (directions, speeds, 
+    frequencies, etc)
+- `power_model::Array{nTurbines}`: elemenst of array should be sub-types of AbstractPowerModel
+- `model_set::AbstractModelSet`: defines wake-realated models to be used in analysis
+- rotor_sample_points_y::Array{TF,N}`: horizontal wind location of points to sample across 
+    the rotor swept area when calculating the effective wind speed for the wind turbine. 
+    Points are centered at the hub (0,0) and scaled by the radius (1=tip of blades) 
+- rotor_sample_points_z::Array{TF,N}`: vertical wind location of points to sample across the 
+    rotor swept area when calculating the effective wind speed for the wind turbine. Points
+    are centered at the hub (0,0) and scaled by the radius (1=tip of blades)
+- `hours_per_year::Float`: hours per year (averaged for leap year by default)
 """
-
-
 function calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
             hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-            cut_out_speed, rated_speed, rated_power, wind_resource, power_model::AbstractPowerModel, model_set::AbstractModelSet;
+            cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set::AbstractModelSet;
             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0)
 
     wind_probabilities = wind_resource.wind_probabilities
@@ -293,7 +380,7 @@ function calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
                             model_set, wind_farm_state_id=i)
 
         wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
-                            rated_power, rotor_diameter, turbine_velocities, wind_resource.air_density, power_model)
+                            rated_power, rotor_diameter, turbine_velocities, wind_resource.air_density, power_models)
 
         state_power = sum(wt_power)
         state_energy[i] = state_power*hours_per_year*wind_probabilities[i]
@@ -305,23 +392,45 @@ end
 
 
 """
-    calculate_aep(model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem;
-            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0])
+    calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
+    hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+    cut_out_speed, rated_speed, rated_power, wind_resource, power_models::Array{AbstractPowerModel}, model_set::AbstractModelSet;
+    rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0)
 
 Calculate wind farm AEP
 
-
 # Arguments
-- `turbine_id::Int`: Efficiency of the turbine generator
-- `turbine_definition::TurbineDefinition`: Struct containing the relevant wind turbine deffinition
-- `farmstate::SingleWindFarmState`: Struct contatining the current wind farm state, including correct inflow velocities
-- `wind_model::AbstractWindResourceModel`: Struct defining the wind resource
+- `turbine_x::Array{Float,nTurbines}`: turbine east-west locations in the global 
+    reference frame
+- `turbine_y::Array{Float,nTurbines}`: turbine north-south locations in the global 
+    reference frame
+- `turbine_z::Array{Float,nTurbines}`: turbine base height in the global reference frame
+- `rotor_diameter::Array{Float,nTurbines}`
+- `hub_height::Array{TF,nTurbines}`: turbine hub heights
+- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in 
+    radians
+- `ct_model::AbstractThrustCoefficientModel`: defines how the thrust coefficient changes 
+    with state etc
+- `generator_efficiency::Array{Float,nTurbines}`
+- `cut_in_speed::Array{Float,nTurbines}` 
+- `cut_out_speed::Array{Float,nTurbines}`
+- `rated_speed::Array{Float,nTurbines}`
+- `rated_power::Array{Float,nTurbines}`
+- `wind_resource::DiscretizedWindResource`: wind resource discreption (directions, speeds, 
+    frequencies, etc)
+- `power_model::Array{)`: elements of array should be sub types of AbstractPowerModel
+- `model_set::AbstractModelSet`: defines wake-realated models to be used in analysis
+- `rotor_sample_points_y::Array{TF,N}`: horizontal wind location of points to sample across 
+    the rotor swept area when calculating the effective wind speed for the wind turbine. 
+    Points are centered at the hub (0,0) and scaled by the radius (1=tip of blades) 
+- `rotor_sample_points_z::Array{TF,N}`: vertical wind location of points to sample across the 
+    rotor swept area when calculating the effective wind speed for the wind turbine. Points
+    are centered at the hub (0,0) and scaled by the radius (1=tip of blades)
+- `hours_per_year::Float`: hours per year (averaged for leap year by default)
 """
-
-
 function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-            cut_out_speed, rated_speed, rated_power, wind_resource, power_model::AbstractPowerModel, model_set::AbstractModelSet;
+            cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set::AbstractModelSet;
             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0)
 
     wind_probabilities = wind_resource.wind_probabilities
@@ -343,7 +452,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                             model_set, wind_farm_state_id=i)
 
         wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
-                            rated_power, rotor_diameter, turbine_velocities, wind_resource.air_density, power_model)
+                            rated_power, rotor_diameter, turbine_velocities, wind_resource.air_density, power_models)
 
         state_power = sum(wt_power)
         state_energy[i] = state_power*hours_per_year*wind_probabilities[i]

@@ -1,6 +1,13 @@
 import YAML
 
-## Complete and functional ###
+"""
+    get_turb_loc_YAML(file_name)
+
+read in turbine locations and related problem file names from .yaml
+
+# Arguments
+- `file_name::String`: path/and/name/of/location/file.yaml
+"""
 function get_turb_loc_YAML(file_name)
     ### Retrieve turbine locations and auxiliary file names from <.yaml> file.
     ### Auxiliary (reference) files supply wind rose and turbine attributes.
@@ -31,7 +38,14 @@ function get_turb_loc_YAML(file_name)
     return turbine_x, turbine_y, fname_turb, fname_wr
 end
 
-### Complete and functional ###
+"""
+    get_turb_atrbt_YAML(file_name)
+
+read in turbine attributes from .yaml
+
+# Arguments
+- `file_name::String`: path/to/attribute/file.yaml
+"""
 function get_turb_atrbt_YAML(file_name)
     ###Retreive turbine attributes from the <.yaml> file###
 
@@ -55,7 +69,14 @@ function get_turb_atrbt_YAML(file_name)
     return turb_ci, turb_co, rated_ws, rated_pwr, turb_diam, turb_height
 end
 
-### Complete and functional ###
+"""
+    get_wind_rose_YAML(file_name)
+
+read in wind resource information from .yaml
+
+# Arguments
+- `file_name::String`: path/to/wind/resource/file.yaml
+"""
 function get_wind_rose_YAML(file_name)
     ### Retrieve wind rose data (bins, freqs, speeds) from <.yaml> file.
 
@@ -94,6 +115,59 @@ function get_wind_rose_YAML(file_name)
     end
 
     return dir, speed, freq, ti
+end
+
+"""
+    write_turb_loc_YAML(file_name, data)
+
+write turbine locations and related information to .yaml
+
+# Arguments
+- `file_name::String`: path/and/name/of/location/file.yaml
+"""
+function write_turb_loc_YAML(filename, turbinex, turbiney; title="", titledescription="", 
+    turbinefile="", locunits="m", wakemodelused="", windresourcefile="", aeptotal=[], 
+    aepdirs=[], aepunits="MWh", baseyaml=string(@__DIR__, "/default.yaml"))
+
+    ### Retrieve turbine locations and auxiliary file names from <.yaml> file.
+    ### Auxiliary (reference) files supply wind rose and turbine attributes.
+
+    # Read in the default .yaml file
+    base = YAML.load(open(baseyaml))
+
+    # get number of turbines
+    nturbines = length(turbinex)
+
+    # save the title and description to the yaml database
+    base["title"] = title
+    base["description"] = titledescription
+
+    # save the title and description to the yaml database
+    base["definitions"]["plant_energy"]["properties"]["wake_model"]["items"][1]["\$ref"] = wakemodelused  
+
+    # save positions in yaml database
+    turb_coords = fill(zeros(2), nturbines)
+    for i in 1:nturbines
+        turb_coords[i] = [turbinex[i], turbiney[i]]
+    end    
+    
+    base["definitions"]["position"]["items"] = turb_coords
+    
+    # save the AEP in yaml database
+    base["definitions"]["plant_energy"]["properties"]["annual_energy_production"]["default"] = aeptotal
+
+    # save the directional AEPs in the yaml database 
+    base["definitions"]["plant_energy"]["properties"]["annual_energy_production"]["binned"] = aepdirs
+
+    # save the directional AEP units in the yaml database 
+    base["definitions"]["plant_energy"]["properties"]["annual_energy_production"]["units"] = aepunits
+
+    # save the auxiliary filenames for the windrose and the turbine attributes
+    base["definitions"]["wind_plant"]["properties"]["turbine"]["items"][1]["\$ref"] = turbinefile
+    base["definitions"]["plant_energy"]["properties"]["wind_resource"]["properties"]["items"][1]["\$ref"] = windresourcefile
+
+    # write result to .yaml
+    YAML.write_file(filename, base)
 end
 
 function get_reduced_wind_rose_YAML(file_name)

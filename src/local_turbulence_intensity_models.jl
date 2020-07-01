@@ -1,9 +1,28 @@
 abstract type AbstractLocalTurbulenceIntensityModel end
 
+"""
+    LocalTIModelNoLocalTI()
+
+Don't calculate local turbulence intensity. Ambient TI will be used instead for all points
+
+"""
 struct LocalTIModelNoLocalTI{} <: AbstractLocalTurbulenceIntensityModel
 
 end
 
+
+"""
+    LocalTIModelMaxTI(astar, bstar, k1, k2)
+
+Calculate local turbulence intensity using the model presented in Niayifar and 
+Porte Agel (2015, 2016)
+
+# Arguments
+- `astar::Float`: wake spreading parameter from Bastankhah and Porte-Agel Gaussian wake model
+- `bstar::Float`: wake spreading parameter from Bastankhah and Porte-Agel Gaussian wake model
+- `k1::Float`: slope of k vs TI curve
+- `k2::Float`: vertical offset of k vs TI curve
+"""
 struct LocalTIModelMaxTI{TF} <: AbstractLocalTurbulenceIntensityModel
     astar::TF
     bstar::TF
@@ -13,12 +32,46 @@ end
 LocalTIModelMaxTI(x, y) = LocalTIModelMaxTI(x, y, 0.3837, 0.003678)
 LocalTIModelMaxTI() = LocalTIModelMaxTI(2.32, 0.154, 0.3837, 0.003678)
 
+"""
+    calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=1E-6)
 
+Returns ambient turbulence intesity value whenever local turbulence intensity is requestesd
+
+# Arguments
+- `turbine_x::Array{Float,nTurbines}`: turbine wind direction locations in the wind direction 
+    reference frame
+- `turbine_y::Array{Float,nTurbines}`: turbine cross wind locations in the wind direction 
+    reference frame
+- `ambient_ti::Float`: ambient turbulence intensity
+- `rotor_diameter::Array{Float,nTurbines}`: rotor diameters of all turbines
+- `hub_height::Array{Float,nTurbines}`: hub heights of all turbines relative to the ground
+- `turbine_yaw::Array{Float,nTurbines}`: yaw of all turbines for the current wind state in radians
+- `turbine_local_ti::Array{Float,nTurbines}`: local turbulence intensity of all turbines for the current wind state`
+- `sorted_turbine_index::Array{Float,nTurbines}`: turbine north-south locations in the 
+    global reference frame
+- `turbine_inflow_velcities::Array{Float,nTurbines}`: effective inflow wind speed at each turbine for given state
+- `turbine_ct::Array{Float,nTurbines}`: thrust coefficient of each turbine for the given state
+- `ti_model::LocalTIModelNoLocalTI`: contains a struct defining the desired turbulence intensity model, no local TI in this case
+- `turbine_id::Int`: index of wind turbine of interest. Provide 1 as default.
+- `tol::Float`: How far upstream a turbine should be before being included in TI calculations
+"""
 function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
                     turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=1E-6)
     return ambient_ti
 end
 
+"""
+    _k_star_func(ti_ust,k1, k2)
+
+Calculate local wake spreading rate based on turbulence intensity using the model presented 
+in Niayifar and Porte Agel (2015, 2016)
+
+# Arguments
+- `ti_ust::Float`: upstream turbine local turbulence intensity
+- `k1::Float`: slope of k vs TI curve
+- `k2::Float`: vertical offset of k vs TI curve
+"""
 # compute wake spread parameter based on local turbulence intensity
 function _k_star_func(ti_ust,k1,k2)
     # calculate wake spread parameter from Niayifar and Porte Agel (2015, 2016)
@@ -30,6 +83,28 @@ function _k_star_func(ti_ust,k1,k2)
 end
 _k_star_func(x) = _k_star_func(x, 0.3837, 0.003678)
 
+"""
+    _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, kstar_ust, delta_y, 
+        ti_amb, ti_ust, ti_dst, ti_area_ratio_in; s=700.0)
+
+Main code for calculating the local turbulence intensity at a turbine using the method of
+    Niayifar and Porte Agel (2015, 2016).
+
+# Arguments
+- `x::Float`: downstream distance from turbine to point of interest
+- `d_dst::Float`: downstream turbine rotor diameter
+- `d_ust::Float`: upstream turbine rotor diameter
+- `h_ust::Float`: upstream turbine hub height
+- `h_dst::Float`: downstream turbine hub height
+- `ct_ust::Float`: upstream turbine thrust coefficient
+- `kstar_ust::Float`: upstream turbine wake expansion rate
+- `delta_y::Float`: cross wind separation from turbine to point of interest
+- `ti_amb::Float`: ambient turbulence intensity
+- `ti_ust::Float`: upstream turbine local turbulence intensity
+- `ti_dst::Float`: downstream turbine local turbulence intensity
+- `ti_area_ratio_in::Float`: current value of TI-area ratio for use in calculatin local TI
+- `s::Float`: smooth max smootheness parameter
+"""
 function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, kstar_ust, delta_y, ti_amb, ti_ust, ti_dst, ti_area_ratio_in; s=700.0)
     # Niayifar and Porte Agel 2015, 2016 using smooth max on area TI ratio
 
@@ -57,7 +132,7 @@ function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, ksta
         # wake of the upstream turbine
         ti_added = 0.73*(axial_induction_ust^0.8325)*(ti_ust^0.0325)*((x/d_ust)^(-0.32))
 
-        rotor_area_dst = 0.25*pi*d_dst^2.0
+        rotor_area_dst = 0.25*pi*d_dst^2
         ti_area_ratio_tmp = ti_added*(wake_overlap/rotor_area_dst)
 
         # Run through the smooth max to get an approximation of the true max TI area ratio
@@ -65,7 +140,7 @@ function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, ksta
 
         # Calculate the total turbulence intensity at the downstream turbine based on
         # the result of the smooth max function
-        ti_dst = sqrt(ti_amb^2.0 + ti_area_ratio^2.0)
+        ti_dst = sqrt(ti_amb^2 + ti_area_ratio^2)
 
     end
 
@@ -73,7 +148,30 @@ function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, ksta
 
 end
 
+"""
+    calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6)
 
+Returns local turbulence intensity calculated using Niayifar and Porte Agel 2015, 2016 using smooth max on area TI ratio
+
+# Arguments
+- `turbine_x::Array{Float,nTurbines}`: turbine wind direction locations in the wind direction 
+    reference frame
+- `turbine_y::Array{Float,nTurbines}`: turbine cross wind locations in the wind direction 
+    reference frame
+- `ambient_ti::Float`: ambient turbulence intensity
+- `rotor_diameter::Array{Float,nTurbines}`: rotor diameters of all turbines
+- `hub_height::Array{Float,nTurbines}`: hub heights of all turbines relative to the ground
+- `turbine_yaw::Array{Float,nTurbines}`: yaw of all turbines for the current wind state in radians
+- `turbine_local_ti::Array{Float,nTurbines}`: local turbulence intensity of all turbines for the current wind state`
+- `sorted_turbine_index::Array{Float,nTurbines}`: turbine north-south locations in the 
+    global reference frame
+- `turbine_inflow_velcities::Array{Float,nTurbines}`: effective inflow wind speed at each turbine for given state
+- `turbine_ct::Array{Float,nTurbines}`: thrust coefficient of each turbine for the given state
+- `ti_model::LocalTIModelMaxTI`: contains a struct defining the desired turbulence intensity model, no local TI in this case
+- `turbine_id::Int`: index of wind turbine of interest. Provide 1 as default.
+- `tol::Float`: How far upstream a turbine should be before being included in TI calculations
+"""
 function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
                     turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6)
 
@@ -150,7 +248,30 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
 
 end
 
+"""
+    GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, 
+        sorted_turbine_index, ambient_ti; div_sigma=2.5, div_ti=1.2)
 
+
+Calculate local turbulence intensity based on "On wake modeling, wind-farm gradients and AEP 
+    predictions at the Anholt wind farm" by Pena Diaz, Alfredo; Hansen, Kurt Schaldemose; 
+    Ott, Søren; van der Laan, Paul ??
+
+# Arguments
+- `loc::Array{Float,3}`: [x,y,z] location of point of interest in wind direction ref. frame
+- `turbine_x::Array{Float,nTurbines}`: turbine wind direction locations in the wind direction 
+    reference frame
+- `turbine_y::Array{Float,nTurbines}`: turbine cross wind locations in the wind direction 
+    reference frame
+- `rotor_diameter::Array{Float,nTurbines}`: rotor diameters of all turbines
+- `hub_height::Array{Float,nTurbines}`: hub heights of all turbines relative to the ground
+- `turbine_ct::Array{Float,nTurbines}`: thrust coefficient of each turbine for the given state
+- `sorted_turbine_index::Array{Float,nTurbines}`: turbine north-south locations in the 
+    global reference frame
+- `ambient_ti::Float`: ambient turbulence intensity
+- `div_sigma::Float`: ?
+- `div_ti::Float`: ?
+"""
 function GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, sorted_turbine_index, ambient_ti; div_sigma=2.5, div_ti=1.2)
 
     added_ti = 0.0

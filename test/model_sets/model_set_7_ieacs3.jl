@@ -44,6 +44,10 @@ measurementheight = zeros(nstates) .+ turb_hub_height
 
 # initialize power model
 power_model = ff.PowerModelPowerCurveCubic()
+power_models = Vector{typeof(power_model)}(undef, nturbines)
+for i = 1:nturbines
+    power_models[i] = power_model
+end
 
 # load thrust curve
 ct = 4.0*(1.0/3.0)*(1.0 - 1.0/3.0)

@@ -43,7 +43,7 @@ function aep_wrapper(x, params)
     params.rotor_diameter
     params.hub_height
     params.turbine_yaw
-    params.ct_model
+    params.ct_models
     params.generator_efficiency
     params.cut_in_speed
     params.cut_out_speed
@@ -65,9 +65,9 @@ function aep_wrapper(x, params)
 
     # calculate AEP
     AEP = obj_scale*ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
-                hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+                hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
                 cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
-                rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z, hours_per_year=365.0*24.0)
+                rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)
     
     # return the objective as an array
     return [AEP]
@@ -100,14 +100,14 @@ function wind_farm_opt(x)
 end
 
 # import model set with wind farm and related details
-include("./model_sets/model_set_7_ieacs4.jl")
+include("./model_sets/model_set_9_38turb_round_farm.jl")
 
 # scale objective to be between 0 and 1
 obj_scale = 1E-11
 
 # set wind farm boundary parameters
 boundary_center = [0.0,0.0]
-boundary_radius = 3000.0
+boundary_radius = 1225.8227848101264
 
 # set globals for use in wrapper functions
 struct params_struct{}
@@ -122,7 +122,7 @@ struct params_struct{}
     obj_scale
     hub_height
     turbine_yaw
-    ct_model
+    ct_models
     generator_efficiency
     cut_in_speed
     cut_out_speed
@@ -134,30 +134,16 @@ end
 
 params = params_struct(model_set, rotor_points_y, rotor_points_z, turbine_z, ambient_ti, 
     rotor_diameter, boundary_center, boundary_radius, obj_scale, hub_height, turbine_yaw, 
-    ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, 
+    ct_models, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, 
     windresource, power_models)
 
 # initialize design variable array
 x = [copy(turbine_x);copy(turbine_y)]
 
 # report initial objective value
-println("Nturbines: ", nturbines)
-println("Rotor diameter: ", rotor_diameter[1])
-println("Starting AEP value (GWh): ", aep_wrapper(x, params)[1]*1e-9/obj_scale)
-# println("Directional AEP at start: ", dir_aep.*1E-6)
+println("starting objective value: ", aep_wrapper(x, params)[1])
 
-t1 = time()
-for i in 1:10
-    println(i)
-    aep_wrapper(x, params)[1]*1e-9/obj_scale
-end
-t2 = time()
-at = (t2-t1)/10.0
-act = at/7200.0
-println("average time: ", at)
-println("fcal time: ", act)
-
-continue
+plot(0,0)
 # add initial turbine location to plot
 for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
@@ -170,28 +156,34 @@ ub = zeros(length(x)) .+ boundary_radius
 # set up options for SNOPT
 options = Dict{String, Any}()
 options["Derivative option"] = 1
-options["Verify level"] = 3
-options["Major optimality tolerance"] = 1e-5
+options["Verify level"] = 0
+options["Major optimality tolerance"] = 1e-6
 options["Major iteration limit"] = 1e6
-options["Summary file"] = "summary.out"
-options["Print file"] = "print.out"
+options["Summary file"] = "snopt_summary_ex6.out"
+options["Print file"] = "snopt_print_ex6.out"
 
 # generate wrapper function surrogates
 spacing_wrapper(x) = spacing_wrapper(x, params)
 aep_wrapper(x) = aep_wrapper(x, params)
 boundary_wrapper(x) = boundary_wrapper(x, params)
+obj_func(x) = wind_farm_opt(x)
 
+# set up for WEC optimization
+wec_steps = 2
+wec_max = 3.0
+wec_end = 1.0
+wec_values = collect(LinRange(wec_max, wec_end, wec_steps))
+println(wec_values)
+info = fill("",wec_steps)
 # run and time optimization
-println
 t1 = time()
 xopt, fopt, info = snopt(obj_func, x, lb, ub, options)
 t2 = time()
-clkt = t2-t2
-
+clk = t2-t1
 # print optimization results
-println("Finished in : ", clkt, " (s)")
+println("Finished in : ", clk, " (s)")
 println("info: ", info)
-println("end objective value: ", aep_wrapper(xopt))
+println("end objective value: ", -fopt)
 
 # extract final turbine locations
 turbine_x = copy(xopt[1:nturbines])
