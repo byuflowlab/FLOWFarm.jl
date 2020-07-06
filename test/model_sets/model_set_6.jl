@@ -75,7 +75,7 @@ windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobab
 wakedeficitmodel = ff.GaussYaw()
 wakedeflectionmodel = ff.GaussYawDeflection()
 wakecombinationmodel = ff.LinearLocalVelocitySuperposition()
-localtimodel = ff.LocalTIModelMaxTI()
+localtimodel = ff.LocalTIModelNoLocalTI()
 
 # initialize model set
 model_set = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)

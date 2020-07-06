@@ -11,3 +11,7 @@ makedocs(;
     authors="PJ Stanley <stanley_andrewpj@yahoo.com>",
     assets=String[],
 )
+
+deploydocs(
+    repo = "github.com/byuflowlab/FlowFarm.jl.git",
+)
