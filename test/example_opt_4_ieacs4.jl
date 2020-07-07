@@ -57,10 +57,14 @@ function wind_farm_opt(x)
 
     # calculate spacing constraint value and jacobian
     spacing_con = spacing_wrapper(x)
+    println(typeof(spacing_con))
+    #println(spacing_con)
     ds_dx = ForwardDiff.jacobian(spacing_wrapper, x)
-
+    
     # calculate boundary constraint and jacobian
     boundary_con = boundary_wrapper(x)
+    println(typeof(boundary_con))
+    #println(boundary_con)
     db_dx = ForwardDiff.jacobian(boundary_wrapper, x)
 
     # combine constaint values and jacobians into overall constaint value and jacobian arrays
@@ -191,10 +195,10 @@ println("Starting AEP value (GWh): ", aep_wrapper(x, params)[1]*1e-9/obj_scale)
 # println("fcal time: ", act)
 
 # continue
-# add initial turbine location to plot
-for i = 1:length(turbine_x)
-    plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
-end
+# # add initial turbine location to plot
+# for i = 1:length(turbine_x)
+#     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=true,color="black"))#"C0"))
+# end
 
 # set general lower and upper bounds for design variables
 lb = zeros(length(x))

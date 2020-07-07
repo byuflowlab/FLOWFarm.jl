@@ -133,21 +133,22 @@ function splined_boundary(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndr
     end
 
     # Check to make sure our points are in
-    bndry_cons = zeros(typeof(turbine_x[1]),(num_turbs, 4))   # 4 values (2 x and 2 y) for each turb
+    bndry_cons = zeros(typeof(turbine_x[1]),(num_turbs * 4))   # 4 values (2 x and 2 y) for each turb
 
     x_max = bndry_x_clsd[bndry_corner_indcies[1]]           # Our maximum x-value
     x_min = bndry_x_clsd[bndry_corner_indcies[x_min_indx]]  # Our min x-value
 
     # For every turbine
     for cntr in 1:num_turbs
+        place = (cntr-1)*4
         #- Calc x-vals
-        bndry_cons[cntr,1] = (x_max - turbine_x[cntr])   # Positive good, neg bad
-        bndry_cons[cntr,2] = (turbine_x[cntr] - x_min)   # pos good, neg bad
+        bndry_cons[place+1] = (x_max - turbine_x[cntr])   # Positive good, neg bad
+        bndry_cons[place+2] = (turbine_x[cntr] - x_min)   # pos good, neg bad
 
         #- Calc y-vals
         y_max,y_min = getUpDwnYvals(turbine_x[cntr], bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies)
-        bndry_cons[cntr,3] = (y_max - turbine_y[cntr])
-        bndry_cons[cntr,4] = (turbine_y[cntr] - y_min)
+        bndry_cons[place+3] = (y_max - turbine_y[cntr])
+        bndry_cons[place+4] = (turbine_y[cntr] - y_min)
     end
 
     # Debug code to print the constraint values
@@ -155,7 +156,7 @@ function splined_boundary(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndr
     #     @printf("%e %e %e %e\n", bndry_cons[i,1], bndry_cons[i,2], bndry_cons[i,3] ,bndry_cons[i,4])
     # end
 
-    return collect(bndry_cons)
+    return bndry_cons
 end
 
 """
