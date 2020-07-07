@@ -133,7 +133,8 @@ function splined_boundary(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndr
     end
 
     # Check to make sure our points are in
-    bndry_cons = zeros(typeof(turbine_x[1]),(num_turbs * 4))   # 4 values (2 x and 2 y) for each turb
+    num_cons = Int(num_turbs * 4)
+    bndry_cons = zeros(typeof(turbine_x[1]), num_cons)   # 4 values (2 x and 2 y) for each turb
 
     x_max = bndry_x_clsd[bndry_corner_indcies[1]]           # Our maximum x-value
     x_min = bndry_x_clsd[bndry_corner_indcies[x_min_indx]]  # Our min x-value
@@ -189,25 +190,26 @@ coordinates must be in the first quadrant of the Cartesian coordinate system
         are apportioned to the corresponding region. sum(turbs_per_region) must
         be equivalent to the total number of turbines in the windfarm
 """
-function splined_boundary_discreet_regions(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies, turbs_per_region)
+function splined_boundary_discreet_regions(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, num_bndry_verts, bndry_corner_indcies, turbs_per_region)
     """ Goes through numerous discrete splined-boundary regions and returns if the apportioned turbines are within their region """
     num_regions = length(turbs_per_region)
-    bndry_constraints = zeros(sum(turbs_per_region)*4)#[ Float64[] for i in 1:num_regions ]  # To hold cnstrnts
-
+    bndry_constraints = zeros(typeof(turbine_x[1]), sum(turbs_per_region)*4)#[ Float64[] for i in 1:num_regions ]  # To hold cnstrnts
     #-- Loop through and do all regions --#
     prev_turb_index = 1
+    bndry_vert_index = 1
     for cntr in 1:num_regions
         next_turb_index = ((turbs_per_region[cntr]-1) + prev_turb_index)  # Next index for our Turbines
         region_turbine_x = turbine_x[prev_turb_index:next_turb_index]   # Simplified list of turbines preallocated to this region
         region_turbine_y = turbine_y[prev_turb_index:next_turb_index]
         cnstrnts_index_strt = ((prev_turb_index-1)*4)+1
         cnstrnts_index_end = ((next_turb_index-1)*4)+4
-        bndry_constraints[cnstrnts_index_strt:cnstrnts_index_end] = splined_boundary(region_turbine_x, region_turbine_y, bndry_x_clsd[cntr], bndry_y_clsd[cntr], bndry_corner_indcies[cntr])
-        prev_turb_index = (turbs_per_region[cntr] + prev_turb_index)
+        bndry_constraints[cnstrnts_index_strt:cnstrnts_index_end] = splined_boundary(region_turbine_x, region_turbine_y, bndry_x_clsd[cntr], bndry_y_clsd[cntr], bndry_corner_indcies[bndry_vert_index:(bndry_vert_index+(num_bndry_verts[cntr]-1))])
+        bndry_vert_index += num_bndry_verts[cntr]
+        prev_turb_index += turbs_per_region[cntr]
     end
 
     # Make it a long 1D array for SNOPT
-    bndry_constraints = collect(Iterators.Flatten(bndry_constraints))
+    
     return bndry_constraints
 end
 

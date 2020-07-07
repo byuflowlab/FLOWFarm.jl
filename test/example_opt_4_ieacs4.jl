@@ -17,7 +17,7 @@ function boundary_wrapper(x, params)
     turbine_y = x[nturbines+1:end]
 
     # get and return boundary distances
-    return ff.splined_boundary_discreet_regions(turbine_x, turbine_y, params.bndry_x_clsd, params.bndry_y_clsd, params.bndry_corner_indcies, params.turbs_per_region)
+    return ff.splined_boundary_discreet_regions(turbine_x, turbine_y, params.bndry_x_clsd, params.bndry_y_clsd, params.num_bndry_verts, params.bndry_corner_indcies, params.turbs_per_region)
 end
 
 # set up spacing constraint wrapper function
@@ -57,14 +57,10 @@ function wind_farm_opt(x)
 
     # calculate spacing constraint value and jacobian
     spacing_con = spacing_wrapper(x)
-    println(typeof(spacing_con))
-    #println(spacing_con)
     ds_dx = ForwardDiff.jacobian(spacing_wrapper, x)
     
     # calculate boundary constraint and jacobian
     boundary_con = boundary_wrapper(x)
-    println(typeof(boundary_con))
-    #println(boundary_con)
     db_dx = ForwardDiff.jacobian(boundary_wrapper, x)
 
     # combine constaint values and jacobians into overall constaint value and jacobian arrays
@@ -98,6 +94,7 @@ struct params_struct{}
     rotor_diameter
     bndry_x_clsd
     bndry_y_clsd
+    num_bndry_verts
     bndry_corner_indcies
     turbs_per_region
     obj_scale
@@ -139,16 +136,16 @@ bndry_x_clsd, bndry_y_clsd = ff.closeBndryLists(bndry_x, bndry_y)
 # Make an array of the number of turbines in each region
 nNumRegions = 5     # Number of reigons we're using (cs4 = 5, cs3 = 1)
 turbs_per_region = zeros(Int8, nNumRegions)  # Preallocated turbines in each region
-bndry_corner_indcies = [ Int64[] for i in 1:nNumRegions ]
+num_bndry_verts = zeros(Int8, nNumRegions)
 for cntr in 1:nNumRegions
-    bndry_corner_indcies[cntr] =
-        append!(bndry_corner_indcies[cntr],getCs34VertList(getCs34Name(cntr)))
+    num_bndry_verts[cntr] = length(getCs34VertList(getCs34Name(cntr)))
     turbs_per_region[cntr] = floor(getCs34NumTurbs(getCs34Name(cntr)))
 end
+bndry_corner_indcies = getCs34VertList("All")
 num_tot_turbs = sum(turbs_per_region)
 
 params = params_struct(model_set, rotor_points_y, rotor_points_z, turbine_z, ambient_ti, 
-    rotor_diameter, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies, turbs_per_region, obj_scale, hub_height, turbine_yaw, 
+    rotor_diameter, bndry_x_clsd, bndry_y_clsd, num_bndry_verts, bndry_corner_indcies, turbs_per_region, obj_scale, hub_height, turbine_yaw, 
     ct_models, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, 
     windresource, power_models)
 
