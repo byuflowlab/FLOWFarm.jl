@@ -154,7 +154,7 @@ obj_func(x) = wind_farm_opt(x)
 t1 = time()
 xopt, fopt, info = snopt(obj_func, x, lb, ub, options)
 t2 = time()
-clkt = t2-t2
+clkt = t2-t1
 
 # print optimization results
 println("Finished in : ", clkt, " (s)")

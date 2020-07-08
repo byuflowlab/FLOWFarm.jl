@@ -140,19 +140,21 @@ plt.show()
 wind_rose_file_name = string("./inputfiles/wind_rose_jepson_prarie.txt")
 winddata = readdlm(wind_rose_file_name, ',', skipstart=9)
 # println(winddata)
+nstates = length(winddata[:,1])*6
+
 speeds = [3.0, 5.0, 7.0, 9.0, 11.0, 13.0]
-winddirections = zeros(length(winddata)*6)
-windspeeds = zeros(length(winddata)*6)
-windprobabilities = zeros(length(winddata)*6)
+winddirections = zeros(nstates)
+windspeeds = zeros(nstates)
+windprobabilities = zeros(nstates)
 for i in 1:length(winddata[:,1])
     dirstr = split(winddata[i,1] , r"[-]")
     for j in 1:6
         winddirections[(i-1)*6 + j] = (0.5*(parse(Float64, dirstr[2])+parse(Float64,dirstr[1])))
         windspeeds[(i-1)*6 + j] = speeds[j]
-        windprobabilities[(i-1)*6 + j] = winddata[i,j+2] 
+        windprobabilities[(i-1)*6 + j] = winddata[i,j+2] / 100.0
     end
 end
-nstates = length(winddirections)
+
 winddirections *= pi/180.0
 
 air_density = 1.1716  # kg/m^3
@@ -187,7 +189,6 @@ for i = 1:nturbines
         throw(UndefVarError(:model))
     end
 end
-
 
 # initialize wind shear model
 wind_shear_model = ff.PowerLawWindShear(shearexponent)

@@ -61,7 +61,7 @@ end
 include("./model_sets/model_set_8_shiloh.jl")
 
 # scale objective to be between 0 and 1
-obj_scale = 1E-11
+obj_scale = 1E-9
 
 # set globals for use in wrapper functions
 struct params_struct4{MS, AF, F, ACTM, WR, APM}
@@ -118,13 +118,16 @@ ub = zeros(nturbines) .+ 30.0*pi/180.0
 # generate wrapper function surrogate
 aep_wrapper(x) = aep_wrapper(x, params)
 
+initial_aep = aep_wrapper(x)
+
 # set up holders for optimized yaw values for each state
 optyaw = zeros((nstates,nturbines))
 diraep = zeros(nstates)
+diraepinit = zeros(nstates)
 # run and time optimization
 t1 = time()
-for i in 1:1
-    println("Optimizing for state: ", i)
+for i in 1:nstates
+    println("Optimizing for state: ", i, "/", nstates)
     println("Direction: ", winddirections[i])
     println("Wind speed: ", windspeeds[i])
     println("Probability: ", windprobabilities[i])
@@ -136,12 +139,16 @@ for i in 1:1
     params.windresource.measurement_heights[1] = measurementheight[i]
     params.windresource.ambient_tis[1] = ambient_tis[i]
     x = zeros(nturbines)
+    diraepinit[i] = aep_wrapper(x)[1]
     t11 = time()
     xopt, fopt, info = snopt(wind_farm_opt, x, lb, ub, options)
     t22 = time()
     println("Finished in : ", t22-t11, " (s)")
     println("info: ", info)
+    println("start AEP value for dir: ", diraepinit[i])
     println("end AEP value for dir: ", -fopt)
+    println("AEP improvement for dir: ", -fopt/diraepinit[i])
+    println()
     diraep[i] = deepcopy(fopt)
     for j in 1:nturbines
         optyaw[i,j] = deepcopy(xopt[j])
@@ -149,13 +156,15 @@ for i in 1:1
 end
 
 t2 = time()
-clkt = t2-t2
+clkt = t1-t2
 
 # print optimization results
 println("Finished in : ", clkt, " (s)")
 println("info: ", info)
+println("start AEP value: ", sum(diraepinit))
 println("end AEP value: ", sum(diraep))
 println("optimized yaw", optyaw)
+println("Total AEP improvement: ", sum(diraep)/sum(diraepinit))
 # add final turbine locations to plot
 for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C1", linestyle="--")) 
