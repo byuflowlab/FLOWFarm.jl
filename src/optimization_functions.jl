@@ -105,7 +105,7 @@ more reflex angles (concavities). Boundary will have three or four user-selected
 injective functions (meaning that for every x-coord,there exists only one
 corresponding y-coord). Returns four values for every turbine, corresponding to
 the distance from the turb to the upper, lower, left, and right splined "sides".
-A negative return value means the turb is outside the boundary for that "side".
+A negative return value means the turb is inside the boundary for that "side".
 Returns a single array of {Float64} of length {length(turbine_x) * 4}. Note that
 all boundary coordinates must be in the first quadrant of the Cartesian
 coordinate system (+x and +y values only)
@@ -152,12 +152,7 @@ function splined_boundary(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndr
         bndry_cons[place+4] = (turbine_y[cntr] - y_min)
     end
 
-    # Debug code to print the constraint values
-    # for i in 1:sum(num_turbs)
-    #     @printf("%e %e %e %e\n", bndry_cons[i,1], bndry_cons[i,2], bndry_cons[i,3] ,bndry_cons[i,4])
-    # end
-
-    return bndry_cons
+    return -bndry_cons # Invert values so Negative is inside boundary
 end
 
 """
@@ -209,7 +204,6 @@ function splined_boundary_discreet_regions(turbine_x, turbine_y, bndry_x_clsd, b
     end
 
     # Make it a long 1D array for SNOPT
-    
     return bndry_constraints
 end
 
