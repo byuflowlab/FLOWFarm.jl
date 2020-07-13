@@ -1,4 +1,4 @@
-import FlowFarm; const ff = FlowFarm
+@everywhere import FlowFarm; const ff = FlowFarm
 using DelimitedFiles 
 
 # set initial turbine x and y locations
