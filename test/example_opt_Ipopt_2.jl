@@ -45,14 +45,14 @@ function aep_wrapper(x, params)
     params.rotor_diameter
     params.hub_height
     params.turbine_yaw
-    params.ct_model
+    params.ct_models
     params.generator_efficiency
     params.cut_in_speed
     params.cut_out_speed
     params.rated_speed
     params.rated_power
     params.windresource
-    params.power_model
+    params.power_models
     params.model_set
     params.rotor_points_y
     params.rotor_points_z
@@ -67,8 +67,8 @@ function aep_wrapper(x, params)
 
     # calculate AEP
     AEP = obj_scale*ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
-                hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-                cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set,
+                hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
+                cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
                 rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)
     
     # return the objective as an array
@@ -121,6 +121,7 @@ function con_grad(x, mode, rows, cols, values)
     end
 end
 
+cd("C:\\Users\\wesle\\OneDrive\\Documents\\BYU\\Flowlab\\windfarmopt\\FlowFarm.jl\\test")
 # import model set with wind farm and related details
 include("./model_sets/model_set_6.jl")
 
@@ -144,20 +145,20 @@ struct params_struct2{}
     obj_scale
     hub_height
     turbine_yaw
-    ct_model
+    ct_models
     generator_efficiency
     cut_in_speed
     cut_out_speed
     rated_speed
     rated_power
     windresource
-    power_model
+    power_models
 end
 
 params = params_struct2(model_set, rotor_points_y, rotor_points_z, turbine_z, ambient_ti, 
     rotor_diameter, boundary_vertices, boundary_normals, obj_scale, hub_height, turbine_yaw, 
-    ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, 
-    windresource, power_model)
+    ct_models, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, 
+    windresource, power_models)
 
 # initialize design variable array
 x = [copy(turbine_x);copy(turbine_y)]
@@ -234,3 +235,4 @@ axis("square")
 xlim(minimum(boundary_vertices) - (maximum(boundary_vertices)-minimum(boundary_vertices))/5, maximum(boundary_vertices) + (maximum(boundary_vertices)-minimum(boundary_vertices))/5)
 ylim(minimum(boundary_vertices) - (maximum(boundary_vertices)-minimum(boundary_vertices))/5, maximum(boundary_vertices) + (maximum(boundary_vertices)-minimum(boundary_vertices))/5)
 plt.show()
+savefig("opt_plot")
