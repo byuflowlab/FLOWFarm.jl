@@ -37,7 +37,7 @@ function spacing_wrapper(x, params)
 end
 
 # set up objective wrapper function
-function aep_wrapper(x, params)
+@everywhere function aep_wrapper(x, params)
     # include relevant globals
     params.turbine_z
     params.rotor_diameter
