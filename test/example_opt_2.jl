@@ -48,8 +48,8 @@ function aep_wrapper(x, params)
 
     # calculate AEP
     AEP = obj_scale*ff.calculate_aep(turbine_x, turbine_y, params.turbine_z, params.rotor_diameter,
-    params.hub_height, params.turbine_yaw, params.ct_models, params.generator_efficiency, params.cut_in_speed,
-    params.cut_out_speed, params.rated_speed, params.rated_power, params.windresource, params.power_models, params.model_set,
+                params.hub_height, params.turbine_yaw, params.ct_models, params.generator_efficiency, params.cut_in_speed,
+                params.cut_out_speed, params.rated_speed, params.rated_power, params.windresource, params.power_models, params.model_set,
                 rotor_sample_points_y=params.rotor_points_y,rotor_sample_points_z=params.rotor_points_z)
     
     # return the objective as an array

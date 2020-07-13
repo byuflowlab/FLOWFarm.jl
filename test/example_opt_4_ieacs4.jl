@@ -79,7 +79,7 @@ function wind_farm_opt(x)
 end
 
 # import model set with wind farm and related details
-include("./model_sets/model_set_7_ieacs4.jl")
+include("./model_sets/model_set_7_ieacs4_reduced_wind_rose.jl")
 
 # scale objective to be between 0 and 1
 obj_scale = 1E-11
@@ -204,7 +204,7 @@ ub = zeros(length(x)) .+ Inf
 # set up options for SNOPT
 options = Dict{String, Any}()
 options["Derivative option"] = 1
-options["Verify level"] = 3
+options["Verify level"] = 1 #3
 options["Major optimality tolerance"] = 1e-5
 options["Major iteration limit"] = 1e6
 options["Summary file"] = "summary.out"
@@ -220,7 +220,7 @@ println
 t1 = time()
 xopt, fopt, info = snopt(wind_farm_opt, x, lb, ub, options)
 t2 = time()
-clkt = t2-t2
+clkt = t2-t1
 
 # print optimization results
 println("Finished in : ", clkt, " (s)")
