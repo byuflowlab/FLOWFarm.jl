@@ -1,6 +1,5 @@
 
 using Distributed
-addprocs(2)
 using Snopt
 using DelimitedFiles 
 using PyPlot
@@ -160,7 +159,7 @@ println("Directional AEP at start: ", dir_aep.*1E-6)
 
 # generate wrapper function surrogates
 spacing_wrapper(x) = spacing_wrapper(x, params1)
-aep_wrapper(x) = aep_wrapper(x, params1)
+@everywhere aep_wrapper(x) = aep_wrapper(x, params1)
 boundary_wrapper(x) = boundary_wrapper(x, params1)
 
 # # run and time optimization
@@ -191,6 +190,6 @@ boundary_wrapper(x) = boundary_wrapper(x, params1)
 # xlim(-boundary_radius+boundary_center[1],boundary_radius+boundary_center[1])
 # ylim(-boundary_radius+boundary_center[2],boundary_radius+boundary_center[2])
 # plt.show()
-println("CPUs: ", workers)
+println("CPUs: ", nprocs())
 @benchmark ForwardDiff.jacobian(aep_wrapper, x) setup=(x=xinit)
 # @benchmark aep_wrapper(xinit)
