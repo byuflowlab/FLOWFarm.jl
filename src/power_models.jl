@@ -441,9 +441,6 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
     arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),typeof(hub_height[1]),typeof(turbine_yaw[1]),
                 typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),typeof(rated_power[1]))
     # state_energy = zeros(arr_type,nstates)
-
-
-    # Threads.@threads for i = 1:nstates
     AEP = @sync @distributed (+) for i = 1:nstates
 
         rot_x, rot_y = rotate_to_wind_direction(turbine_x, turbine_y, wind_resource.wind_directions[i])
@@ -458,13 +455,8 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                             rated_power, rotor_diameter, turbine_velocities, wind_resource.air_density, power_models)
 
         state_power = sum(wt_power)
-        
-        # state_energy[i] = state_power*hours_per_year*wind_probabilities[i]
         state_energy = state_power*hours_per_year*wind_probabilities[i]
-        
-
     end
 
-    # return sum(state_energy)
     return AEP
 end
