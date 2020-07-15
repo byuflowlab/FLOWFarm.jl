@@ -34,9 +34,11 @@ rotor_points_z = [0.0]
 # set flow parameters
 windrose_file_name = string("./inputfiles/",fname_wr)
 winddirections, windspeeds, windprobabilities, ambient_ti = ff.get_reduced_wind_rose_YAML(windrose_file_name)
+
 # winddirections = [winddirections[1]]
 # windspeeds = [windspeeds[1]]
 # windprobabilities = [windprobabilities[1]]
+
 nstates = length(winddirections)
 winddirections *= pi/180.0
 
