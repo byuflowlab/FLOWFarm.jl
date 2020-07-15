@@ -5,11 +5,20 @@ FlowFarm provides a modular framework of common wind farm analyis models written
 
 ## Installation
 
-To install FlowFarm:
+### To install FlowFarm:
 
 ```julia
 (v1.x) pkg> dev https://github.com/byuflowlab/FlowFarm.jl.git
 ```
+
+### Enable NaN Safe Mode in ForwardDiff
+```julia
+(v1.x) pkg> dev ForwardDiff
+```
+```
+$ cd ~/.julia/dev/ForwardDiff/src/
+```
+In `prelude.jl`, on the first line, set `const NANSAFE_MODE_ENABLED = true` and save the file.
 
 ## Testing
 
