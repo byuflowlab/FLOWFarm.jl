@@ -67,7 +67,7 @@ function aep_wrapper(x, params)
     rotor_diameter = params.rotor_diameter
     hub_height = params.hub_height
     turbine_yaw = params.turbine_yaw
-    ct_model = params.ct_model
+    ct_models = params.ct_models
     generator_efficiency = params.generator_efficiency
     cut_in_speed = params.cut_in_speed
     cut_out_speed = params.cut_out_speed
@@ -140,7 +140,7 @@ iter_AEP = zeros(Float64, 10000)
 funcalls_AEP = zeros(Float64, 10000)
 
 # import model set with wind farm and related details
-include("./model_sets/model_set_7_ieacs4.jl")
+include("./model_sets/model_set_7_ieacs4_reduced_wind_rose.jl")
 
 # scale objective to be between 0 and 1
 obj_scale = 1E-12
@@ -185,7 +185,7 @@ struct params_struct{}
     obj_scale
     hub_height
     turbine_yaw
-    ct_model
+    ct_models
     generator_efficiency
     cut_in_speed
     cut_out_speed
