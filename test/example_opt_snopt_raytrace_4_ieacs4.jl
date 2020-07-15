@@ -61,7 +61,7 @@ function spacing_wrapper(x, params)
 end
 
 # set up objective wrapper function
-function aep_wrapper(x, params)
+@everywhere function aep_wrapper(x, params)
     # include relevant globals
     turbine_z = params.turbine_z
     rotor_diameter = params.rotor_diameter
@@ -140,7 +140,7 @@ iter_AEP = zeros(Float64, 10000)
 funcalls_AEP = zeros(Float64, 10000)
 
 # import model set with wind farm and related details
-include("./model_sets/model_set_7_ieacs4_reduced_wind_rose.jl")
+include("./model_sets/model_set_7_ieacs4.jl")
 
 # scale objective to be between 0 and 1
 obj_scale = 1E-12

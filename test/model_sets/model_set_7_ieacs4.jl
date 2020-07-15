@@ -1,4 +1,4 @@
-import FlowFarm; const ff = FlowFarm
+@everywhere import FlowFarm; const ff = FlowFarm
 
 # based on IEA case study 3
 
