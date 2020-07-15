@@ -82,7 +82,7 @@ end
 include("./model_sets/model_set_7_ieacs4_reduced_wind_rose.jl")
 
 # scale objective to be between 0 and 1
-obj_scale = 1E-11
+obj_scale = 1E-9
 
 # set globals for use in wrapper functions
 struct params_struct{}
