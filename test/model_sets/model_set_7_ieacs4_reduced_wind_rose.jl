@@ -34,6 +34,10 @@ rotor_points_z = [0.0]
 # set flow parameters
 windrose_file_name = string("./inputfiles/",fname_wr)
 winddirections, windspeeds, windprobabilities, ambient_ti = ff.get_reduced_wind_rose_YAML(windrose_file_name)
+winddirections = [winddirections[1]]
+windspeeds = [windspeeds[1]]
+windprobabilities = [windprobabilities[1]]
+
 nstates = length(winddirections)
 winddirections *= pi/180.0
 
@@ -53,10 +57,10 @@ end
 ct = 4.0*(1.0/3.0)*(1.0 - 1.0/3.0)
 
 # initialize thurst model
-ct_model1 = ff.ThrustModelConstantCt(ct)
-ct_model = Vector{typeof(ct_model1)}(undef, nturbines)
+ct_model = ff.ThrustModelConstantCt(ct)
+ct_models = Vector{typeof(ct_model)}(undef, nturbines)
 for i = 1:nturbines
-    ct_model[i] = ct_model1
+    ct_models[i] = ct_model
 end
 
 # initialize wind shear model
