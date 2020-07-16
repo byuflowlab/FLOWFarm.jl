@@ -150,7 +150,6 @@ funcalls_AEP = zeros(Float64, 0)
 global iter_AEP
 global funcalls_AEP
 
-cd("C:\\Users\\wesle\\OneDrive\\Documents\\BYU\\FLOW Lab\\Spring 2020\\flowfarm_concavecontraints\\FlowFarm.jl\\test")
 # import model set with wind farm and related details
 include("./model_sets/model_set_7_ieacs3.jl")
 

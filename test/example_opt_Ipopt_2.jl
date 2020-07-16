@@ -121,7 +121,6 @@ function con_grad(x, mode, rows, cols, values)
     end
 end
 
-cd("C:\\Users\\wesle\\OneDrive\\Documents\\BYU\\Flowlab\\windfarmopt\\FlowFarm.jl\\test")
 # import model set with wind farm and related details
 include("./model_sets/model_set_6.jl")
 
