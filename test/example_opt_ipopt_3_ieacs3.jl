@@ -54,7 +54,7 @@ function aep_wrapper(x, params)
     params.rated_speed
     params.rated_power
     params.windresource
-    params.power_model
+    params.power_models
     params.model_set
     params.rotor_points_y
     params.rotor_points_z
@@ -70,7 +70,7 @@ function aep_wrapper(x, params)
     # calculate AEP
     AEP = obj_scale*ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-                cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set,
+                cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
                 rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)
     
     # return the objective as an array
@@ -185,13 +185,13 @@ struct params_struct{}
     rated_speed
     rated_power
     windresource
-    power_model
+    power_models
 end
 
 params = params_struct(model_set, rotor_points_y, rotor_points_z, turbine_z, ambient_ti, 
     rotor_diameter, boundary_vertices, boundary_normals, obj_scale, hub_height, turbine_yaw, 
     ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, 
-    windresource, power_model)
+    windresource, power_models)
 
 # initialize design variable array
 x_initial = [copy(turbine_x);copy(turbine_y)]
@@ -199,7 +199,7 @@ x_initial = [copy(turbine_x);copy(turbine_y)]
 # calculate initial state AEPs
 state_aeps = ff.calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-                cut_out_speed, rated_speed, rated_power, windresource, power_model, model_set;
+                cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set;
                 rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.0*24.0)
 
 dir_aep = zeros(20)
