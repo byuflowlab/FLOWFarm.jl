@@ -1,7 +1,7 @@
 using FlowFarm; const ff = FlowFarm
 using Snopt
 using DelimitedFiles 
-using PyPlot
+#using PyPlot
 import ForwardDiff
 import YAML
 using CSV
@@ -117,7 +117,7 @@ str_case = "4"
 file_dir = "./inputfiles/"
 bnry_file_name_orig = "iea37-boundary-cs" * str_case * ".yaml"
 bnry_file_name = string(file_dir,bnry_file_name_orig)
-bndry_x, bndry_y = getBndryCs4YAML(bnry_file_name)
+bndry_x, bndry_y = getBndryCs4YAML(bnry_file_name) # Make a matrix of all regions and boundary points for each region
 bndry_x_clsd, bndry_y_clsd = ff.closeBndryLists(bndry_x, bndry_y)
 
 # #--- Read in turbine data to calculate AEP ---#

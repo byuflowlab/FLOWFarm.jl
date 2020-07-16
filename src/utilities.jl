@@ -246,26 +246,53 @@ end
 """
     closeBndryLists(bndryPts_x, bndryPts_y)
 
-Appends the 1st element to the end of each array for a closed boundary
+Appends the 1st element to the end of each array for a closed boundary.
+Note, this will not function properly if there is only one region.
+For only one region, use `closeBndryList(bndryPts_x, bndryPts_y)` (note the
+singular, not plural 'List' in the function title)
+
+# Arguments
+- `bndryPts_x::Array{Float,1}` : N-D array of x-coordinates for the vertices
+        around N-many closed boundaries
+- `bndryPts_y::Array{Float,1}` : N-D array of y-coordinates for the vertices
+        around N-many closed boundaries
+"""
+function closeBndryLists(region_bndry_x, region_bndry_y)
+    # Determine how many regions and points per region were passed
+    nRegions = length(region_bndry_x)
+    # For every region
+    for i in 1:nRegions
+        # Append the initial points to the end of that row (if needed)
+        region_bndry_x[i], region_bndry_y[i] = closeBndryList(region_bndry_x[i], region_bndry_y[i])
+    end
+    
+    return region_bndry_x, region_bndry_y
+end
+
+"""
+    closeBndryList(bndryPts_x, bndryPts_y)
+
+Appends the 1st element to the end of the coordinate arrays if it is not already
+repeated. Note, this will only work on 1-D arrays. For an array of 1-D arrays,
+use `closeBndryLists(bndryPts_x, bndryPts_y)` (note the
+plural, not singular 'Lists' in the function title)
 
 # Arguments
 - `bndryPts_x::Array{Float,1}` : 1-D array of x-coordinates for the vertices
-        around a closed boundary
+        around a singlar closed boundary
 - `bndryPts_y::Array{Float,1}` : 1-D array of y-coordinates for the vertices
-        around a closed boundary
+        around a singlar closed boundary
 """
-function closeBndryLists(bndryPts_x, bndryPts_y)
-    # Determine how many regions and points per region were passed
-    nRegions = length(bndryPts_x)
-    # Append the initial points to the end
-    for i in 1:nRegions
-        bndryPts_x[i] = push!(bndryPts_x[i], bndryPts_x[i][1])
-        bndryPts_y[i] = push!(bndryPts_y[i], bndryPts_y[i][1])
+function closeBndryList(bndry_x, bndry_y)
+    # If the end point isn't already a repeat of the staring point
+    if !((bndry_x[1] == bndry_x[end]) && (bndry_y[1] == bndry_y[end]))
+        # Append the first point to the end of the array
+        bndryPts_x_clsd = push!(bndry_x, bndry_x[1])
+        bndryPts_y_clsd = push!(bndry_y, bndry_y[1])
     end
 
-    return bndryPts_x, bndryPts_y
+    return bndryPts_x_clsd, bndryPts_y_clsd
 end
-
 
 """
     PointsOnCircum(center_x, center_y, r, n = 100)

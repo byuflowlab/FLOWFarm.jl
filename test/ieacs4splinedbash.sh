@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --time=01:00:00   # walltime
-#SBATCH --ntasks=288   # number of processor cores (i.e. tasks)
+#SBATCH --ntasks=1   # number of processor cores (i.e. tasks)
 #SBATCH --nodes=1   # number of nodes
 #SBATCH --mem-per-cpu=1024M   # memory per CPU core
 #SBATCH -J "IEACS4 Splined Boundary"   # job name

@@ -109,15 +109,15 @@ function getBndryCs4YAML(file_name)
     end
 
     # Initialize our arrays for the coordinates
-    x_boundary_coords = [ Float64[] for i in 1:nRegions ]
-    y_boundary_coords = [ Float64[] for i in 1:nRegions ]
+    bndry_x = [ Float64[] for i in 1:nRegions ]
+    bndry_y = [ Float64[] for i in 1:nRegions ]
     # Read in all the coordinates
     for i in 1:nRegions             # Looping through all regions
-        for j in 1:nPts[i]          # Looping through all point sin this region
-            x_boundary_coords[i] = push!(x_boundary_coords[i], ptList[i][j][1])
-            y_boundary_coords[i] = push!(y_boundary_coords[i], ptList[i][j][2])
+        for j in 1:nPts[i]          # Looping through all points in this region
+            bndry_x[i] = push!(bndry_x[i], ptList[i][j][1])
+            bndry_y[i] = push!(bndry_y[i], ptList[i][j][2])
         end
     end
 
-    return x_boundary_coords, y_boundary_coords
+    return bndry_x, bndry_y
 end
