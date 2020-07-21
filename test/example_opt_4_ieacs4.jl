@@ -79,7 +79,7 @@ function wind_farm_opt(x)
 end
 
 # import model set with wind farm and related details
-include("./model_sets/model_set_7_ieacs4_reduced_wind_rose.jl")
+include("./model_sets/model_set_7_ieacs4.jl")
 
 # scale objective to be between 0 and 1
 obj_scale = 1E-9
