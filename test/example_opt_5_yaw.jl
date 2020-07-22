@@ -3,6 +3,9 @@ using DelimitedFiles
 using PyPlot
 import ForwardDiff
 
+using CSV
+using DataFrames
+
 # set up objective wrapper function
 function aep_wrapper(x, params)
     # include relevant globals
@@ -123,13 +126,13 @@ optyaw = zeros((nstates,nturbines))
 diraep = zeros(nstates)
 # run and time optimization
 t1 = time()
-for i in 1:1
+for i in 1:nstates
     println("Optimizing for state: ", i)
     println("Direction: ", winddirections[i])
     println("Wind speed: ", windspeeds[i])
     println("Probability: ", windprobabilities[i])
-    options["Summary file"] = String("snopt_yaw_summary_$i.out")
-    options["Print file"] = String("snopt_yaw_print_$i.out")
+    options["Summary file"] = String("./yaw/snopt_yaw_summary_$i.out")
+    options["Print file"] = String("./yaw/snopt_yaw_print_$i.out")
     params.windresource.wind_directions[1] = winddirections[i]
     params.windresource.wind_speeds[1] = windspeeds[i]
     params.windresource.wind_probabilities[1] = windprobabilities[i]
@@ -155,7 +158,13 @@ clkt = t2-t2
 println("Finished in : ", clkt, " (s)")
 println("info: ", info)
 println("end AEP value: ", sum(diraep))
-println("optimized yaw", optyaw)
+# write results to csv files
+dataforcsv_diraep = DataFrame(diraep = diraep)
+CSV.write("./yaw/optyawdiraep.csv", dataforcsv_diraep)
+
+dataforcsv_optyaw_dir = DataFrame(optyaw)
+CSV.write("./yaw/optyaw.csv", dataforcsv_optyaw_dir)
+
 # add final turbine locations to plot
 for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C1", linestyle="--")) 
