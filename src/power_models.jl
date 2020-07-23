@@ -473,7 +473,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
     state_energy = zeros(arr_type,nstates)
 
     Threads.@threads for i = 1:nstates
-        println("Thread Number: ", Threads.threadid())
+        # println("Thread Number: ", Threads.threadid())
         rot_x, rot_y = rotate_to_wind_direction(turbine_x, turbine_y, wind_resource.wind_directions[i])
 
         sorted_turbine_index = sortperm(rot_x)

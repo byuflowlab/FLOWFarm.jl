@@ -157,7 +157,7 @@ act = at/7200.0
 println("average time: ", at)
 println("fcal time: ", act)
 
-continue
+# continue
 # add initial turbine location to plot
 for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
