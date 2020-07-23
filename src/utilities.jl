@@ -316,3 +316,100 @@ function DiscreteCircum(center_x, center_y, r, n = 100)
     end
     return bndry_x, bndry_y
 end
+
+"""
+    calcMinorAngle(bndry_x, bndry_y, bndry_z=[0,0,0])
+
+Given three points in space, calculates the magnitude of the non-reflex angle
+formed at the center point. Created to be used in VR_bounary_startup()
+
+# Arguments
+- `bndry_x::Array{Float,1}` : 1-D array of x-coordinates for the vertices
+        around a singlar closed boundary
+- `bndry_y::Array{Float,1}` : 1-D array of y-coordinates for the vertices
+        around a singlar closed boundary
+- `bndry_z::Array{Float,1}` : 1-D array of z-coordinates for the vertices
+        around a singlar closed boundary. Default to [0,0,0] for X-Y plane
+"""
+function calcMinorAngle(bndry_x, bndry_y, bndry_z=[0,0,0])
+    # Calculates the magnitude of the non-reflex angle formed at the center point
+    ABx = bndry_x[2]-bndry_x[1]
+    ABy = bndry_y[2]-bndry_y[1]
+    ABz = bndry_z[2]-bndry_z[1]
+    
+    BCx = bndry_x[2]-bndry_x[3]
+    BCy = bndry_y[2]-bndry_y[3]
+    BCz = bndry_z[2]-bndry_z[3]
+    
+    Num = (ABx*BCx) + (ABy*BCy) + (ABz*BCz) # Dot Product
+    
+    Denom = sqrt(ABx^2 + ABy^2 + ABz^2) * sqrt(BCx^2 + BCy^2 + BCz^2) # Multiplication of magnitudes
+    Theta = acosd(Num/Denom) # Get the angle formed
+
+    # If it's greater than 180, get the 
+    if (Theta > 180.0)
+        Theta = 360.0 - Theta    # Get the explementary angle
+    end
+    
+    return Theta
+end
+
+"""
+    calcSmallestAngle(bndry_x_clsd, bndry_y_clsd)
+
+Given a 1-D closed array of boundary verticies (with first point repeated at the
+end) it determines the smallest non-reflex angle created by any three
+consecutive verticies along the boundary. Created to be used in
+VR_bounary_startup()
+
+# Arguments
+- `bndry_x::Array{Float,1}` : 1-D array of x-coordinates for the vertices
+        around a singlar closed boundary
+- `bndry_y::Array{Float,1}` : 1-D array of y-coordinates for the vertices
+        around a singlar closed boundary
+"""
+function calcSmallestAngle(bndry_x_clsd, bndry_y_clsd)
+    num_angles = length(bndry_x_clsd)-1
+    # Loop the second point back on so we get the angle at the beginning
+    if !(((bndry_x_clsd[1] == bndry_x_clsd[end-1]) && (bndry_y_clsd[1] == bndry_y_clsd[end-1])) && ((bndry_x_clsd[2] == bndry_x_clsd[end]) && (bndry_y_clsd[2] == bndry_y_clsd[end])))
+        bndryPts_x_loopd = vcat(bndry_x_clsd, bndry_x_clsd[2])
+        bndryPts_y_loopd = vcat(bndry_y_clsd, bndry_y_clsd[2])
+    end
+    
+    #- Calculate the smallest angle -#
+    smallest_angle = 360
+    for i in 1:num_angles
+        temp_angle = calcMinorAngle(bndryPts_x_loopd[i:i+2], bndryPts_y_loopd[i:i+2])
+
+        if (temp_angle < smallest_angle)
+            smallest_angle = temp_angle
+        end
+    end
+    
+    return smallest_angle
+end
+
+"""
+    getPerimeterLength(bndry_x_clsd, bndry_y_clsd)
+
+Given a 1-D closed array of boundary verticies (with first point repeated at the
+end) returns the length along the perimeter. Created to be used in
+VR_bounary_startup()
+
+# Arguments
+- `bndry_x::Array{Float,1}` : 1-D array of x-coordinates for the vertices
+        around a singlar closed boundary
+- `bndry_y::Array{Float,1}` : 1-D array of y-coordinates for the vertices
+        around a singlar closed boundary
+"""
+function getPerimeterLength(bndry_x_clsd, bndry_y_clsd)
+    num_bndry_pts = length(bndry_x_clsd)-1
+    nLength = zeros(num_bndry_pts)
+    for i in 1:num_bndry_pts
+        nLength[i] = sqrt(
+                 (bndry_x_clsd[i+1]-bndry_x_clsd[i])^2
+                +(bndry_y_clsd[i+1]-bndry_y_clsd[i])^2)
+    end
+    
+    return nLength
+end

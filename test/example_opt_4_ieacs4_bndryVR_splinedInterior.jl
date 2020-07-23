@@ -1,3 +1,6 @@
+# An SNOPT optimization of IEA's cs4 using the Variable Reduction method along
+# each area's boundary, and the splined_boundary() in the interior.
+
 using FlowFarm; const ff = FlowFarm
 using Snopt
 using DelimitedFiles 
@@ -118,18 +121,6 @@ bnry_file_name_orig = "iea37-boundary-cs" * str_case * ".yaml"
 bnry_file_name = string(file_dir,bnry_file_name_orig)
 bndry_x, bndry_y = getBndryCs4YAML(bnry_file_name) # Make a matrix of all regions and boundary points for each region
 bndry_x_clsd, bndry_y_clsd = ff.closeBndryLists(bndry_x, bndry_y)
-
-# #--- Read in turbine data to calculate AEP ---#
-# file_name_orig = "iea37-ex-opt" * str_case * ".yaml"
-# file_name = string(file_dir,file_name_orig)
-# # Get turbine locations
-# turbine_x, turbine_y, fname_turb_orig, fname_wr_orig  = ff.get_turb_loc_YAML(file_name)
-# fname_turb = string(file_dir,fname_turb_orig)
-# fname_wr = string(file_dir,fname_wr_orig)
-# # Get turbine attributes
-# turb_ci, turb_co, rated_ws, rated_pwr, rotor_diameter, turb_height = ff.get_turb_atrbt_YAML(fname_turb)
-# # Get windrose data
-# wind_dir, wind_speed, wind_freq, wind_ti = ff.get_wind_rose_YAML(fname_wr)
 
 #--- Read in random turbine locations ---#
 # Make an array of the number of turbines in each region

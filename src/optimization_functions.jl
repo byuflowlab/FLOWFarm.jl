@@ -413,3 +413,139 @@ function ray_trace_boundary(boundary_vertices,boundary_normals,turbine_x,turbine
     return c
 
 end
+
+"""
+    VR_bounary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs)
+
+Determines if the requested number of turbines can be placed along the closed
+boundary with spacing and corner constraints. If the requested <num_turbs> is
+too many, places as many turbines as possible along the boundary, and returns
+the number of turbines not placed. NOTE: A shortcoming is that the
+smallest-angled corner limits the spacing of all turbines. in the worst case,
+a very thin boundary area would prevent any more than one turbine being placed
+on the boundary, though more would be optimal. Future work would check to make
+sure this corner (and the length of its adjacent sides) don't actually require
+limiting the minimum distance between turbines.
+
+# Arguments
+- `bndry_x::Array{Float,1}` : 1-D array of x-coordinates for the vertices
+        around a singlar closed boundary
+- `bndry_y::Array{Float,1}` : 1-D array of y-coordinates for the vertices
+        around a singlar closed boundary
+- `start_dist::Float64`: the distance (positive or negative) along the boundary
+        from the first boundary point where the turbines will begin to be placed
+- `turb_spacing::Float64`: the fixed distance along the boundary's edge between
+        adjacent turbines
+- 'num_turbs::Float64`: the number of turbines to be placed around the boundary.
+        Note that this function assumes VR_bounary_startup() has already been
+        run so that the user won't attempt to place too many turbines.
+- 'bndry_seg_length::Array{Int}`: an array of the lengths between adjacent
+        boundary verticies, corresponding to how they appear in bndry_x and _y
+"""
+function VR_bounary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs)
+    #- Get arc-length -#
+    bndry_seg_length = getPerimeterLength(bndry_x_clsd,bndry_y_clsd)
+    bndry_tot_length = sum(bndry_seg_length)
+
+    #- Determine how much distance between turbs for worst case (shallow corner) -#
+    limiting_angle = calcSmallestAngle(bndry_x_clsd, bndry_y_clsd)  # The smallest angle in our boundary
+    turb_corner_spacing = turb_min_spacing/sind(limiting_angle/2.0) # Min spacing neeed for the smallest angle
+    if (turb_corner_spacing > turb_min_spacing)   # If the corners are tighter than our minimum distance
+        turb_min_spacing = turb_corner_spacing    # That dictates our new minimum distance
+    end
+
+    #- Determine how many turbines we can actually place with corner constraint -#
+    max_num_turbs = floor(Int, bndry_tot_length/turb_min_spacing) # Get max number of turbines that can fit the perimeter
+    num_leftover_turbs = 0
+    if (max_num_turbs < num_turbs)      # If the max is less than the number allocated
+        num_leftover_turbs = floor(Int, num_turbs - max_num_turbs) # Note how many turbines we aren't placing
+        num_turbs = floor(Int, max_num_turbs)       # Place as many as will fit
+    end
+
+    #- Evenly space the turbines we'll place -#
+    turb_min_spacing = bndry_tot_length / num_turbs
+    #- Make sure our start point is within the boundary length bounds
+    start_dist = mod(start_dist, bndry_tot_length)
+    #- Place the correct number of turbs along the boundary <start_dist> away from the first vertex -#
+    turbine_x, turbine_y = VR_boundary_constraint(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs, bndry_seg_length)
+
+    # Return the x- and y- coordinates of every turbine, and how many weren't placed
+    return turbine_x,turbine_y, num_leftover_turbs         
+end
+
+"""
+    VR_boundary_constraint(bndry_x_clsd, bndry_y_clsd, start_dist, turb_spacing, num_turbs, bndry_seg_length)
+
+Uses the Boundary portion of Boundary-Grid variable reduction method
+place turbines along a closed wind farm boundary and perturb their location with
+one (1) variable.  NOTE: Use of this function assumes prior use of
+VR_bounary_startup(), which ensures the number of turbines placed on the
+boundary doesn't violate any minimum spacing rules eiter along the boundary or
+around corners.
+
+# Arguments
+- `bndry_x::Array{Float,1}` : 1-D array of x-coordinates for the vertices
+        around a singlar closed boundary
+- `bndry_y::Array{Float,1}` : 1-D array of y-coordinates for the vertices
+        around a singlar closed boundary
+- `start_dist::Float64`: the distance (positive or negative) along the boundary
+        from the first boundary point where the turbines will begin to be placed
+- `turb_spacing::Float64`: the fixed distance along the boundary's edge between
+        adjacent turbines
+- 'num_turbs::Float64`: the number of turbines to be placed around the boundary.
+        Note that this function assumes VR_bounary_startup() has already been
+        run so that the user won't attempt to place too many turbines.
+- 'bndry_seg_length::Array{Int}`: an array of the lengths between adjacent
+        boundary verticies, corresponding to how they appear in bndry_x and _y
+"""
+function VR_boundary_constraint(bndry_x_clsd, bndry_y_clsd, start_dist, turb_spacing, num_turbs, bndry_seg_length)
+    # Initialize necessary variables
+    num_segs = length(bndry_x_clsd)-1
+    # Initialize turbine locations
+    turbine_x = zeros(num_turbs)
+    turbine_y = zeros(num_turbs)
+    
+    #- Figure out where the starting point should be -#
+    # "leg" is distance until next placed turbine
+    # "seg" is distance between boundary verticies
+    leg_remaining = start_dist
+    curr_seg = 1
+    for i in 1:num_segs   # Looping through the segments till we get there
+        curr_seg = i
+        if (bndry_seg_length[i] < leg_remaining)  # If this segment length is less than the start length
+            leg_remaining -= bndry_seg_length[i]  # Clip the start length and move to the next one
+        else                                        # Otherwise the start point is on this segment
+            percent_to_start = leg_remaining / bndry_seg_length[i] # How far along our segment we are
+            # Translate how far along the segment we are to actual x- y-coords
+            turbine_x[1] = bndry_x_clsd[i] + ((bndry_x_clsd[i+1] - bndry_x_clsd[i]) * percent_to_start)
+            turbine_y[1] = bndry_y_clsd[i] + ((bndry_y_clsd[i+1] - bndry_y_clsd[i]) * percent_to_start)
+            break
+        end
+    end
+    # Get how much distance is left on this leg after the starting point
+    percent_left_of_segment = 1 - abs((turbine_x[1] - bndry_x_clsd[curr_seg]) / (bndry_x_clsd[curr_seg+1] - bndry_x_clsd[curr_seg]))
+    seg_remaining = bndry_seg_length[curr_seg] * percent_left_of_segment
+    leg_remaining = turb_spacing
+    
+    #- Place the rest of the turbines -#
+    for i in 2:num_turbs    # For every turbine we have to place
+        if(seg_remaining > leg_remaining)   #- If there's space on this leg to place the next turbine
+            percent_to_place = (bndry_seg_length[curr_seg] - seg_remaining + turb_spacing) / bndry_seg_length[curr_seg]
+            seg_remaining -= turb_spacing # Take out the distance we used
+        else                                #- If there isn't enough space on this boundary segment to place the next turbine
+            while(seg_remaining < leg_remaining)           # Keep checking boundary segments until we reach the next placement
+                leg_remaining -= seg_remaining             # Subtract that much till our next placement
+                curr_seg = mod(curr_seg, (num_segs))+1   # Increment what segment we're onspot
+                seg_remaining = bndry_seg_length[curr_seg] # Reset how much segment length we have left
+            end
+            percent_to_place = leg_remaining / bndry_seg_length[curr_seg]
+            seg_remaining = bndry_seg_length[curr_seg] - leg_remaining
+        end
+        #- Place the turbines the appropriate distance from the segment start point -#
+        turbine_x[i] = bndry_x_clsd[curr_seg] + ((bndry_x_clsd[curr_seg+1] - bndry_x_clsd[curr_seg]) * percent_to_place)
+        turbine_y[i] = bndry_y_clsd[curr_seg] + ((bndry_y_clsd[curr_seg+1] - bndry_y_clsd[curr_seg]) * percent_to_place)
+        leg_remaining = turb_spacing  # Reset how much length till the next turbine is placed
+    end
+    
+    return turbine_x, turbine_y
+end
