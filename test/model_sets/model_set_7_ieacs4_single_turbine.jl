@@ -55,10 +55,10 @@ end
 ct = 4.0*(1.0/3.0)*(1.0 - 1.0/3.0)
 
 # initialize thurst model
-ct_model1 = ff.ThrustModelConstantCt(ct)
-ct_model = Vector{typeof(ct_model1)}(undef, nturbines)
+ct_model = ff.ThrustModelConstantCt(ct)
+ct_models = Vector{typeof(ct_model)}(undef, nturbines)
 for i = 1:nturbines
-    ct_model[i] = ct_model1
+    ct_models[i] = ct_model
 end
 
 # initialize wind shear model

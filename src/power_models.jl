@@ -472,9 +472,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),typeof(rated_power[1]))
     state_energy = zeros(arr_type,nstates)
 
-
     Threads.@threads for i = 1:nstates
-    # AEP = @sync @distributed (+) for i = 1:nstates
 
         rot_x, rot_y = rotate_to_wind_direction(turbine_x, turbine_y, wind_resource.wind_directions[i])
 
