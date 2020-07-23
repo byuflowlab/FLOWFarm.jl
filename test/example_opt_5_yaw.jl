@@ -124,63 +124,63 @@ aep_wrapper(x) = aep_wrapper(x, params)
 
 initial_aep = aep_wrapper(x)
 
-# # set up holders for optimized yaw values for each state
-# optyaw = zeros((nstates,nturbines))
-# diraep = zeros(nstates)
-# diraepinit = zeros(nstates)
-# # run and time optimization
-# t1 = time()
-# for i in 1:nstates
-#     println("Optimizing for state: ", i, "/", nstates)
-#     println("Direction: ", winddirections[i])
-#     println("Wind speed: ", windspeeds[i])
-#     println("Probability: ", windprobabilities[i])
-#     options["Summary file"] = String("./yaw/snopt_yaw_summary_$i.out")
-#     options["Print file"] = String("./yaw/snopt_yaw_print_$i.out")
-#     params.windresource.wind_directions[1] = winddirections[i]
-#     params.windresource.wind_speeds[1] = windspeeds[i]
-#     params.windresource.wind_probabilities[1] = windprobabilities[i]
-#     params.windresource.measurement_heights[1] = measurementheight[i]
-#     params.windresource.ambient_tis[1] = ambient_tis[i]
-#     x = zeros(nturbines)
-#     diraepinit[i] = aep_wrapper(x)[1]
-#     t11 = time()
-#     xopt, fopt, info = snopt(wind_farm_opt, x, lb, ub, options)
-#     t22 = time()
-#     println("Finished in : ", t22-t11, " (s)")
-#     println("info: ", info)
-#     println("start AEP value for dir: ", diraepinit[i])
-#     println("end AEP value for dir: ", -fopt)
-#     println("AEP improvement for dir: ", -fopt/diraepinit[i])
-#     println()
-#     diraep[i] = deepcopy(fopt)
-#     for j in 1:nturbines
-#         optyaw[i,j] = deepcopy(xopt[j])
-#     end
-# end
+# set up holders for optimized yaw values for each state
+optyaw = zeros((nstates,nturbines))
+diraep = zeros(nstates)
+diraepinit = zeros(nstates)
+# run and time optimization
+t1 = time()
+for i in 1:nstates
+    println("Optimizing for state: ", i, "/", nstates)
+    println("Direction: ", winddirections[i])
+    println("Wind speed: ", windspeeds[i])
+    println("Probability: ", windprobabilities[i])
+    options["Summary file"] = String("./yaw/snopt_yaw_summary_$i.out")
+    options["Print file"] = String("./yaw/snopt_yaw_print_$i.out")
+    params.windresource.wind_directions[1] = winddirections[i]
+    params.windresource.wind_speeds[1] = windspeeds[i]
+    params.windresource.wind_probabilities[1] = windprobabilities[i]
+    params.windresource.measurement_heights[1] = measurementheight[i]
+    params.windresource.ambient_tis[1] = ambient_tis[i]
+    x = zeros(nturbines)
+    diraepinit[i] = aep_wrapper(x)[1]
+    t11 = time()
+    xopt, fopt, info = snopt(wind_farm_opt, x, lb, ub, options)
+    t22 = time()
+    println("Finished in : ", t22-t11, " (s)")
+    println("info: ", info)
+    println("start AEP value for dir: ", diraepinit[i])
+    println("end AEP value for dir: ", -fopt)
+    println("AEP improvement for dir: ", -fopt/diraepinit[i])
+    println()
+    diraep[i] = deepcopy(fopt)
+    for j in 1:nturbines
+        optyaw[i,j] = deepcopy(xopt[j])
+    end
+end
 
-# t2 = time()
-# clkt = t1-t2
+t2 = time()
+clkt = t1-t2
 
-# # print optimization results
-# println("Finished in : ", clkt, " (s)")
-# println("info: ", info)
-# println("start AEP value: ", sum(diraepinit))
-# println("end AEP value: ", sum(diraep))
-# println("optimized yaw", optyaw)
-# println("Total AEP improvement: ", sum(diraep)/sum(diraepinit))
-# # write results to csv files
-# dataforcsv_diraep = DataFrame(diraep = diraep)
-# CSV.write("./yaw/optyawdiraep.csv", dataforcsv_diraep)
+# print optimization results
+println("Finished in : ", clkt, " (s)")
+println("info: ", info)
+println("start AEP value: ", sum(diraepinit))
+println("end AEP value: ", sum(diraep))
+println("optimized yaw", optyaw)
+println("Total AEP improvement: ", sum(diraep)/sum(diraepinit))
+# write results to csv files
+dataforcsv_diraep = DataFrame(diraep = diraep)
+CSV.write("./yaw/optyawdiraep.csv", dataforcsv_diraep)
 
-# dataforcsv_optyaw_dir = DataFrame(optyaw)
-# CSV.write("./yaw/optyaw.csv", dataforcsv_optyaw_dir)
+dataforcsv_optyaw_dir = DataFrame(optyaw)
+CSV.write("./yaw/optyaw.csv", dataforcsv_optyaw_dir)
 
-# # add final turbine locations to plot
-# for i = 1:length(turbine_x)
-#     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C1", linestyle="--")) 
-# end
+# add final turbine locations to plot
+for i = 1:length(turbine_x)
+    plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C1", linestyle="--")) 
+end
 
-# # set up and show plot
-# axis("square")
-# plt.show()
+# set up and show plot
+axis("square")
+plt.show()

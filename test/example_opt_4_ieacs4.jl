@@ -144,9 +144,8 @@ x = [copy(turbine_x);copy(turbine_y)]
 println("Nturbines: ", nturbines)
 println("Rotor diameter: ", rotor_diameter[1])
 println("Starting AEP value (GWh): ", aep_wrapper(x, params)[1]*1e-9/obj_scale)
-# println("Directional AEP at start: ", dir_aep.*1E-6)
 
-# continue
+continue
 # add initial turbine location to plot
 for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
@@ -170,32 +169,32 @@ spacing_wrapper(x) = spacing_wrapper(x, params)
 aep_wrapper(x) = aep_wrapper(x, params)
 boundary_wrapper(x) = boundary_wrapper(x, params)
 
-# # run and time optimization
-# println
-# t1 = time()
-# xopt, fopt, info = snopt(obj_func, x, lb, ub, options)
-# t2 = time()
-# clkt = t2-t2
+# run and time optimization
+println
+t1 = time()
+xopt, fopt, info = snopt(obj_func, x, lb, ub, options)
+t2 = time()
+clkt = t2-t2
 
-# # print optimization results
-# println("Finished in : ", clkt, " (s)")
-# println("info: ", info)
-# println("end objective value: ", aep_wrapper(xopt))
+# print optimization results
+println("Finished in : ", clkt, " (s)")
+println("info: ", info)
+println("end objective value: ", aep_wrapper(xopt))
 
-# # extract final turbine locations
-# turbine_x = copy(xopt[1:nturbines])
-# turbine_y = copy(xopt[nturbines+1:end])
+# extract final turbine locations
+turbine_x = copy(xopt[1:nturbines])
+turbine_y = copy(xopt[nturbines+1:end])
 
-# # add final turbine locations to plot
-# for i = 1:length(turbine_x)
-#     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C1", linestyle="--")) 
-# end
+# add final turbine locations to plot
+for i = 1:length(turbine_x)
+    plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C1", linestyle="--")) 
+end
 
-# # add wind farm boundary to plot
-# plt.gcf().gca().add_artist(plt.Circle((boundary_center[1],boundary_center[2]), boundary_radius, fill=false,color="C2"))
+# add wind farm boundary to plot
+plt.gcf().gca().add_artist(plt.Circle((boundary_center[1],boundary_center[2]), boundary_radius, fill=false,color="C2"))
 
-# # set up and show plot
-# axis("square")
-# xlim(-boundary_radius-200,boundary_radius+200)
-# ylim(-boundary_radius-200,boundary_radius+200)
-# plt.show()
+# set up and show plot
+axis("square")
+xlim(-boundary_radius-200,boundary_radius+200)
+ylim(-boundary_radius-200,boundary_radius+200)
+plt.show()
