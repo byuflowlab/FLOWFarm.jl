@@ -208,3 +208,27 @@ function get_reduced_wind_rose_YAML(file_name)
 
     return dir, speed, freq, ti
 end
+
+"""
+    getNextFileName(directory, file_name, file_type)
+
+Checks if a file of the given directory and name exists. If not, increments to
+the next index so as not to overwrite previously written files. If it reaches
+the max number of overwrites, it will default to <directory/file_name.file_type>
+
+# Arguments
+- `directory::String`: path/to/write/file/at/
+- `file_name::String`: Whatever the name of the file desired
+- `file_type::String`: ex "yaml", "txt", "csv", etc...
+- `max_check::Int`: the maximum number of files to check
+"""
+function getNextFileName(directory, file_name, file_type, max_check=100)
+    full_file_name = string(directory, file_name, ".", file_type)
+    for i in 1:100
+        if !isfile(string(directory, file_name, "-(", i, ").", file_type))
+            full_file_name = string(directory, file_name, "-(", i, ").", file_type)
+            break
+        end
+    end
+    return full_file_name
+end

@@ -1,6 +1,7 @@
 using FlowFarm; const ff = FlowFarm
 using Snopt
-using DelimitedFiles 
+using DelimitedFiles
+using Distributed 
 #using PyPlot
 import ForwardDiff
 import YAML
@@ -79,6 +80,8 @@ function wind_farm_opt(x)
 end
 
 # import model set with wind farm and related details
+#include("./model_sets/model_set_7_ieacs4.jl")
+include("./model_sets/model_set_7_ieacs4_reduced_wind_rose.jl")
 
 # scale objective to be between 0 and 1
 obj_scale = 1E-9
@@ -119,18 +122,6 @@ bnry_file_name = string(file_dir,bnry_file_name_orig)
 bndry_x, bndry_y = getBndryCs4YAML(bnry_file_name) # Make a matrix of all regions and boundary points for each region
 bndry_x_clsd, bndry_y_clsd = ff.closeBndryLists(bndry_x, bndry_y)
 
-# #--- Read in turbine data to calculate AEP ---#
-# file_name_orig = "iea37-ex-opt" * str_case * ".yaml"
-# file_name = string(file_dir,file_name_orig)
-# # Get turbine locations
-# turbine_x, turbine_y, fname_turb_orig, fname_wr_orig  = ff.get_turb_loc_YAML(file_name)
-# fname_turb = string(file_dir,fname_turb_orig)
-# fname_wr = string(file_dir,fname_wr_orig)
-# # Get turbine attributes
-# turb_ci, turb_co, rated_ws, rated_pwr, rotor_diameter, turb_height = ff.get_turb_atrbt_YAML(fname_turb)
-# # Get windrose data
-# wind_dir, wind_speed, wind_freq, wind_ti = ff.get_wind_rose_YAML(fname_wr)
-
 #--- Read in random turbine locations ---#
 # Make an array of the number of turbines in each region
 nNumRegions = 5     # Number of reigons we're using (cs4 = 5, cs3 = 1)
@@ -162,14 +153,6 @@ params = params_struct(model_set, rotor_points_y, rotor_points_z, turbine_z, amb
 # cntr = 0
 # prev_index = 1
 
-# for i in 1:nNumRegions
-#     global prev_index
-#     num_turbs = Int8(length(x0l[i]) / 2)
-#     turbine_x[prev_index:(prev_index+num_turbs-1)] = x0l[i][1:num_turbs]
-#     turbine_y[prev_index:(prev_index+num_turbs-1)] = x0l[i][num_turbs+1:end]
-#     prev_index = prev_index+num_turbs
-# end
-
 # initialize design variable array
 x = [copy(turbine_x);copy(turbine_y)]
 
@@ -178,17 +161,6 @@ println("Number of turbines: ", num_tot_turbs)
 println("Rotor diameter: ", rotor_diameter[1])
 println("Starting AEP value (GWh): ", aep_wrapper(x, params)[1]*1e-9/obj_scale)
 # println("Directional AEP at start: ", dir_aep.*1E-6)
-
-# t1 = time()
-# for i in 1:10
-#     println(i)
-#     aep_wrapper(x, params)[1]*1e-9/obj_scale
-# end
-# t2 = time()
-# at = (t2-t1)/10.0
-# act = at/7200.0
-# println("average time: ", at)
-# println("fcal time: ", act)
 
 # continue
 # # add initial turbine location to plot
@@ -226,9 +198,34 @@ println("Finished in : ", clkt, " (s)")
 println("info: ", info)
 println("end objective value: ", aep_wrapper(xopt))
 
-# # extract final turbine locations
-# turbine_x = copy(xopt[1:num_turbines])
-# turbine_y = copy(xopt[num_turbines+1:end])
+# extract final turbine locations
+turbine_x = copy(xopt[1:num_tot_turbs])
+turbine_y = copy(xopt[num_tot_turbs+1:end])
+
+#-- Save our optimized locations --#
+#- Make sure the file doesn't exit -#
+directory = "./results/"
+file_name = "turblocs-bpm"
+file_type = "yaml"
+save_filename = ff.getNextFileName(directory, file_name, file_type)
+
+# Necessary variables for writing turb locations
+t = "IEA Wind Task 37 case study 4, BYU's BPM/SNOPT optimized layout"
+td = "baseline layout for the 25 turbine wind plant model for IEA Task 37 case study 4"
+tf ="iea37-10mw.yaml"
+lu ="m"
+wmu ="iea37-aepcalc.jl"
+wrf ="iea37-windrose-cs4.yaml"
+#aepd = aep_wrapper(x, params)
+aepd = aep_wrapper(xopt, params)
+aept = sum(aepd)
+aepu ="MWh"
+by="./inputfiles/default.yaml"
+# Actually write the file
+ff.write_turb_loc_YAML(save_filename, turbine_x, turbine_y; title=t, titledescription=td, 
+    turbinefile=tf, locunits=lu, wakemodelused=wmu, windresourcefile=wrf, aeptotal=t, 
+    aepdirs=aepd, aepunits=aepu, baseyaml=by)
+
 
 # # add final turbine locations to plot
 # for i = 1:length(turbine_x)

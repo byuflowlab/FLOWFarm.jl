@@ -3,7 +3,8 @@
 
 using FlowFarm; const ff = FlowFarm
 using Snopt
-using DelimitedFiles 
+using DelimitedFiles
+using Distributed
 #using PyPlot
 import ForwardDiff
 import YAML
@@ -82,6 +83,8 @@ function wind_farm_opt(x)
 end
 
 # import model set with wind farm and related details
+#include("./model_sets/model_set_7_ieacs4.jl")
+include("./model_sets/model_set_7_ieacs4_reduced_wind_rose.jl")
 
 # scale objective to be between 0 and 1
 obj_scale = 1E-9
@@ -217,9 +220,33 @@ println("Finished in : ", clkt, " (s)")
 println("info: ", info)
 println("end objective value: ", aep_wrapper(xopt))
 
-# # extract final turbine locations
-# turbine_x = copy(xopt[1:num_turbines])
-# turbine_y = copy(xopt[num_turbines+1:end])
+# extract final turbine locations
+turbine_x = copy(xopt[1:num_tot_turbs])
+turbine_y = copy(xopt[num_tot_turbs+1:end])
+
+#-- Save our optimized locations --#
+#- Make sure the file doesn't exit -#
+directory = "./results/"
+file_name = "turblocs-bpm"
+file_type = "yaml"
+save_filename = ff.getNextFileName(directory, file_name, file_type)
+
+# Necessary variables for writing turb locations
+t = "IEA Wind Task 37 case study 4, BYU's BPM/SNOPT optimized layout"
+td = "baseline layout for the 25 turbine wind plant model for IEA Task 37 case study 4"
+tf ="iea37-10mw.yaml"
+lu ="m"
+wmu ="iea37-aepcalc.jl"
+wrf ="iea37-windrose-cs4.yaml"
+#aepd = aep_wrapper(x, params)
+aepd = aep_wrapper(xopt, params)
+aept = sum(aepd)
+aepu ="MWh"
+by="./inputfiles/default.yaml"
+# Actually write the file
+ff.write_turb_loc_YAML(save_filename, turbine_x, turbine_y; title=t, titledescription=td, 
+    turbinefile=tf, locunits=lu, wakemodelused=wmu, windresourcefile=wrf, aeptotal=t, 
+    aepdirs=aepd, aepunits=aepu, baseyaml=by)
 
 # # add final turbine locations to plot
 # for i = 1:length(turbine_x)
