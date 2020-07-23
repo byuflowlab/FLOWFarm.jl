@@ -405,9 +405,9 @@ function calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
 
         sorted_turbine_index = sortperm(rot_x)
 
-        turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+        turbine_velocities = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
                             sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                            model_set, wind_farm_state_id=i)
+                            model_set, wind_farm_state_id=i, velocity_only=true)
 
         wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                             rated_power, rotor_diameter, turbine_velocities, turbine_yaw, wind_resource.air_density, power_models)
@@ -477,9 +477,9 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
 
         sorted_turbine_index = sortperm(rot_x)
 
-        turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
-                            sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                            model_set, wind_farm_state_id=i)
+        turbine_velocities = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+                        sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+                        model_set, wind_farm_state_id=i, velocity_only=true)
 
         wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                             rated_power, rotor_diameter, turbine_velocities, turbine_yaw, wind_resource.air_density, power_models)

@@ -1344,7 +1344,7 @@ using FLOWMath: linear
             # calculate turbine inflow velocities
             turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
             sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, windresource,
-            model_set)
+            model_set, velocity_only=false)
 
             # load horns rev ti ata
             data = readdlm("inputfiles/horns_rev_ti_by_row_niayifar.txt", ',', skipstart=1)
@@ -1389,7 +1389,7 @@ using FLOWMath: linear
             # calculate turbine inflow velocities
             turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
             sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, windresource,
-            model_set)
+            model_set, velocity_only=false)
 
             # load horns rev ti ata
             data = readdlm("inputfiles/horns_rev_ti_by_row_niayifar.txt", ',', skipstart=1)
