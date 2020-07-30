@@ -2,6 +2,7 @@ using FlowFarm; const ff = FlowFarm
 using Test
 using DelimitedFiles
 using LinearAlgebra
+using FLOWMath: linear
 
 @testset "All Tests" begin
 
@@ -30,7 +31,7 @@ using LinearAlgebra
             include("model_sets/model_set_3.jl")
             # println(sum(windprobabilities))
             modelAEP = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
-            hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+            hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
             cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set)/1e9
             paperAEP = 1889.3
             # println(modelAEP/paperAEP)
@@ -45,7 +46,7 @@ using LinearAlgebra
             include("./model_sets/model_set_7_ieacs3.jl")
 
             aep = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
-                hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+                hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
                 cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
                 rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z, hours_per_year=365.0*24.0)
             
@@ -60,7 +61,7 @@ using LinearAlgebra
             include("./model_sets/model_set_7_ieacs3.jl")
             
             state_aeps = ff.calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
-                            hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+                            hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
                             cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set;
                             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.0*24.0)
 
@@ -84,7 +85,7 @@ using LinearAlgebra
             include("./model_sets/model_set_7_ieacs4_single_turbine.jl")
             
             aep = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
-                            hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+                            hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
                             cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set;
                             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.0*24.0)
             
@@ -426,9 +427,33 @@ using LinearAlgebra
             rotor_area = pi*80.0^2/4
             constcp = 0.8
             v0 = 12.0
+            yaw = 0.0
 
-            p = ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, constcp, v0)
+            p = ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, constcp, v0, yaw)
             @test p ≈ 3.8425979093271587e6 atol=1E-6
+
+            generator_efficiency = 1.0
+            air_density = 1.1716
+            rotor_area = pi*126.4^2/4
+            v0 = 8.0
+            yaw = 0.0
+
+            # load yaw power data
+            t1yawdata = readdlm("./inputfiles/sowfa_power_data_t1.csv", ',', skipstart=1)
+            yaw = t1yawdata[:,1]*pi/180.0
+
+            # load cp data
+            cpctdata = readdlm("./inputfiles/NREL5MWCPCT.txt",  ' ', skipstart=1)
+            velpoints = cpctdata[:,1]
+            cppoints = cpctdata[:,2]
+            ctpoints = cpctdata[:,3]
+            constcp = linear(velpoints, cppoints, v0)
+
+            powers = zeros(length(yaw))
+            for i = 1:length(yaw)
+                powers[i] = ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, constcp, v0, yaw[i])
+            end
+            @test powers*1E-6 ≈ t1yawdata[:,2] atol=1E-1
 
         end
 
@@ -442,10 +467,11 @@ using LinearAlgebra
             cut_out_speed = 25.  # m/s
             rated_speed = 16.  # m/s
             rated_power = 2.0E6  # W
+            yaw = 0.0
 
             power_model = ff.PowerModelConstantCp(constcp)
 
-            p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, cut_in_speed, rated_speed, cut_out_speed, rated_power, power_model)
+            p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, yaw, cut_in_speed, rated_speed, cut_out_speed, rated_power, power_model)
             @test p ≈ 0.5*rotor_area*constcp*air_density*generator_efficiency*v0^3 atol=1E-6
 
         end
@@ -466,6 +492,8 @@ using LinearAlgebra
             v0 = 0.5*(8.495558624311073004 + 8.626405258223240224)
             cp0 = 0.5*(4.631607703567138801e-01 + 4.631607703567138801e-01)
 
+            yaw = 0.0
+
             # calculate expected power out
             power = 0.5*cp0*air_density*rotor_area*generator_efficiency*v0^3
 
@@ -477,7 +505,7 @@ using LinearAlgebra
             power_model = ff.PowerModelCpPoints(velpoints, cppoints)
 
             # calculated power and test
-            p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, cut_in_speed, rated_speed, cut_out_speed, rated_power, power_model)
+            p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, yaw, cut_in_speed, rated_speed, cut_out_speed, rated_power, power_model)
             @test p ≈ power atol=1E-6
 
         end
@@ -490,6 +518,8 @@ using LinearAlgebra
             cut_out_speed = 25.  # m/s
             rated_speed = 16.  # m/s
             rated_power = 2.0E6  # W
+
+            yaw = 0.0
 
             # vel and power for test based on input power curve
             v0 = 0.5*(6.9778601570742005 + 7.469669440862736)
@@ -506,7 +536,7 @@ using LinearAlgebra
             power_model = ff.PowerModelPowerPoints(velpoints, powpoints)
 
             # calc power
-            p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, cut_in_speed, rated_speed, cut_out_speed, rated_power, power_model)
+            p = ff.calculate_power(generator_efficiency, air_density, rotor_area, v0, yaw, cut_in_speed, rated_speed, cut_out_speed, rated_power, power_model)
 
             # test
             @test p ≈ p0 atol=1E-6
@@ -517,26 +547,28 @@ using LinearAlgebra
 
             include("./model_sets/model_set_2.jl")
 
+            wt_yaw = 0.0
+
             # test below cut in
             wt_velocity = 1.0
-            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, wt_yaw, power_model, air_density)
             
             @test p ≈ 0.0 atol=1E-6
 
             # region 2
             v0 = wt_velocity = 8.0
-            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, wt_yaw, power_model, air_density)
             rotor_area = pi*0.25*rotor_diameter[1]^2
             @test p ≈ 0.5*constcp*air_density*rotor_area*generator_efficiency[1]*v0^3 atol=1E-6
 
             # above rated
             wt_velocity = 20.0
-            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, wt_yaw, power_model, air_density)
             @test p ≈ rated_power[1] atol=1E-6
 
             # above cut out
             wt_velocity = 30.0
-            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, wt_yaw, power_model, air_density)
             @test p ≈ 0.0 atol=1E-6
 
         end
@@ -545,9 +577,11 @@ using LinearAlgebra
 
             include("./model_sets/model_set_7_ieacs4_single_turbine.jl")
 
+            wt_yaw = 0.0
+
             # test below cut in
             wt_velocity = 1.0
-            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, wt_yaw, power_model, air_density)
             
             @test p ≈ 0.0 atol=1E-6
 
@@ -558,44 +592,46 @@ using LinearAlgebra
             15.56, 16.80, 18.04, 19.28,
             20.52, 21.77, 23.01, 24.25]
 
+            wt_yaw = 0.0
+
             wt_velocity = speeds[4]
-            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, wt_yaw, power_model, air_density)
             rotor_area = pi*0.25*rotor_diameter[1]^2
             @test p ≈ 0.0018658892128279934*1E6 rtol=1E-14
 
 
             wt_velocity = speeds[5]
-            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, wt_yaw, power_model, air_density)
             @test p ≈ 0.1285989504373177*1E6 rtol=1E-14
 
 
             wt_velocity = speeds[6]
-            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, wt_yaw, power_model, air_density)
             @test p ≈ 0.6892100000000001*1E6 rtol=1E-14
 
 
             wt_velocity = speeds[7]
-            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, wt_yaw, power_model, air_density)
             @test p ≈ 2.024097113702623*1E6 rtol=1E-14
 
 
             wt_velocity = speeds[8]
-            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, wt_yaw, power_model, air_density)
             @test p ≈ 4.4644424198250725*1E6 rtol=1E-14
 
 
             wt_velocity = speeds[9]
-            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, wt_yaw, power_model, air_density)
             @test p ≈ 8.343766151603498*1E6 rtol=1E-14
 
             # above rated
             wt_velocity = 20.0
-            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, wt_yaw, power_model, air_density)
             @test p ≈ rated_power[1] atol=1E-6
 
             # above cut out
             wt_velocity = 30.0
-            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, power_model, air_density)
+            p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, wt_yaw, power_model, air_density)
             @test p ≈ 0.0 atol=1E-6
 
         end
@@ -1308,7 +1344,7 @@ using LinearAlgebra
             # calculate turbine inflow velocities
             turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
             sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, windresource,
-            model_set)
+            model_set, velocity_only=false)
 
             # load horns rev ti ata
             data = readdlm("inputfiles/horns_rev_ti_by_row_niayifar.txt", ',', skipstart=1)
@@ -1353,7 +1389,7 @@ using LinearAlgebra
             # calculate turbine inflow velocities
             turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
             sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, windresource,
-            model_set)
+            model_set, velocity_only=false)
 
             # load horns rev ti ata
             data = readdlm("inputfiles/horns_rev_ti_by_row_niayifar.txt", ',', skipstart=1)

@@ -144,18 +144,6 @@ x = [copy(turbine_x);copy(turbine_y)]
 println("Nturbines: ", nturbines)
 println("Rotor diameter: ", rotor_diameter[1])
 println("Starting AEP value (GWh): ", aep_wrapper(x, params)[1]*1e-9/obj_scale)
-# println("Directional AEP at start: ", dir_aep.*1E-6)
-
-t1 = time()
-for i in 1:10
-    println(i)
-    aep_wrapper(x, params)[1]*1e-9/obj_scale
-end
-t2 = time()
-at = (t2-t1)/10.0
-act = at/7200.0
-println("average time: ", at)
-println("fcal time: ", act)
 
 continue
 # add initial turbine location to plot

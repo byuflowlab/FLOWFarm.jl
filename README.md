@@ -12,6 +12,8 @@ FlowFarm provides a modular framework of common wind farm analyis models written
 ```
 
 ### Enable NaN Safe Mode in ForwardDiff
+NaN Safe Mode must be enables in ForwardDiff for ForwardDiff to work properly with FlowFarm.
+
 ```julia
 (v1.x) pkg> dev ForwardDiff
 ```
@@ -36,6 +38,16 @@ has not been fully integrated into the FlowFarm architecture.
 While we hope to provide more complete documentation in the future, for now you can use the 
 quick start guide below to get started. We have also provided a series of example scripts. 
 The example scripts can be found in the test directory.
+
+### Multi-threading
+Multi-threading is available for the calculation of annual energy production (AEP). It can be
+enabled as follows in a bash terminal in Linux/OS prior to launching a julia session:
+
+```
+export JULIA_NUM_THREADS=4
+```
+For enabling multi-threading on other shells/systems please see the julia parallel-computing
+docs here: https://docs.julialang.org/en/v1/manual/parallel-computing/
 
 ## Quick Start
 
