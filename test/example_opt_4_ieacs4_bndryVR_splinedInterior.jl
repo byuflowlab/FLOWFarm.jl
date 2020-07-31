@@ -29,6 +29,9 @@ function spacing_wrapper(x, params)
     # get number of turbines
     nturbines = Int(length(x)/2)
 
+    # tot_x
+    # extrapolate turbines from x[1]
+    
     # extract x and y locations of turbines from design variables vector
     turbine_x = x[1:nturbines]
     turbine_y = x[nturbines+1:end]

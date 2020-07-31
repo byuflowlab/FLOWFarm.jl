@@ -310,9 +310,9 @@ of discrete points along the circle's circumference
 function DiscreteCircum(center_x, center_y, r, n = 100)
     bndry_x = zeros(n+1)
     bndry_y = zeros(n+1)
-    for i in 1:n+1
-        bndry_x[i] = center_x + cos(2*pi/n*i)*r
-        bndry_y[i] = center_y + sin(2*pi/n*i)*r
+    for i in 0:n
+        bndry_x[i+1] = center_x + cos(2*pi/n*i)*r
+        bndry_y[i+1] = center_y + sin(2*pi/n*i)*r
     end
     return bndry_x, bndry_y
 end
@@ -412,4 +412,22 @@ function getPerimeterLength(bndry_x_clsd, bndry_y_clsd)
     end
     
     return nLength
+end
+
+"""
+    coordDist(x1, y1, x2, y2)
+
+Given a two points (x1, y1) and (x2, y2), returns the euclidean distance between
+them
+
+# Arguments
+- `x1::Float64` : x-coord of the first point
+- `y1::Float64` : y-coord of the first point
+- `x2::Float64` : x-coord of the second point
+- `y2::Float64` : y-coord of the second point
+"""
+function coordDist(x1, y1, x2, y2)
+    xDiff = x1 - x2
+    yDiff = y1 - y2
+    return sqrt(xDiff^2 + yDiff^2)
 end

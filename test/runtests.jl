@@ -1,5 +1,6 @@
 using FlowFarm; const ff = FlowFarm
 using Test
+using Distributed
 using DelimitedFiles
 using LinearAlgebra
 
@@ -236,7 +237,7 @@ using LinearAlgebra
                 # Should be equidistant from sides
                 testing_x = [100.0]
                 testing_y = [100.0]
-                test_values = [100.0, 100.0, 100.0, 100.0]
+                test_values = [-100.0, -100.0, -100.0, -100.0]
 
                 @test ff.splined_boundary(testing_x, testing_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies) == test_values
 
@@ -266,15 +267,15 @@ using LinearAlgebra
                 testing_x = [cc_l, 100.0, cc_r, cc_l, 100.0, cc_r, cc_l, 100.0, cc_r]
                 testing_y = [cc_r, cc_r, cc_r, 100.0, 100.0, 100.0, cc_l, cc_l, cc_l]
                 
-                test_values = [ cc_r,  cc_l,   0.0,  cc_d,
-                               100.0, 100.0,  cc_l,  cc_r,
-                                cc_l,  cc_r,   0.0,  cc_d,
-                                cc_r,  cc_l, cc_d2, cc_d2,
-                               100.0, 100.0, 100.0, 100.0,
-                                cc_l,  cc_r, cc_d2, cc_d2,
-                                cc_r,  cc_l,  cc_d,   0.0,
-                               100.0, 100.0,  cc_r,  cc_l,
-                                cc_l,  cc_r,  cc_d,   0.0]
+                test_values = [ -cc_r,  -cc_l,   -0.0,  -cc_d,
+                               -100.0, -100.0,  -cc_l,  -cc_r,
+                                -cc_l,  -cc_r,   -0.0,  -cc_d,
+                                -cc_r,  -cc_l, -cc_d2, -cc_d2,
+                               -100.0, -100.0, -100.0, -100.0,
+                                -cc_l,  -cc_r, -cc_d2, -cc_d2,
+                                -cc_r,  -cc_l,  -cc_d,   -0.0,
+                               -100.0, -100.0,  -cc_r,  -cc_l,
+                                -cc_l,  -cc_r,  -cc_d,   -0.0]
 
                 ans = ff.splined_boundary(testing_x, testing_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies)
                 # Test each turbine individually
@@ -325,42 +326,183 @@ using LinearAlgebra
         
         end
 
-        # @testset "Splined boundary (discreet regions)" begin
+        @testset "Variable Reduction (Boundary)" begin
+            @testset "One Turbine, Circular Boundary, Zero Start Distance" begin
+                #-- One-turbine circular boundary, zero start distance--#
+                # A discretized 20-point circle
+                bndry_x_clsd = [200.00, 195.11, 180.90, 158.78, 130.90, 100.00, 69.10, 41.22, 19.10, 4.89, 0.00, 4.89, 19.10, 41.22, 69.10, 100.00, 130.90, 158.78, 180.90, 195.11, 200.00]
+                bndry_y_clsd = [100.00, 130.90, 158.78, 180.90, 195.11, 200.00, 195.11, 180.90, 158.78, 130.90, 100.00, 69.10, 41.22, 19.10, 4.89, 0.00, 4.89, 19.10, 41.22, 69.10, 100.00]
+                # Give it one small turbine
+                num_turbs = 1
+                start_dist = 0
+                turb_diam = 10.0
+                turb_min_spacing = 2*turb_diam
 
-        #     @test ff.splined_boundary_discreet_regions(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies, turbs_per_region)
-        
-        # end
+                testing_x, testing_y, num_leftover = ff.VR_boundary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs)
+                test_values = [200.00, 100.0, 0]
+                @test test_values[1] == bndry_x_clsd[1]  # Should line up with first coordinate
+                @test test_values[2] == bndry_y_clsd[1]
+                @test test_values[3] == 0                # No leftover turbines
+            end
 
+            @testset "One Turbine, Square Boundary, Zero Start Distance" begin
+                # A 4-point sqaure
+                bndry_x_clsd = [100.0, 0.0, 0.0, 100.0, 100.0]
+                bndry_y_clsd = [100.0, 100.0, 0.0, 0.0, 100.0]
+                # Give it one small turbine, at the start
+                num_turbs = 1
+                start_dist = 0
+                turb_diam = 10.0
+                turb_min_spacing = 2*turb_diam
 
-        # @testset "Polygon boundary" begin
+                testing_x, testing_y, num_leftover = ff.VR_boundary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs)
+                test_values = [bndry_x_clsd[1], bndry_y_clsd[1], 0]
+                #@test ff.VR_bounary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs) == test_values
+                @test testing_x[1] == test_values[1]
+                @test testing_y[1] == test_values[2]
+                @test num_leftover == test_values[3]
+            end 
 
-        #     v = zeros(4,2)
-        #     v[2,1] = 500
-        #     v[3,1] = 500
-        #     v[3,2] = 500
-        #     v[4,2] = 500
-        #     n = zeros(4,2)
-        #     n[1,2] = -1
-        #     n[2,1] = 1
-        #     n[3,2] = 1
-        #     n[4,1] = -1
+            @testset "One Turbine, Circular Boundary, With Start Distance" begin
+                #-- One-turbine circular boundary, zero start distance  --#
+                # A discretized 20-point circle
+                bndry_x_clsd = [200.00, 195.11, 180.90, 158.78, 130.90, 100.00, 69.10, 41.22, 19.10, 4.89, 0.00, 4.89, 19.10, 41.22, 69.10, 100.00, 130.90, 158.78, 180.90, 195.11, 200.00]
+                bndry_y_clsd = [100.00, 130.90, 158.78, 180.90, 195.11, 200.00, 195.11, 180.90, 158.78, 130.90, 100.00, 69.10, 41.22, 19.10, 4.89, 0.00, 4.89, 19.10, 41.22, 69.10, 100.00]
+                # Vertices that keep splines injective (4-corners)
+                bndry_corner_indcies =[1,6,11,16, 21]  # 20 pt circle, 4 corners
+                # Give it one small turbine
+                num_turbs = 1
+                start_dist = (pi/2)*100 # Top of the circle
+                turb_diam = 10.0
+                turb_min_spacing = 2*turb_diam
 
-        #     testing_x = [250,250,250,250,-100,600]
-        #     testing_y = [250,-100,600,0,250,250]
-        #     test_values = ones(6,4).*-250
-        #     test_values[2,1] = 100
-        #     test_values[2,3] = -600
-        #     test_values[3,1] = -600
-        #     test_values[3,3] = 100
-        #     test_values[4,1] = 0
-        #     test_values[4,3] = -500
-        #     test_values[5,2] = -600
-        #     test_values[5,4] = 100
-        #     test_values[6,2] = 100
-        #     test_values[6,4] = -600
+                testing_x, testing_y, num_leftover = ff.VR_boundary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs)
+                test_values = [100.00, 200.0, 0]
+                @test test_values[1] ≈ bndry_x_clsd[6] atol=1E-10 # Should line up with top coordinate
+                @test test_values[2] ≈ bndry_y_clsd[6] atol=1E-10
+                @test test_values[3] == 0                # No leftover turbines
+            end
 
-        #     @test ff.windfarm_boundary(v,n,testing_x,testing_y) == test_values
-        # end
+            @testset "One Turbine, Square Boundary, With Start Distance" begin
+                # A 4-point sqaure
+                bndry_x_clsd = [100.0, 0.0, 0.0, 100.0, 100.0]
+                bndry_y_clsd = [100.0, 100.0, 0.0, 0.0, 100.0]
+                # Give it one small turbine, at the start
+                num_turbs = 1
+                start_dist = 100.0 # Top left corner
+                turb_diam = 10.0
+                turb_min_spacing = 2*turb_diam
+
+                testing_x, testing_y, num_leftover = ff.VR_boundary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs)
+                test_values_x = bndry_x_clsd[2]
+                test_values_y = bndry_y_clsd[2]
+                test_num_leftover = 0
+                #@test ff.VR_bounary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs) == test_values
+                @test testing_x[1] == test_values_x
+                @test testing_y[1] == test_values_y
+                @test num_leftover == test_num_leftover
+            end
+
+            @testset "Multi-Turbine, Circular Boundary, Zero Start Distance" begin
+                #-- Multi-turbine circular boundary as a square --#
+                # A discretized 200-point circle
+                num_pts = 400
+                circ_radius = 100.0
+                circ_center = [100.0, 100.0]
+                bndry_x_clsd, bndry_y_clsd = ff.DiscreteCircum(circ_center[1], circ_center[2], circ_radius, num_pts)
+                # Vertices that keep splines injective (4-corners)
+                bndry_corner_indcies = [1, 51, 101, 151, 201]  # 200 pt circle, 4 corners
+                # Give it a few turbines, don't perturb the start
+                num_turbs = 8
+                start_dist = 0 # Right of the circle
+                turb_diam = 10.0
+                turb_min_spacing = 2*turb_diam
+
+                # Vertices that keep splines injective
+                circ_corners = 1/sqrt(2)
+                cc_r = circ_center[2] + (circ_corners * circ_radius) # ~170
+                cc_l = circ_center[1] - (circ_corners * circ_radius) # ~ 30
+                cc_d = cc_r - cc_l                # ~140
+                cc_d2 = cc_d/2                    # ~ 70
+
+                testing_x, testing_y, num_leftover = ff.VR_boundary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs)
+                test_values_x = [200.0, cc_r, 100.0, cc_l, 0.0, cc_l, 100.0, cc_r]
+                test_values_y = [100.0, cc_r, 200.0, cc_r, 100.0, cc_l, 0.0, cc_l]
+                test_values_numleftover = [ [200.00, ],
+                                            [100.0, ],
+                                            0]
+                @test test_values_x ≈ testing_x  atol=1E-10
+            end
+
+            @testset "Multi-Turbine, Square Boundary, Zero Start Distance" begin
+                # A 4-point sqaure
+                bndry_x_clsd = [100.0, 0.0, 0.0, 100.0, 100.0]
+                bndry_y_clsd = [100.0, 100.0, 0.0, 0.0, 100.0]
+                # Give it a few turbines, perturb the start
+                num_turbs = 4
+                start_dist = 0.0 # Top side mid-point
+                turb_diam = 10.0
+                turb_min_spacing = 2*turb_diam
+
+                testing_x, testing_y, num_leftover = ff.VR_boundary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs)
+                test_values_x = [100.0, 0.0, 0.0, 100.0]
+                test_values_y = [100.0, 100.0, 0.0, 0.0]
+                test_num_leftover = 0
+                @test testing_x == test_values_x
+                @test testing_y == test_values_y
+                @test num_leftover == test_num_leftover
+            end
+
+            @testset "Multi-Turbine, Circular Boundary, With Start Distance" begin
+                #-- Multi-turbine circular boundary as a square --#
+                # A discretized 200-point circle
+                num_pts = 400
+                circ_radius = 100.0
+                circ_center = [100.0, 100.0]
+                bndry_x_clsd, bndry_y_clsd = ff.DiscreteCircum(circ_center[1], circ_center[2], circ_radius, num_pts)
+                # Vertices that keep splines injective (4-corners)
+                bndry_corner_indcies = [1, 51, 101, 151, 201]  # 200 pt circle, 4 corners
+                # Give it a few turbines, don't perturb the start
+                num_turbs = 8
+                start_dist = 100*pi/4 # Top Right of the circle
+                turb_diam = 10.0
+                turb_min_spacing = 2*turb_diam
+
+                # Vertices that keep splines injective
+                circ_corners = 1/sqrt(2)
+                cc_r = circ_center[2] + (circ_corners * circ_radius) # ~170
+                cc_l = circ_center[1] - (circ_corners * circ_radius) # ~ 30
+                cc_d = cc_r - cc_l                # ~140
+                cc_d2 = cc_d/2                    # ~ 70
+
+                testing_x, testing_y, num_leftover = ff.VR_boundary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs)
+                test_values_x = [cc_r, 100.0, cc_l, 0.0, cc_l, 100.0, cc_r, 200.0]
+                test_values_y = [cc_r, 200.0, cc_r, 100.0, cc_l, 0.0, cc_l, 100.0]
+                test_values_numleftover = [ [200.00, ],
+                                            [100.0, ],
+                                            0]
+                @test test_values_x ≈ testing_x  atol=5E-3
+            end
+
+            @testset "Multi-Turbine, Square Boundary, With Start Distance" begin
+                # A 4-point sqaure
+                bndry_x_clsd = [100.0, 0.0, 0.0, 100.0, 100.0]
+                bndry_y_clsd = [100.0, 100.0, 0.0, 0.0, 100.0]
+                # Give it a few turbines, perturb the start
+                num_turbs = 4
+                start_dist = 50.0 # Top side mid-point
+                turb_diam = 10.0
+                turb_min_spacing = 2*turb_diam
+
+                testing_x, testing_y, num_leftover = ff.VR_boundary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs)
+                test_values_x = [50.0, 0.0, 50.0, 100.0]
+                test_values_y = [100.0, 50.0, 0.0, 50.0]
+                test_num_leftover = 0
+                @test testing_x == test_values_x
+                @test testing_y == test_values_y
+                @test num_leftover == test_num_leftover
+            end
+        end
 
     end
 

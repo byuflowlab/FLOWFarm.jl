@@ -442,7 +442,7 @@ limiting the minimum distance between turbines.
 - 'bndry_seg_length::Array{Int}`: an array of the lengths between adjacent
         boundary verticies, corresponding to how they appear in bndry_x and _y
 """
-function VR_bounary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs)
+function VR_boundary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs)
     #- Get arc-length -#
     bndry_seg_length = getPerimeterLength(bndry_x_clsd,bndry_y_clsd)
     bndry_tot_length = sum(bndry_seg_length)
@@ -467,18 +467,18 @@ function VR_bounary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spa
     #- Make sure our start point is within the boundary length bounds
     start_dist = mod(start_dist, bndry_tot_length)
     #- Place the correct number of turbs along the boundary <start_dist> away from the first vertex -#
-    turbine_x, turbine_y = VR_boundary_constraint(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs, bndry_seg_length)
+    turbine_x, turbine_y = VR_boundary(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs)
 
     # Return the x- and y- coordinates of every turbine, and how many weren't placed
     return turbine_x,turbine_y, num_leftover_turbs         
 end
 
 """
-    VR_boundary_constraint(bndry_x_clsd, bndry_y_clsd, start_dist, turb_spacing, num_turbs, bndry_seg_length)
+    VR_boundary(bndry_x_clsd, bndry_y_clsd, start_dist, turb_spacing, num_turbs, bndry_seg_length)
 
 Uses the Boundary portion of Boundary-Grid variable reduction method
 place turbines along a closed wind farm boundary and perturb their location with
-one (1) variable.  NOTE: Use of this function assumes prior use of
+one (1) variable <start_dist>.  NOTE: Use of this function assumes prior use of
 VR_bounary_startup(), which ensures the number of turbines placed on the
 boundary doesn't violate any minimum spacing rules eiter along the boundary or
 around corners.
@@ -495,11 +495,10 @@ around corners.
 - 'num_turbs::Float64`: the number of turbines to be placed around the boundary.
         Note that this function assumes VR_bounary_startup() has already been
         run so that the user won't attempt to place too many turbines.
-- 'bndry_seg_length::Array{Int}`: an array of the lengths between adjacent
-        boundary verticies, corresponding to how they appear in bndry_x and _y
 """
-function VR_boundary_constraint(bndry_x_clsd, bndry_y_clsd, start_dist, turb_spacing, num_turbs, bndry_seg_length)
+function VR_boundary(bndry_x_clsd, bndry_y_clsd, start_dist, turb_spacing, num_turbs)
     # Initialize necessary variables
+    bndry_seg_length = getPerimeterLength(bndry_x_clsd,bndry_y_clsd)
     num_segs = length(bndry_x_clsd)-1
     # Initialize turbine locations
     turbine_x = zeros(num_turbs)
