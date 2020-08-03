@@ -44,10 +44,28 @@ Multi-threading is available for the calculation of annual energy production (AE
 enabled as follows in a bash terminal in Linux/OS prior to launching a julia session:
 
 ```
-export JULIA_NUM_THREADS=4
+export JULIA_NUM_THREADS=<number of threads>
 ```
 For enabling multi-threading on other shells/systems please see the julia parallel-computing
-docs here: https://docs.julialang.org/en/v1/manual/parallel-computing/
+docs here: https://docs.julialang.org/en/v1/manual/parallel-computing/.
+
+### Distributed Processing
+Distributed parallel processing is available for the calculation of annual energy production (AEP). 
+
+You may have to use the `@everywhere` macro in front of any functions you define that
+all processors will need access to. For an example, see `example_opt_6_38turb_round_distributed.jl`.
+
+For more information on using julia in a distributed environment, please reference https://docs.julialang.org/en/v1/manual/parallel-computing/.
+
+#### Using Distributed Processing without a Cluster Manager (e.g. on your local system)
+Distributed parallel processing can be enabled as follows when launching a julia session:
+
+```
+julia -p <number of processors>
+```
+
+#### Using Distributed Processing with an HPC Cluster Manager (e.g. SLURM)
+The `-p` is unnecessary when running with a cluster manager. 
 
 ## Quick Start
 
