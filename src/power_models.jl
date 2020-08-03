@@ -344,16 +344,6 @@ function turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_ou
                             typeof(rated_power[1]),typeof(rotor_diameter[1]),typeof(turbine_inflow_velcities[1]),typeof(turbine_yaw[1]))
     wt_power = zeros(arr_type, nturbines)
 
-    # println(size(generator_efficiency))
-    # println(size(cut_in_speed))
-    # println(size(cut_out_speed))
-    # println(size(rated_speed))
-    # println(size(rated_power))
-    # println(size(rotor_diameter))
-    # println(size(turbine_inflow_velcities))
-    # println(size(turbine_yaw))
-    # println(size(power_models))
-
     if jac === nothing
         for d=1:nturbines
             wt_power[d] = calculate_turbine_power(generator_efficiency[d], cut_in_speed[d], cut_out_speed[d], rated_speed[d], rated_power[d], rotor_diameter[d], turbine_inflow_velcities[d], turbine_yaw[d], power_models[d], air_density)
@@ -504,32 +494,31 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set::AbstractModelSet;
             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0)
 
-    wind_probabilities = wind_resource.wind_probabilities
-
-    nstates = length(wind_probabilities)
+    # find how many wind states are being calculated
+    nstates = length(wind_resource.wind_probabilities)
 
     # state_energy = Vector{typeof(wind_farm.turbine_x[1])}(undef,nstates)
     arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),typeof(hub_height[1]),typeof(turbine_yaw[1]),
                 typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),typeof(rated_power[1]))
-    # state_energy = zeros(arr_type,nstates)
-    
 
-    
-
+    # calculate AEP in parallel using multi-threading
     if Threads.nthreads() > 1
-        state_energy = zeros(arr_type,nstates)
+        state_aep = zeros(arr_type,nstates)
         Threads.@threads for i = 1:nstates
 
-            state_energy[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, 
+            state_aep[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, 
                 turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                 rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                 model_set; wind_farm_state_id=i, hours_per_year=hours_per_year, velocity_only=true)
-            
+           
         end
-        AEP = sum(state_energy)
+
+        AEP = sum(state_aep)
+        
+    # calculate AEP in serial or in parallel using distributed processing
     else
         AEP = @sync @distributed (+) for i = 1:nstates
-            state_energy = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, 
+            state_aep = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, 
                 turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                 rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                 model_set; wind_farm_state_id=i, hours_per_year=hours_per_year, velocity_only=true)

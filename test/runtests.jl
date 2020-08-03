@@ -3,6 +3,7 @@ using Test
 using DelimitedFiles
 using LinearAlgebra
 using FLOWMath: linear
+using Distributed
 
 @testset "All Tests" begin
 
