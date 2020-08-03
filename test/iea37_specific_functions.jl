@@ -60,9 +60,9 @@ end
 
 function getCs34VertList(sReg::String)
     if(sReg == "cs3")
-        vertList = [1, 10, 11, 13, 19]
+        vertList = [1, 10, 11, 13, 18]
     elseif(sReg == "3a")
-        vertList = [1, 10, 11, 13, 19]
+        vertList = [1, 10, 11, 13, 18]
     elseif(sReg == "3b")
         vertList = [1, 6, 7, 8, 9]
     elseif(sReg == "4a")
@@ -72,7 +72,7 @@ function getCs34VertList(sReg::String)
     elseif(sReg == "4c")
         vertList = [1, 2, 5, 6]
     elseif((sReg == "all") || (sReg == "All") || (sReg == "ALL"))
-        vertList = [1, 10, 11, 13, 19,
+        vertList = [1, 10, 11, 13, 18,
                     1,  6,  7,  8,  9,
                     1,  4,  5,  6,  7,
                     1,  2,  3,  4,

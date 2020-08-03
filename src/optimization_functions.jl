@@ -470,7 +470,7 @@ function VR_boundary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_sp
     turbine_x, turbine_y = VR_boundary(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_spacing, num_turbs)
 
     # Return the x- and y- coordinates of every turbine, and how many weren't placed
-    return turbine_x,turbine_y, num_leftover_turbs         
+    return turbine_x,turbine_y, num_leftover_turbs
 end
 
 """
