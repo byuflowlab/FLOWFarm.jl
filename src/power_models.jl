@@ -48,6 +48,7 @@ struct PowerModelPowerPoints{ATF, TF} <: AbstractPowerModel
     power_points::ATF
     pp::TF
 end
+PowerModelPowerPoints(x,y) = PowerModelPowerPoints(x, y, 2)
 
 """
     PowerModelPowerCurveCubic()
