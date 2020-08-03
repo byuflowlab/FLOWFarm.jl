@@ -139,23 +139,23 @@ println("starting AEP value (MWh): ", aep_wrapper(x, params1)[1])
 # println("frequencies ", windprobabilities)
 println("Directional AEP at start: ", dir_aep.*1E-6)
 
-# # add initial turbine location to plot
-# for i = 1:length(turbine_x)
-#     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
-# end
+# add initial turbine location to plot
+for i = 1:length(turbine_x)
+    plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
+end
 
-# # set general lower and upper bounds for design variables
-# lb = zeros(length(x)) .- boundary_radius .+ boundary_center[1]
-# ub = zeros(length(x)) .+ boundary_radius .+ boundary_center[2]
+# set general lower and upper bounds for design variables
+lb = zeros(length(x)) .- boundary_radius .+ boundary_center[1]
+ub = zeros(length(x)) .+ boundary_radius .+ boundary_center[2]
 
-# # set up options for SNOPT
-# options = Dict{String, Any}()
-# options["Derivative option"] = 1
-# options["Verify level"] = 3
-# options["Major optimality tolerance"] = 1e-5
-# options["Major iteration limit"] = 1e6
-# options["Summary file"] = "summary.out"
-# options["Print file"] = "print.out"
+# set up options for SNOPT
+options = Dict{String, Any}()
+options["Derivative option"] = 1
+options["Verify level"] = 3
+options["Major optimality tolerance"] = 1e-5
+options["Major iteration limit"] = 1e6
+options["Summary file"] = "summary.out"
+options["Print file"] = "print.out"
 
 # generate wrapper function surrogates
 spacing_wrapper(x) = spacing_wrapper(x, params1)

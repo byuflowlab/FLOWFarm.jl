@@ -161,6 +161,8 @@ params = params_struct2(model_set, rotor_points_y, rotor_points_z, turbine_z, am
 
 # initialize design variable array
 x = [copy(turbine_x);copy(turbine_y)]
+x[1] += 5
+global x
 
 # report initial objective value
 println("starting objective value: ", aep_wrapper(x, params)[1])
@@ -192,26 +194,50 @@ ub = ones(n_designvariables) * Inf
 lb_g = ones(n_constraints) * -Inf
 ub_g = zeros(n_constraints)
 
-# create the problem
-prob = createProblem(n_designvariables, lb, ub, n_constraints, lb_g, ub_g, n_designvariables*n_constraints, 0,
-    obj, con, obj_grad, con_grad)
-addOption(prob, "hessian_approximation", "limited-memory")
-prob.x = x
-
 # generate wrapper function surrogates
 spacing_wrapper(x) = spacing_wrapper(x, params)
 aep_wrapper(x) = aep_wrapper(x, params)
 boundary_wrapper(x) = boundary_wrapper(x, params)
 
-# run and time optimization
-t1 = time()
-status = solveProblem(prob)
-t2 = time()
-clkt = t2-t1
-xopt = prob.x
-fopt = prob.obj_val
-info = Ipopt.ApplicationReturnStatus[status]
+# create the problem
+prob = createProblem(n_designvariables, lb, ub, n_constraints, lb_g, ub_g, n_designvariables*n_constraints, 0,
+    obj, con, obj_grad, con_grad)
+addOption(prob, "hessian_approximation", "limited-memory")
 
+# set up for WEC optimization
+wec_steps = 2
+wec_max = 3.0
+wec_end = 1.0
+wec_values = collect(LinRange(wec_max, wec_end, wec_steps))
+println(wec_values)
+info = fill("",wec_steps)
+
+# run and time optimization
+t1t = time()
+for i =1:length(wec_values)
+    global x
+    global xopt
+    println("Running with WEC = ", wec_values[i])
+    params.model_set.wake_deficit_model.wec_factor[1] = wec_values[i]
+    prob.x = x
+
+    t1 = time()
+    status = solveProblem(prob)
+    t2 = time()
+    clk = t2-t1
+    xopt = prob.x
+    fopt = prob.obj_val
+    info = Ipopt.ApplicationReturnStatus[status]
+    # print optimization results
+    println("Finished in : ", clk, " (s)")
+    println("info: ", info)
+    println("end objective value: ", -fopt)
+    println("locations ", x[1:5])
+    println("locations opt ", xopt[1:5])
+    x = deepcopy(xopt)
+end
+t2t = time()
+clkt = t2t - t1t
 # print optimization results
 println("Finished in : ", clkt, " (s)")
 println("info: ", info)
