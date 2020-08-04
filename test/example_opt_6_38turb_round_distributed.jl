@@ -2,6 +2,7 @@ using Snopt
 using DelimitedFiles 
 using PyPlot
 import ForwardDiff
+using Distributed
 
 # set up boundary constraint wrapper function
 function boundary_wrapper(x, params)
