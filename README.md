@@ -5,7 +5,7 @@ FlowFarm provides a modular framework of common wind farm analyis models written
 
 ## Installation
 
-### To install FlowFarm
+### Install FlowFarm
 
 ```julia
 (v1.x) pkg> dev https://github.com/byuflowlab/FlowFarm.jl.git
@@ -58,9 +58,6 @@ You may have to add `using Distributed` to your julia script and use the `@every
 in front of any functions you define that all processors will need access to. For an example, 
 see `example_opt_6_38turb_round_distributed.jl`.
 
-For more information on using julia in a distributed environment, please see notes below and
-reference https://docs.julialang.org/en/v1/manual/parallel-computing/.
-
 #### Using Distributed Processing without an HPC Cluster Manager (e.g. on your local system)
 Distributed parallel processing can be enabled as follows when launching a julia session:
 
@@ -78,7 +75,7 @@ using Distributed
 using ClusterManagers
 
  ...
- 
+
  addprocs(SlurmManager(parse(Int, ENV["SLURM_NTASKS"])-1))
  @everywhere import FlowFarm; const ff = FlowFarm
 ```
@@ -100,11 +97,16 @@ module load julia
 julia julia_script.jl
 ```
 
+### References
+For more information on using julia in a distributed environment, please see notes below and
+reference https://docs.julialang.org/en/v1/manual/parallel-computing/.
+
+
 ## Quick Start
 
 There are four main steps to setting up and running an analysis in FlowFarm. 
 (1) setting up the problem description, (2) setting up the analysis model set, and 
-(3) running the analysis. Details for settin up an optimization will depend heavily on the
+(3) running the analysis. Details for setting up an optimization will depend heavily on the
 optimization package you are using, your objective, and your design variables. Optimization
 examples using various packages are provided in the example scripts located in the test directory.
 
