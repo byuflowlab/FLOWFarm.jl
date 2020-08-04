@@ -37,7 +37,7 @@ function spacing_wrapper(x, params)
 end
 
 # set up objective wrapper function
-function aep_wrapper(x, params)
+@everywhere function aep_wrapper(x, params)
 
     # get number of turbines
     nturbines = Int(length(x)/2)

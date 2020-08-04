@@ -178,6 +178,7 @@ x = [copy(turbine_x);copy(turbine_y)]
 println("Number of turbines: ", num_tot_turbs)
 println("Rotor diameter: ", rotor_diameter[1])
 println("Starting AEP value (GWh): ", aep_wrapper(x, params)[1]*1e-9/obj_scale)
+
 # println("Directional AEP at start: ", dir_aep.*1E-6)
 
 # t1 = time()

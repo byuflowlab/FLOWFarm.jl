@@ -1,15 +1,14 @@
-using Ipopt
+using Snopt
 using DelimitedFiles 
 using PyPlot
 import ForwardDiff
-
-### uses a Julia interface to the Ipopt nonlinear solver
+using Distributed
 
 # set up boundary constraint wrapper function
 function boundary_wrapper(x, params)
     # include relevant globals
-    params.boundary_vertices
-    params.boundary_normals
+    params.boundary_center
+    params.boundary_radius
 
     # get number of turbines
     nturbines = Int(length(x)/2)
@@ -19,7 +18,7 @@ function boundary_wrapper(x, params)
     turbine_y = x[nturbines+1:end]
 
     # get and return boundary distances
-    return ff.ray_trace_boundary(boundary_vertices, boundary_normals, turbine_x, turbine_y)
+    return ff.circle_boundary(boundary_center, boundary_radius, turbine_x, turbine_y)
 end
 
 # set up spacing constraint wrapper function
@@ -39,7 +38,7 @@ function spacing_wrapper(x, params)
 end
 
 # set up objective wrapper function
-function aep_wrapper(x, params)
+@everywhere function aep_wrapper(x, params)
     # include relevant globals
     params.turbine_z
     params.rotor_diameter
@@ -75,72 +74,52 @@ function aep_wrapper(x, params)
     return [AEP]
 end
 
-# objective function
-function obj(x) 
-    return -aep_wrapper(x)[1]
-end
+# set up optimization problem wrapper function
+function wind_farm_opt(x)
 
-# constraint function
-function con(x, g)
-    # calculate spacing constraint value
+    # calculate spacing constraint value and jacobian
     spacing_con = spacing_wrapper(x)
+    ds_dx = ForwardDiff.jacobian(spacing_wrapper, x)
 
-    # calculate boundary constraint
+    # calculate boundary constraint and jacobian
     boundary_con = boundary_wrapper(x)
+    db_dx = ForwardDiff.jacobian(boundary_wrapper, x)
 
     # combine constaint values and jacobians into overall constaint value and jacobian arrays
-    g[:] = [spacing_con; boundary_con]
-end
+    c = [spacing_con; boundary_con]
+    dcdx = [ds_dx; db_dx]
 
-# objective gradient function
-function obj_grad(x, grad_f)
-    grad_f[:] = -ForwardDiff.jacobian(aep_wrapper,x)
-end
+    # calculate the objective function and jacobian (negative sign in order to maximize AEP)
+    AEP = -aep_wrapper(x)[1]
+    dAEP_dx = -ForwardDiff.jacobian(aep_wrapper,x)
 
-# constraint gradients function
-function con_grad(x, mode, rows, cols, values)
-    if mode == :Structure
-        # report the sparcity structure of the jacobian
-        for i = 1:prob.m
-            rows[(i-1)*prob.n+1:i*prob.n] = i*ones(Int,prob.n)
-            cols[(i-1)*prob.n+1:i*prob.n] = 1:prob.n
-        end
-    else
-        # calculate spacing constraint jacobian
-        ds_dx = ForwardDiff.jacobian(spacing_wrapper, x)
+    # set fail flag to false
+    fail = false
 
-        # calculate boundary constraint jacobian
-        db_dx = ForwardDiff.jacobian(boundary_wrapper, x)
-
-        # combine constaint jacobians into overall constaint jacobian arrays
-        for i = 1:prob.m
-            for j = 1:prob.n
-                values[(i-1)*prob.n+j] = [ds_dx; db_dx][i, j]
-            end
-        end
-    end
+    # return objective, constraint, and jacobian values
+    return AEP, c, dAEP_dx, dcdx, fail
 end
 
 # import model set with wind farm and related details
-include("./model_sets/model_set_6.jl")
+include("./model_sets/model_set_9_38turb_round_farm.jl")
 
 # scale objective to be between 0 and 1
 obj_scale = 1E-11
 
 # set wind farm boundary parameters
-boundary_vertices = ([0 0; 1 0; 1 .75; .75 .75; .75 1; 0 1] .- .5).*500 # Utah-shape boundary
-boundary_normals = [0 1.0; -1 0; 0 -1; -1 0; 0 -1; 1 0]
+boundary_center = [0.0,0.0]
+boundary_radius = 1225.8227848101264
 
 # set globals for use in wrapper functions
-struct params_struct2{}
+struct params_struct{}
     model_set
     rotor_points_y
     rotor_points_z
     turbine_z
     ambient_ti
     rotor_diameter
-    boundary_vertices
-    boundary_normals
+    boundary_center
+    boundary_radius
     obj_scale
     hub_height
     turbine_yaw
@@ -154,68 +133,58 @@ struct params_struct2{}
     power_models
 end
 
-params = params_struct2(model_set, rotor_points_y, rotor_points_z, turbine_z, ambient_ti, 
-    rotor_diameter, boundary_vertices, boundary_normals, obj_scale, hub_height, turbine_yaw, 
+params = params_struct(model_set, rotor_points_y, rotor_points_z, turbine_z, ambient_ti, 
+    rotor_diameter, boundary_center, boundary_radius, obj_scale, hub_height, turbine_yaw, 
     ct_models, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, 
     windresource, power_models)
 
 # initialize design variable array
 x = [copy(turbine_x);copy(turbine_y)]
-
+xinit = deepcopy(x)
 # report initial objective value
 println("starting objective value: ", aep_wrapper(x, params)[1])
 
+plot(0,0)
 # add initial turbine location to plot
 for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
 end
 
-# get number of design variables
-n_designvariables = length(x)
-
-# get number of constraints
-function numberofspacingconstraints(nturb)
-    # calculates number of spacing constraints needed for given number of turbines
-    ncon = 0
-    for i = 1:nturb-1; ncon += i; end
-    return ncon
-end
-n_spacingconstraints = numberofspacingconstraints(nturbines)
-n_boundaryconstraints = length(boundary_wrapper(x, params))
-n_constraints = n_spacingconstraints + n_boundaryconstraints
-
 # set general lower and upper bounds for design variables
-lb = ones(n_designvariables) * -Inf
-ub = ones(n_designvariables) * Inf
+lb = zeros(length(x)) .- boundary_radius
+ub = zeros(length(x)) .+ boundary_radius
 
-# set lower and upper bounds for constraints
-lb_g = ones(n_constraints) * -Inf
-ub_g = zeros(n_constraints)
-
-# create the problem
-prob = createProblem(n_designvariables, lb, ub, n_constraints, lb_g, ub_g, n_designvariables*n_constraints, 0,
-    obj, con, obj_grad, con_grad)
-addOption(prob, "hessian_approximation", "limited-memory")
-prob.x = x
+# set up options for SNOPT
+options = Dict{String, Any}()
+options["Derivative option"] = 1
+options["Verify level"] = 0
+options["Major optimality tolerance"] = 1e-6
+options["Major iteration limit"] = 1e6
+options["Summary file"] = "snopt_summary_ex6.out"
+options["Print file"] = "snopt_print_ex6.out"
 
 # generate wrapper function surrogates
 spacing_wrapper(x) = spacing_wrapper(x, params)
 aep_wrapper(x) = aep_wrapper(x, params)
 boundary_wrapper(x) = boundary_wrapper(x, params)
+obj_func(x) = wind_farm_opt(x)
 
+# set up for WEC optimization
+wec_steps = 2
+wec_max = 3.0
+wec_end = 1.0
+wec_values = collect(LinRange(wec_max, wec_end, wec_steps))
+println(wec_values)
+info = fill("",wec_steps)
 # run and time optimization
 t1 = time()
-status = solveProblem(prob)
+xopt, fopt, info = snopt(obj_func, x, lb, ub, options)
 t2 = time()
-clkt = t2-t1
-xopt = prob.x
-fopt = prob.obj_val
-info = Ipopt.ApplicationReturnStatus[status]
-
+clk = t2-t1
 # print optimization results
-println("Finished in : ", clkt, " (s)")
+println("Finished in : ", clk, " (s)")
 println("info: ", info)
-println("end objective value: ", aep_wrapper(xopt)[1])
+println("end objective value: ", -fopt)
 
 # extract final turbine locations
 turbine_x = copy(xopt[1:nturbines])
@@ -227,11 +196,10 @@ for i = 1:length(turbine_x)
 end
 
 # add wind farm boundary to plot
-plt.gcf().gca().plot([boundary_vertices[:,1];boundary_vertices[1,1]],[boundary_vertices[:,2];boundary_vertices[1,2]], color="C2")
+plt.gcf().gca().add_artist(plt.Circle((boundary_center[1],boundary_center[2]), boundary_radius, fill=false,color="C2"))
 
 # set up and show plot
 axis("square")
-xlim(minimum(boundary_vertices) - (maximum(boundary_vertices)-minimum(boundary_vertices))/5, maximum(boundary_vertices) + (maximum(boundary_vertices)-minimum(boundary_vertices))/5)
-ylim(minimum(boundary_vertices) - (maximum(boundary_vertices)-minimum(boundary_vertices))/5, maximum(boundary_vertices) + (maximum(boundary_vertices)-minimum(boundary_vertices))/5)
+xlim(-boundary_radius-200,boundary_radius+200)
+ylim(-boundary_radius-200,boundary_radius+200)
 plt.show()
-savefig("opt_plot")

@@ -6,6 +6,7 @@ using ForwardDiff
 # using PyPlot
 using FLOWMath: linear,trapz
 # using Statistics
+using Distributed
 
 include("io.jl")
 include("utilities.jl")
