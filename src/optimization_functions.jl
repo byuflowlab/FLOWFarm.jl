@@ -548,3 +548,78 @@ function VR_boundary(bndry_x_clsd, bndry_y_clsd, start_dist, turb_spacing, num_t
     
     return turbine_x, turbine_y
 end
+
+"""
+    iea37cs4SplinedRandoStartsVRBndry(bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies, turbine_x, turbine_y, turb_diam, turb_min_space, num_turbs_to_place)
+
+With turbines already placed on the boundary, random places the requested
+    number of remaining turbines in the interior, maintaining proper spacing
+    from all previously placed turbines.
+
+# Arguments
+- `bndry_x_clsd::Array{Float,1}` : 1-D array of x-coordinates for the vertices
+        around a singlar closed boundary
+- `bndry_y_clsd::Array{Float,1}` : 1-D array of y-coordinates for the vertices
+        around a singlar closed boundary
+- `bndry_corner_indcies::Float64`: The indicies within <bndry_x_clsd> and
+        <bndry_y_clsd> which denote the "corners" adjacent turbines
+- 'turb_min_space::Float64`: For proximity knowledge, the minimum spacing
+        required between any two turbines
+- 'num_bndry_turbs::Float64`: The number of turbines desired to be placed along
+        the boundary. If too many are selected (due to spacing condtraints), the
+        remaining will be placed in the interior
+- 'num_tot_turbs::Float64`: The number of total turbines to be placed both on
+        the boundary and in the interior
+"""
+function iea37cs4SplinedRandoStartsVRBndry(bndry_x_clsd, bndry_y_clsd, bndry_corner_indicies, turb_min_space, num_bndry_turbs, num_tot_turbs)
+    #-- Place all the boundary turbines we can --#
+    bndry_tot_len = sum(ff.getPerimeterLength(bndry_x_clsd,bndry_y_clsd))
+    #- Make a random starting point along the boundary -#
+    start_dist = rand(Float64) * bndry_tot_len
+    #- Place the boundary turbines -# 
+    turbine_x_bndry, turbine_y_bndry, num_leftover_turbs = VR_boundary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_space, num_bndry_turbs)
+    #- Determine how many will be placed in the interior -#
+    num_bndry_turbs = num_bndry_turbs - num_leftover_turbs
+    num_interior_turbs = num_tot_turbs - num_bndry_turbs
+    
+    # Initialize full list of turbine locations
+    turbine_x = zeros(num_tot_turbs)
+    turbine_y = zeros(num_tot_turbs)
+    #- Fill in the ones ew've already placed along the boundary
+    turbine_x[1:num_bndry_turbs] = turbine_x_bndry
+    turbine_y[1:num_bndry_turbs] = turbine_y_bndry
+    
+    #-- Initialize interior space --#w
+    num_sides = length(bndry_corner_indicies)-1
+    #- Get the x-values -#
+    x_min_indx = 3                      # Default to work w/ squared boundaries
+    if num_sides == 3                   # If we only have 3 corners
+        x_min_indx = 2                  # denote that it's a triangle boundary
+    end
+    x_max = bndry_x_clsd[bndry_corner_indicies[1]]           # Our maximum x-value
+    x_min = bndry_x_clsd[bndry_corner_indicies[x_min_indx]]  # Our min x-value
+    turbine_x[num_bndry_turbs+1:end] = (x_max - x_min)*rand(Float64, num_interior_turbs) .+ x_min # Get random x-values for the interior turbines
+
+    #-- Get the y-values --#
+    #- Determine the upper and lower splines to use for the given x -#
+    # Fake for-loop here for proximity checking.
+    i = num_bndry_turbs + 1   # Start after our last boundary turbine
+    while (i <= num_tot_turbs)
+        # Get the max and min y-value for this x-value
+        y_min, y_max = getUpDwnYvals(turbine_x[i], bndry_x_clsd, bndry_y_clsd, bndry_corner_indicies)
+        # Generate a random y-value within these limits
+        turbine_y[i] = (y_max - y_min)*rand(Float64) + y_min # Get a random number in our bounds
+        #- Check it doesn't conflict with aleady placed turbines -#
+        for j in 1:(i-1) # Check the new ones we've place so far
+            # If this turbine has a proximity conflict
+            if (coordDist(turbine_x[i], turbine_y[i], turbine_x[j], turbine_y[j]) < turb_min_space)
+                turbine_x[i] = (x_max - x_min)*rand(Float64) + x_min # Give it a new x-val
+                i = i-1 # Redo the y-val too
+                break # Stop checking for conflicts and redo the y-value
+            end
+        end
+        i += 1
+    end
+
+    return turbine_x, turbine_y, num_interior_turbs
+end

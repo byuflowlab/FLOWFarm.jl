@@ -58,6 +58,28 @@ function getCs34NumTurbs(sReg::String)
     return numTurbs
 end
 
+function getCs34NumBndryTurbs(sReg::String)
+    numBndryTurbs = zeros(1)
+    # As recommended, .45 of the full number
+    if(sReg == "cs3")
+        numBndryTurbs = 11 #25
+    elseif(sReg == "cs4")
+        numBndryTurbs = 42 #81
+    elseif(sReg == "3a")
+        numBndryTurbs = 13 #31
+    elseif(sReg == "3b")
+        numBndryTurbs = 4 #11
+    elseif(sReg == "4a")
+        numBndryTurbs = 7 #16
+    elseif(sReg == "4b")
+        numBndryTurbs = 6 #14
+    elseif(sReg == "4c")
+        numBndryTurbs = 4 #9
+    end
+    
+    return numBndryTurbs
+end
+
 function getCs34VertList(sReg::String)
     if(sReg == "cs3")
         vertList = [1, 10, 11, 13, 18]
