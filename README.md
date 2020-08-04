@@ -76,13 +76,29 @@ SLURM, but other managers are available as well):
 ```
 using Distributed
 using ClusterManagers
+
  ...
+ 
  addprocs(SlurmManager(parse(Int, ENV["SLURM_NTASKS"])-1))
  @everywhere import FlowFarm; const ff = FlowFarm
 ```
 
 Also include the `@everywhere` macro in front of any function definitions or include statements
-that all processors will need access to.
+in your julia script that all processors will need access to.
+
+Your SLURM job script should look something like this:
+
+```
+#!/bin/bash -l
+#SBATCH --ntasks=100
+#SBATCH --mem-per-cpu=1024M   # memory per CPU core
+#SBATCH --time=01:00:00 # time=HH:MM:SS
+#SBATCH -J "Your job name here"   # job name
+
+module load julia
+
+julia julia_script.jl
+```
 
 ## Quick Start
 
