@@ -573,7 +573,7 @@ maintaining proper spacing from all previously placed turbines.
 """
 function iea37cs4BndryVRIntPM(bndry_x_clsd, bndry_y_clsd, bndry_corner_indicies, turb_min_space, num_bndry_turbs, num_tot_turbs)
     #-- Place all the boundary turbines we can --#
-    bndry_tot_len = sum(ff.getPerimeterLength(bndry_x_clsd,bndry_y_clsd))
+    bndry_tot_len = sum(getPerimeterLength(bndry_x_clsd,bndry_y_clsd))
     #- Make a random starting point along the boundary -#
     start_dist = rand(Float64) * bndry_tot_len
     #- Place the boundary turbines -# 
@@ -612,7 +612,7 @@ function iea37cs4BndryVRIntPM(bndry_x_clsd, bndry_y_clsd, bndry_corner_indicies,
         #- Check it doesn't conflict with aleady placed turbines -#
         for j in 1:(i-1) # Check the new ones we've place so far
             # If this turbine has a proximity conflict
-            if (ff.coordDist(turbine_x[i], turbine_y[i], turbine_x[j], turbine_y[j]) < turb_min_space)
+            if (coordDist(turbine_x[i], turbine_y[i], turbine_x[j], turbine_y[j]) < turb_min_space)
                 turbine_x[i] = (x_max - x_min)*rand(Float64) + x_min # Give it a new x-val
                 i = i-1 # Redo the y-val too
                 break # Stop checking for conflicts and redo the y-value

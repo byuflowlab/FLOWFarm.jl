@@ -215,6 +215,7 @@ end
 Checks if a file of the given directory and name exists. If not, increments to
 the next index so as not to overwrite previously written files. If it reaches
 the max number of overwrites, it will default to <directory/file_name.file_type>
+To default to this, set <max_check=0> in function call.
 
 # Arguments
 - `directory::String`: path/to/write/file/at/
