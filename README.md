@@ -98,8 +98,7 @@ julia julia_script.jl
 ```
 
 ### References
-For more information on using julia in a distributed environment, please see notes below and
-reference https://docs.julialang.org/en/v1/manual/parallel-computing/.
+For more information on using julia in a distributed environment, please see https://docs.julialang.org/en/v1/manual/parallel-computing/.
 
 
 ## Quick Start
