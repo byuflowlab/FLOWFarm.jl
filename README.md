@@ -74,10 +74,8 @@ SLURM, but other managers are available as well):
 using Distributed
 using ClusterManagers
 
- ...
-
- addprocs(SlurmManager(parse(Int, ENV["SLURM_NTASKS"])-1))
- @everywhere import FlowFarm; const ff = FlowFarm
+addprocs(SlurmManager(parse(Int, ENV["SLURM_NTASKS"])-1))
+@everywhere import FlowFarm; const ff = FlowFarm
 ```
 
 Also include the `@everywhere` macro in front of any function definitions or include statements
