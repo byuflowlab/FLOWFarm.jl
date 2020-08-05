@@ -143,3 +143,30 @@ function getBndryCs4YAML(file_name)
 
     return bndry_x, bndry_y
 end
+
+using PyPlot
+function printTurbinesInBoundary(bndry_x_clsd, bndry_y_clsd, turbine_x, turbine_y, turb_diam, region=0, turb_tags=false)
+    #- Visualizes the farm boundaries and all turbines passed -#
+    # Plot the boundary (defaults to all regions (when region==0), but will do only one if specified)
+    if region == 0
+        for i in 1:length(bndry_x_clsd)
+            plot(bndry_x_clsd[i], bndry_y_clsd[i])
+        end
+    else
+        plot(bndry_x_clsd[region], bndry_y_clsd[region])
+    end
+    
+    # Plot the turbines
+    for i = 1:length(turbine_x)
+         plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), turb_diam/2.0, fill=true,color="black"))
+    #     plt.gcf().gca().add_artist(plt.Circle((test_values_x[i],test_values_y[i]), turb_diam/2.0, fill=true,color="red"))
+        if turb_tags
+            plt.text(turbine_x[i]+turb_diam,turbine_y[i]+turb_diam, string(i))
+        end
+    end
+
+    # Formatting
+    axis("square")
+    axis("off")
+    plt.show()
+end

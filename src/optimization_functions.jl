@@ -102,7 +102,7 @@ end
 calculate the distance from each turbine to a closed boundary made up of zero or
 more reflex angles (concavities). Boundary will have three or four user-selected
 "corners", such that the "sides" between corners (that will be splined) are
-injective functions (meaning that for every x-coord,there exists only one
+injective functions (meaning that for every x-coord, there exists only one
 corresponding y-coord). Returns four values for every turbine, corresponding to
 the distance from the turb to the upper, lower, left, and right splined "sides".
 A negative return value means the turb is inside the boundary for that "side".
@@ -550,11 +550,11 @@ function VR_boundary(bndry_x_clsd, bndry_y_clsd, start_dist, turb_spacing, num_t
 end
 
 """
-    iea37cs4SplinedRandoStartsVRBndry(bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies, turbine_x, turbine_y, turb_diam, turb_min_space, num_turbs_to_place)
+    iea37cs4BndryVRIntPM(bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies, turbine_x, turbine_y, turb_diam, turb_min_space, num_turbs_to_place)
 
-With turbines already placed on the boundary, random places the requested
-    number of remaining turbines in the interior, maintaining proper spacing
-    from all previously placed turbines.
+Uses the Variable reduction method for placing boundary turbines, and the
+Partition Method (from splined_boundary()) for random interior points,
+maintaining proper spacing from all previously placed turbines.
 
 # Arguments
 - `bndry_x_clsd::Array{Float,1}` : 1-D array of x-coordinates for the vertices
@@ -571,7 +571,7 @@ With turbines already placed on the boundary, random places the requested
 - 'num_tot_turbs::Float64`: The number of total turbines to be placed both on
         the boundary and in the interior
 """
-function iea37cs4SplinedRandoStartsVRBndry(bndry_x_clsd, bndry_y_clsd, bndry_corner_indicies, turb_min_space, num_bndry_turbs, num_tot_turbs)
+function iea37cs4BndryVRIntPM(bndry_x_clsd, bndry_y_clsd, bndry_corner_indicies, turb_min_space, num_bndry_turbs, num_tot_turbs)
     #-- Place all the boundary turbines we can --#
     bndry_tot_len = sum(ff.getPerimeterLength(bndry_x_clsd,bndry_y_clsd))
     #- Make a random starting point along the boundary -#
@@ -612,7 +612,7 @@ function iea37cs4SplinedRandoStartsVRBndry(bndry_x_clsd, bndry_y_clsd, bndry_cor
         #- Check it doesn't conflict with aleady placed turbines -#
         for j in 1:(i-1) # Check the new ones we've place so far
             # If this turbine has a proximity conflict
-            if (coordDist(turbine_x[i], turbine_y[i], turbine_x[j], turbine_y[j]) < turb_min_space)
+            if (ff.coordDist(turbine_x[i], turbine_y[i], turbine_x[j], turbine_y[j]) < turb_min_space)
                 turbine_x[i] = (x_max - x_min)*rand(Float64) + x_min # Give it a new x-val
                 i = i-1 # Redo the y-val too
                 break # Stop checking for conflicts and redo the y-value
