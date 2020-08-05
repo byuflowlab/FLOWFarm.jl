@@ -317,100 +317,273 @@ Calculate the distance from each turbine to the nearest point on the boundary.
 Negative means the turbine is inside the boundary.
 
 # Arguments
-- `boundary_vertices::Array{Float,2}`: vertices of the convex hull CCW in order s.t.
+- `boundary_vertices::Array{Float,2}`: vertices of the boundary CCW in order s.t.
         boundaryVertices[i] -> first point of face for unit_normals[i]
 - `boundary_normals::Array{Float,2}`: unit normal vector for each boundary face
         CCW where boundaryVertices[i] is the first point of the corresponding face
 - `turbine_x::Array{Float}`: turbine x locations
 - `turbine_y::Array{Float}`: turbine y locations
 """
-function ray_trace_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_y)
+function ray_trace_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_y;discrete=false)
 
-    # number of turbines and boundary vertices
-    nturbines = length(turbine_x)
-    nvertices = size(boundary_vertices)[1]
+    # single region
+    if discrete == false
 
-    # initialize constraint output values
-    c = zeros(typeof(turbine_x[1]),(nturbines))
+        # number of turbines and boundary vertices
+        nturbines = length(turbine_x)
+        nvertices = size(boundary_vertices)[1]
 
-    # initialize array to hold distances from each turbine to closest boundary face
-    turbine_to_face_distance = zeros(typeof(turbine_x[1]),(nvertices))
+        # initialize constraint output values
+        c = zeros(typeof(turbine_x[1]),(nturbines))
 
-    # add the first boundary vertex again to the end of the boundary vertices vector (to form a closed loop)
-    boundary_vertices = [boundary_vertices; boundary_vertices[1,1] boundary_vertices[1,2]]
+        # initialize array to hold distances from each turbine to closest boundary face
+        turbine_to_face_distance = zeros(typeof(turbine_x[1]),(nvertices))
 
-    # iterate through each turbine location
-    for i = 1:nturbines
+        # add the first boundary vertex again to the end of the boundary vertices vector (to form a closed loop)
+        boundary_vertices = [boundary_vertices; boundary_vertices[1,1] boundary_vertices[1,2]]
 
-        # initialize intersection counter
-        intersection_counter = 0
+        # iterate through each turbine location
+        for i = 1:nturbines
 
-        # get vector from turbine to the first vertex in first face
-        turbine_to_first_facepoint = boundary_vertices[1, :] - [turbine_x[i]; turbine_y[i]]
+            # initialize intersection counter
+            intersection_counter = 0
 
-        # iterate through each boundary
-        for j = 1:nvertices
+            # get vector from turbine to the first vertex in first face
+            turbine_to_first_facepoint = boundary_vertices[1, :] - [turbine_x[i]; turbine_y[i]]
 
-            # check if y-coordinate of turbine is less than at least one y-coordinate of the two boundary vertices
-            if !(boundary_vertices[j, 2] < turbine_y[i] && boundary_vertices[j+1, 2] < turbine_y[i])        # (this might not be necessary)
-                
-                # check if x-coordinate of turbine is between the x-coordinates of the two boundary vertices
-                if boundary_vertices[j, 1] < turbine_x[i] < boundary_vertices[j+1, 1] || boundary_vertices[j, 1] > turbine_x[i] > boundary_vertices[j+1, 1]
+            # iterate through each boundary
+            for j = 1:nvertices
 
-                    # check to see if the turbine is below the boundary
-                    if turbine_y[i] < (boundary_vertices[j+1, 2] - boundary_vertices[j, 2]) / (boundary_vertices[j+1, 1] - boundary_vertices[j, 1]) * (turbine_x[i] - boundary_vertices[j, 1]) + boundary_vertices[j, 2]
+                # check if y-coordinate of turbine is less than at least one y-coordinate of the two boundary vertices
+                if !(boundary_vertices[j, 2] < turbine_y[i] && boundary_vertices[j+1, 2] < turbine_y[i])        # (this might not be necessary)
                     
-                        # the vertical ray intersects the boundary
-                        intersection_counter += 1
+                    # check if x-coordinate of turbine is between the x-coordinates of the two boundary vertices
+                    if boundary_vertices[j, 1] < turbine_x[i] < boundary_vertices[j+1, 1] || boundary_vertices[j, 1] > turbine_x[i] > boundary_vertices[j+1, 1]
+
+                        # check to see if the turbine is below the boundary
+                        if turbine_y[i] < (boundary_vertices[j+1, 2] - boundary_vertices[j, 2]) / (boundary_vertices[j+1, 1] - boundary_vertices[j, 1]) * (turbine_x[i] - boundary_vertices[j, 1]) + boundary_vertices[j, 2]
+                        
+                            # the vertical ray intersects the boundary
+                            intersection_counter += 1
+
+                        end
 
                     end
 
                 end
 
+                # define the vector from the turbine to the second point of the face
+                turbine_to_second_facepoint = boundary_vertices[j+1, :] - [turbine_x[i]; turbine_y[i]]
+
+                # find perpendicular distance from turbine to current face (vector projection)
+                boundary_vector = boundary_vertices[j+1, :] - boundary_vertices[j, :]
+                
+                # check if perpendicular distance is the shortest
+                if sum(boundary_vector .* -turbine_to_first_facepoint) > 0 && sum(boundary_vector .* turbine_to_second_facepoint) > 0
+                    
+                    # perpendicular distance from turbine to face
+                    turbine_to_face_distance[j] = abs(sum(turbine_to_first_facepoint .* boundary_normals[j,:]))
+                
+                # check if distance to first facepoint is shortest
+                elseif sum(boundary_vector .* -turbine_to_first_facepoint) <= 0
+
+                    # distance from turbine to first facepoint
+                    turbine_to_face_distance[j] = sqrt(sum(turbine_to_first_facepoint.^2))
+
+                # distance to second facepoint is shortest
+                else
+
+                    # distance from turbine to second facepoint
+                    turbine_to_face_distance[j] = sqrt(sum(turbine_to_second_facepoint.^2))
+
+                end
+                
+                # reset for next face iteration
+                turbine_to_first_facepoint = turbine_to_second_facepoint        # (for efficiency, so we don't have to recalculate for the same vertex twice)
+                    
             end
 
-            # define the vector from the turbine to the second point of the face
-            turbine_to_second_facepoint = boundary_vertices[j+1, :] - [turbine_x[i]; turbine_y[i]]
+            # magnitude of the constraint value
+            c[i] = -ff.smooth_max(-turbine_to_face_distance, s=100.0)
 
-            # find perpendicular distance from turbine to current face (vector projection)
-            boundary_vector = boundary_vertices[j+1, :] - boundary_vertices[j, :]
-            
-            # check if perpendicular distance is the shortest
-            if sum(boundary_vector .* -turbine_to_first_facepoint) > 0 && sum(boundary_vector .* turbine_to_second_facepoint) > 0
-                
-                # perpendicular distance from turbine to face
-                turbine_to_face_distance[j] = abs(sum(turbine_to_first_facepoint .* boundary_normals[j,:]))
-            
-            # check if distance to first facepoint is shortest
-            elseif sum(boundary_vector .* -turbine_to_first_facepoint) <= 0
+            # sign of the constraint value (- is inside, + is outside)
+            if mod(intersection_counter, 2) == 1
+                c[i] = -c[i]
+            end
 
-                # distance from turbine to first facepoint
-                turbine_to_face_distance[j] = sqrt(sum(turbine_to_first_facepoint.^2))
+        end
 
-            # distance to second facepoint is shortest
-            else
+        return c
 
-                # distance from turbine to second facepoint
-                turbine_to_face_distance[j] = sqrt(sum(turbine_to_second_facepoint.^2))
+    # multiple discrete regions
+    else
+
+        # number of turbines
+        nturbines = length(turbine_x)
+
+        # number of regions
+        nregions = length(boundary_vertices)
+
+        # initialize constraint output values
+        c = zeros(typeof(turbine_x[1]),(nturbines))
+
+        # initialize turbine status vector
+        status = zeros(Int64, nturbines)
+
+        # iterate through each turbine location
+        for i = 1:nturbines
+
+            # iterate through each region
+            for k = 1:nregions
+
+                # number of boundary vertices
+                nvertices = size(boundary_vertices[k])[1]
+
+                # add the first boundary vertex again to the end of the boundary vertices vector (to form a closed loop)
+                boundary_vertices_closed = [boundary_vertices[k]; boundary_vertices[k][1,1] boundary_vertices[k][1,2]]
+
+                # initialize intersection counter
+                intersection_counter = 0
+
+                # get vector from turbine to the first vertex in first face
+                turbine_to_first_facepoint = boundary_vertices_closed[1, :] - [turbine_x[i]; turbine_y[i]]
+
+                # iterate through each boundary
+                for j = 1:nvertices
+
+                    # check if y-coordinate of turbine is less than at least one y-coordinate of the two boundary vertices
+                    if !(boundary_vertices_closed[j, 2] < turbine_y[i] && boundary_vertices_closed[j+1, 2] < turbine_y[i])        # (this might not be necessary)
+                        
+                        # check if x-coordinate of turbine is between the x-coordinates of the two boundary vertices
+                        if boundary_vertices_closed[j, 1] < turbine_x[i] < boundary_vertices_closed[j+1, 1] || boundary_vertices_closed[j, 1] > turbine_x[i] > boundary_vertices_closed[j+1, 1]
+
+                            # check to see if the turbine is below the boundary
+                            if turbine_y[i] < (boundary_vertices_closed[j+1, 2] - boundary_vertices_closed[j, 2]) / (boundary_vertices_closed[j+1, 1] - boundary_vertices_closed[j, 1]) * (turbine_x[i] - boundary_vertices_closed[j, 1]) + boundary_vertices_closed[j, 2]
+                            
+                                # the vertical ray intersects the boundary
+                                intersection_counter += 1
+
+                            end
+
+                        end
+
+                    end
+
+                end
+
+                # check if the turbine is in the current region
+                if mod(intersection_counter, 2) == 1
+
+                    # initialize array to hold distances from each turbine to closest boundary face
+                    turbine_to_face_distance = zeros(typeof(turbine_x[1]),(nvertices))
+
+                    # iterate through each boundary
+                    for j = 1:nvertices
+
+                        # define the vector from the turbine to the second point of the face
+                        turbine_to_second_facepoint = boundary_vertices_closed[j+1, :] - [turbine_x[i]; turbine_y[i]]
+
+                        # find perpendicular distance from turbine to current face (vector projection)
+                        boundary_vector = boundary_vertices_closed[j+1, :] - boundary_vertices_closed[j, :]
+                        
+                        # check if perpendicular distance is the shortest
+                        if sum(boundary_vector .* -turbine_to_first_facepoint) > 0 && sum(boundary_vector .* turbine_to_second_facepoint) > 0
+                                
+                            # perpendicular distance from turbine to face
+                            turbine_to_face_distance[j] = abs(sum(turbine_to_first_facepoint .* boundary_normals[k][j,:]))
+                        
+                        # check if distance to first facepoint is shortest
+                        elseif sum(boundary_vector .* -turbine_to_first_facepoint) <= 0
+
+                            # distance from turbine to first facepoint
+                            turbine_to_face_distance[j] = sqrt(sum(turbine_to_first_facepoint.^2))
+
+                        # distance to second facepoint is shortest
+                        else
+
+                            # distance from turbine to second facepoint
+                            turbine_to_face_distance[j] = sqrt(sum(turbine_to_second_facepoint.^2))
+
+                        end
+                        
+                        # reset for next face iteration
+                        turbine_to_first_facepoint = turbine_to_second_facepoint        # (for efficiency, so we don't have to recalculate for the same vertex twice)
+
+                    end
+
+                    # magnitude of the constraint value
+                    c[i] = ff.smooth_max(-turbine_to_face_distance, s=100.0)
+                    status[i] = 1
+
+                end
 
             end
-            
-            # reset for next face iteration
-            turbine_to_first_facepoint = turbine_to_second_facepoint        # (for efficiency, so we don't have to recalculate for the same vertex twice)
-                
+
+            # check if the turbine is in none of the regions
+            if status[i] == 0
+
+                # initialize array to hold distances from each turbine to closest boundary face
+                turbine_to_face_distance = zeros(typeof(turbine_x[1]),0)
+
+                # iterate through each region
+                for k = 1:nregions
+
+                    # number of boundary vertices
+                    nvertices = size(boundary_vertices[k])[1]
+        
+                    # add the first boundary vertex again to the end of the boundary vertices vector (to form a closed loop)
+                    boundary_vertices_closed = [boundary_vertices[k]; boundary_vertices[k][1,1] boundary_vertices[k][1,2]]
+
+                    # get vector from turbine to the first vertex in first face
+                    turbine_to_first_facepoint = boundary_vertices_closed[1, :] - [turbine_x[i]; turbine_y[i]]
+
+                    # iterate through each boundary
+                    for j = 1:nvertices
+
+                        # define the vector from the turbine to the second point of the face
+                        turbine_to_second_facepoint = boundary_vertices_closed[j+1, :] - [turbine_x[i]; turbine_y[i]]
+
+                        # find perpendicular distance from turbine to current face (vector projection)
+                        boundary_vector = boundary_vertices_closed[j+1, :] - boundary_vertices_closed[j, :]
+                        
+                        # check if perpendicular distance is the shortest
+                        if sum(boundary_vector .* -turbine_to_first_facepoint) > 0 && sum(boundary_vector .* turbine_to_second_facepoint) > 0
+                            
+                            # perpendicular distance from turbine to face
+                            push!(turbine_to_face_distance, abs(sum(turbine_to_first_facepoint .* boundary_normals[k][j,:])))
+                        
+                        # check if distance to first facepoint is shortest
+                        elseif sum(boundary_vector .* -turbine_to_first_facepoint) <= 0
+
+                            # distance from turbine to first facepoint
+                            push!(turbine_to_face_distance, sqrt(sum(turbine_to_first_facepoint.^2)))
+
+                        # distance to second facepoint is shortest
+                        else
+
+                            # distance from turbine to second facepoint
+                            push!(turbine_to_face_distance, sqrt(sum(turbine_to_second_facepoint.^2)))
+
+                        end
+                        
+                        # reset for next face iteration
+                        turbine_to_first_facepoint = turbine_to_second_facepoint        # (for efficiency, so we don't have to recalculate for the same vertex twice)
+
+                    end
+
+                end
+
+                # magnitude of the constraint value
+                c[i] = -ff.smooth_max(-turbine_to_face_distance, s=100.0)
+                status[i] = 1
+
+            end
+
         end
 
-        # magnitude of the constraint value
-        c[i] = -ff.smooth_max(-turbine_to_face_distance, s=100.0)
-
-        # sign of the constraint value (- is inside, + is outside)
-        if mod(intersection_counter, 2) == 1
-            c[i] = -c[i]
-        end
+        return c
 
     end
-
-    return c
 
 end
 
