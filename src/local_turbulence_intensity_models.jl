@@ -272,8 +272,10 @@ Calculate local turbulence intensity based on "On wake modeling, wind-farm gradi
 - `div_sigma::Float`: ?
 - `div_ti::Float`: ?
 """
-function GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, sorted_turbine_index, ambient_ti; div_sigma=2.5, div_ti=1.2)
-
+function GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, sorted_turbine_index, a_ti; div_sigma=2.5, div_ti=1.2)
+# function GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, sorted_turbine_index, a_ti; coeff_ct=1.0, coeff_ti=1.0)
+    ambient_ti = a_ti
+    # ambient_ti = a_ti * coeff_ti
     added_ti = 0.0
     e = 1.0*ambient_ti^0.1
     nturbines = length(turbine_x)
@@ -291,6 +293,7 @@ function GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbin
             dz = loc[3] - hub_height[turb]
             r = sqrt(dy^2 + dz^2)
             ct = turbine_ct[turb]
+            # ct = turbine_ct[turb] * coeff_ct
 
             kstar = 0.11*ct^1.07*ambient_ti^0.2
             epsilon = 0.23*ct^-0.25*ambient_ti^0.17
@@ -322,6 +325,7 @@ function GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbin
             dI = p1*p2 - delta
             #1.2 for low TI 2.0 for high TI
             added_ti += dI/div_ti
+            # added_ti += dI
         end
     end
     return ambient_ti + added_ti

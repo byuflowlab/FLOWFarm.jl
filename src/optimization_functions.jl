@@ -314,7 +314,7 @@ end
 """
     ray_trace_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_y)
 
-Calculate the distance from each turbine to the nearest point on the boundary. 
+Calculate the distance from each turbine to the nearest point on the boundary.
 Negative means the turbine is inside the boundary.
 
 # Arguments
@@ -354,13 +354,13 @@ function ray_trace_boundary(boundary_vertices,boundary_normals,turbine_x,turbine
 
             # check if y-coordinate of turbine is less than at least one y-coordinate of the two boundary vertices
             if !(boundary_vertices[j, 2] < turbine_y[i] && boundary_vertices[j+1, 2] < turbine_y[i])        # (this might not be necessary)
-                
+
                 # check if x-coordinate of turbine is between the x-coordinates of the two boundary vertices
                 if boundary_vertices[j, 1] < turbine_x[i] < boundary_vertices[j+1, 1] || boundary_vertices[j, 1] > turbine_x[i] > boundary_vertices[j+1, 1]
 
                     # check to see if the turbine is below the boundary
                     if turbine_y[i] < (boundary_vertices[j+1, 2] - boundary_vertices[j, 2]) / (boundary_vertices[j+1, 1] - boundary_vertices[j, 1]) * (turbine_x[i] - boundary_vertices[j, 1]) + boundary_vertices[j, 2]
-                    
+
                         # the vertical ray intersects the boundary
                         intersection_counter += 1
 
@@ -375,13 +375,13 @@ function ray_trace_boundary(boundary_vertices,boundary_normals,turbine_x,turbine
 
             # find perpendicular distance from turbine to current face (vector projection)
             boundary_vector = boundary_vertices[j+1, :] - boundary_vertices[j, :]
-            
+
             # check if perpendicular distance is the shortest
             if sum(boundary_vector .* -turbine_to_first_facepoint) > 0 && sum(boundary_vector .* turbine_to_second_facepoint) > 0
-                
+
                 # perpendicular distance from turbine to face
                 turbine_to_face_distance[j] = abs(sum(turbine_to_first_facepoint .* boundary_normals[j,:]))
-            
+
             # check if distance to first facepoint is shortest
             elseif sum(boundary_vector .* -turbine_to_first_facepoint) <= 0
 
@@ -395,10 +395,10 @@ function ray_trace_boundary(boundary_vertices,boundary_normals,turbine_x,turbine
                 turbine_to_face_distance[j] = sqrt(sum(turbine_to_second_facepoint.^2))
 
             end
-            
+
             # reset for next face iteration
             turbine_to_first_facepoint = turbine_to_second_facepoint        # (for efficiency, so we don't have to recalculate for the same vertex twice)
-                
+
         end
 
         # magnitude of the constraint value

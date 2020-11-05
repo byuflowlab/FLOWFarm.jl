@@ -29,7 +29,7 @@ the positive x.
 # Arguments
 - `xlocs::Array`: contains turbine east-west locations in the global reference frame
 - `ylocs::Array`: contains turbine north-south locations in the global reference frame
-- `wind_direction_met::Array`: contains wind direction in radians in meteorological standard 
+- `wind_direction_met::Array`: contains wind direction in radians in meteorological standard
     system (N=0 rad, proceeds CW, wind from direction given)
 """
 function rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
@@ -62,21 +62,21 @@ Calculates the wind speed at a given point for a given state
 
 # Arguments
 - `loc::Array{TF,3}`: Location of interest
-- `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the global 
+- `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the global
     reference frame
-- `turbine_y::Array{TF,nTurbines}`: turbine north-south locations in the global 
+- `turbine_y::Array{TF,nTurbines}`: turbine north-south locations in the global
     reference frame
 - `turbine_z::Array{TF,nTurbines}`: turbine base height in the global reference frame
-- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in 
+- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in
     radians
-- `turbine_ct::Array{TF,nTurbines}`: turbine north-south locations in the global 
+- `turbine_ct::Array{TF,nTurbines}`: turbine north-south locations in the global
     reference frame
 - `turbine_ai::Array{TF,nTurbines}`: turbine axial induction for the given state
 - `rotor_diameter::Array{TF,nTurbines}`: turbine rotor diameters
 - `hub_height::Array{TF,nTurbines}`: turbine hub heights
-- `turbine_local_ti::Array{TF,nTurbines}`: turbine local turbulence intensity for 
+- `turbine_local_ti::Array{TF,nTurbines}`: turbine local turbulence intensity for
     the given state
-- `sorted_turbine_index::Array{TF,nTurbines}`: array containing indices of wind turbines 
+- `sorted_turbine_index::Array{TF,nTurbines}`: array containing indices of wind turbines
     from most upwind to most downwind turbine in the given state
 - `wtvelocities::Array{TF,nTurbines}`: effective inflow wind speed for given state
 - `wind_resource::DiscretizedWindResource`: contains wind resource discreption (directions,
@@ -161,26 +161,26 @@ end
 Calculates the wind speed at a given point for a given state
 
 # Arguments
-- `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the global 
+- `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the global
     reference frame
-- `turbine_y::Array{TF,nTurbines}`: turbine north-south locations in the global 
+- `turbine_y::Array{TF,nTurbines}`: turbine north-south locations in the global
     reference frame
 - `turbine_z::Array{TF,nTurbines}`: turbine base height in the global reference frame
 - `rotor_diameter::Array{TF,nTurbines}`: turbine rotor diameters
 - `hub_height::Array{TF,nTurbines}`: turbine hub heights
-- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in 
+- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in
     radians
-- `sorted_turbine_index::Array{TF,nTurbines}`: turbine north-south locations in the 
+- `sorted_turbine_index::Array{TF,nTurbines}`: turbine north-south locations in the
     global reference frame
-- `ct_model::AbstractThrustCoefficientModel`: defines how the thrust coefficient changes 
+- `ct_model::AbstractThrustCoefficientModel`: defines how the thrust coefficient changes
     with state etc
-- rotor_sample_points_y::Array{TF,N}`: horizontal wind location of points to sample across 
-    the rotor swept area when calculating the effective wind speed for the wind turbine. 
-    Points are centered at the hub (0,0) and scaled by the radius (1=tip of blades) 
-- rotor_sample_points_z::Array{TF,N}`: vertical wind location of points to sample across the 
+- rotor_sample_points_y::Array{TF,N}`: horizontal wind location of points to sample across
+    the rotor swept area when calculating the effective wind speed for the wind turbine.
+    Points are centered at the hub (0,0) and scaled by the radius (1=tip of blades)
+- rotor_sample_points_z::Array{TF,N}`: vertical wind location of points to sample across the
     rotor swept area when calculating the effective wind speed for the wind turbine. Points
     are centered at the hub (0,0) and scaled by the radius (1=tip of blades)
-- `wind_resource::DiscretizedWindResource`: wind resource discreption (directions, speeds, 
+- `wind_resource::DiscretizedWindResource`: wind resource discreption (directions, speeds,
     frequencies, etc)
 - `model_set::AbstractModelSet`: defines wake-realated models to be used in analysis
 - `wind_farm_state_id::Int`: index to correct state to use from wind resource provided.
@@ -195,7 +195,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
     n_rotor_sample_points = length(rotor_sample_points_y)
 
     arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
-                            typeof(hub_height[1]),typeof(turbine_yaw[1]))
+                            typeof(hub_height[1]),typeof(turbine_yaw[1]),typeof(rotor_sample_points_y[1]),typeof(rotor_sample_points_z[1]))
     turbine_velocities = zeros(arr_type, n_turbines)
     turbine_ct = zeros(arr_type, n_turbines)
     turbine_ai = zeros(arr_type, n_turbines)
@@ -260,8 +260,8 @@ end
 # model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1)
 
 """
-calculate_flow_field(xrange, yrange, zrange, model_set::AbstractModelSet, turbine_x, 
-    turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, rotor_diameter, hub_height, 
+calculate_flow_field(xrange, yrange, zrange, model_set::AbstractModelSet, turbine_x,
+    turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, rotor_diameter, hub_height,
     turbine_local_ti, sorted_turbine_index, wtvelocities, wind_resource; wind_farm_state_id=1)
 
 Generates a flow field for a given state and cross section
@@ -271,23 +271,23 @@ Generates a flow field for a given state and cross section
 - `yrange::Range`: range defining north-west locations to sample in global reference frame
 - `zrange::Range`: range defining vertical locations to sample in global reference frame
 - `model_set::AbstractModelSet`: defines wake-realated models to be used in analysis
-- `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the global 
+- `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the global
     reference frame
-- `turbine_y::Array{TF,nTurbines}`: turbine north-south locations in the global 
+- `turbine_y::Array{TF,nTurbines}`: turbine north-south locations in the global
     reference frame
 - `turbine_z::Array{TF,nTurbines}`: turbine base height in the global reference frame
-- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in 
+- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in
     radians
 - `turbine_ct::Array{TF,nTurbines}`: thrust coefficient of each turbine for the given state
 - `turbine_ai::Array{TF,nTurbines}`: turbine axial induction for the given state
 - `rotor_diameter::Array{TF,nTurbines}`: turbine rotor diameters
 - `hub_height::Array{TF,nTurbines}`: turbine hub heights
-- `turbine_local_ti::Array{TF,nTurbines}`: turbine local turbulence intensity for 
+- `turbine_local_ti::Array{TF,nTurbines}`: turbine local turbulence intensity for
     the given state
-- `sorted_turbine_index::Array{TF,nTurbines}`: turbine north-south locations in the 
+- `sorted_turbine_index::Array{TF,nTurbines}`: turbine north-south locations in the
     global reference frame
 - `wtvelocities::Array{TF,nTurbines}`: effective inflow wind speed for given state
-- `wind_resource::DiscretizedWindResource`: wind resource discreption (directions, speeds, 
+- `wind_resource::DiscretizedWindResource`: wind resource discreption (directions, speeds,
     frequencies, etc)
 - `wind_farm_state_id::Int`: index to correct state to use from wind resource provided.
     Defaults to 1
