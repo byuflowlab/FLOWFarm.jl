@@ -8,7 +8,7 @@ read in turbine locations and related problem file names from .yaml
 # Arguments
 - `file_name::String`: path/and/name/of/location/file.yaml
 """
-function get_turb_loc_YAML(file_name)
+function get_turb_loc_YAML(file_name; returnaep=false)
     ### Retrieve turbine locations and auxiliary file names from <.yaml> file.
     ### Auxiliary (reference) files supply wind rose and turbine attributes.
 
@@ -18,6 +18,7 @@ function get_turb_loc_YAML(file_name)
 
     # Rip the (x,y) coordinates (Convert from <list> to <ndarray>)
     turb_coords = defs["position"]["items"]
+    println(turb_coords)
     nturbs = length(turb_coords)
     turbine_x = zeros(nturbs)
     turbine_y = zeros(nturbs)
@@ -35,7 +36,11 @@ function get_turb_loc_YAML(file_name)
     fname_wr = string.(values(defs["plant_energy"]["properties"]["wind_resource"]["properties"]["items"][1]))[1]
 
     # Return turbine (x,y) locations, and the filenames for the others .yamls
-    return turbine_x, turbine_y, fname_turb, fname_wr
+    if returnaep
+        return turbine_x, turbine_y, fname_turb, fname_wr, AEP
+    else
+        return turbine_x, turbine_y, fname_turb, fname_wr
+    end 
 end
 
 """
