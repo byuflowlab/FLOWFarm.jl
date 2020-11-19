@@ -50,7 +50,7 @@ struct Multizone{ATF, TF} <: AbstractWakeDeficitModel
     aU::TF
     bU::TF
 end
-Multizone() = Multizone(0.065, [-0.5 0.22 1.0], [0.5 1.0 5.5], 5.0, 1.66)
+Multizone() = Multizone([-0.5 0.22 1.0], 0.065, [0.5 1.0 5.5], 5.0, 1.66)
 
 """
     GaussOriginal(k_star)
