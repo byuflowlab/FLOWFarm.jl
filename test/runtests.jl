@@ -1219,6 +1219,47 @@ using Distributed
 
         end
 
+        @testset "Multizone Model" begin
+
+            # based on data from Gebraad et al. (2014)
+            D = 126.4
+            turbine_x = [7*D,0.0]
+            turbine_y = [0.0,0.0]
+            turbine_z = [0.0,0.0]
+            rotor_diameter = [D,D]
+            hub_height = [90,90]
+            cut_in_speed = 0.0
+            cut_out_speed = 25.0
+            rated_speed = 12.0
+            rated_power = 1.0176371581904552e6
+            turbine_yaw = [-40,-20,0,20,40]
+            
+            ai = 1.0/3.0
+            ct = 4*ai*(1-ai)
+            ambient_ti = .06
+
+            turbine_ai = [ai,ai]
+            turbine_ct = [ct,ct]
+            turbine_local_ti = [ambient_ti,ambient_ti]
+
+            me = [-.5,.22,1]
+            ke = .065
+            MU = [.5,1,5.5]
+            aU = 5
+            bU = 1.66
+
+            model = ff.Multizone(me,ke,MU,aU,BU)
+
+            locx,locy,locz = 0.0
+            deflection_y, deflection_z = 0.0
+
+            upstream_turbine_id = 2
+            downstream_turbine_id = 1
+
+            @test ff.wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model) == 0
+            
+        end
+
         @testset "Gauss Yaw Model" begin
             rtol = 0.1
             # [1] based on data from Bastankhah and Porte-Agel 2016
