@@ -137,7 +137,7 @@ Computes the wake deficit according to the original Jensen top hat wake model, f
 - `deflection_y::Float`: deflection in the y direction of downstream wake 
 - `deflection_z::Float`: deflection in the z direction of downstream wake 
 - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
-- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake
+- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
 - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
 - `rotor_diameter::Array(Float)`: vector containing rotor diameters for all turbines in farm
 - `turbine_ai::Array(Float)`: vector containing initial velocity deficits for all turbines in farm
@@ -216,7 +216,7 @@ Computes the wake deficit according to the original Jensen cosine wake model, fr
 - `deflection_y::Float`: deflection in the y direction of downstream wake 
 - `deflection_z::Float`: deflection in the z direction of downstream wake 
 - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
-- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake
+- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
 - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
 - `rotor_diameter::Array(Float)`: vector containing rotor diameters for all turbines in farm
 - `turbine_ai::Array(Float)`: vector containing initial velocity deficits for all turbines in farm
@@ -276,7 +276,7 @@ Computes the wake deficit at a given location using the original multizone "FLOR
 - `deflection_y::Float`: deflection in the y direction of downstream wake 
 - `deflection_z::Float`: deflection in the z direction of downstream wake 
 - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
-- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake
+- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
 - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
 - `rotor_diameter::Array(Float)`: vector containing rotor diameters for all turbines in farm
 - `turbine_ai::Array(Float)`: vector containing initial velocity deficits for all turbines in farm
@@ -296,84 +296,41 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     aU = model.aU
     bU = model.bU
 
-    if downstream_turbine_id == 0
-        # find delta x, y, and z. dx is the downstream distance from the turbine to
-        # the point of interest. dy and dz are the distances from the point of interest
-        # and the wake center (in y and z)
-        dx = locx-turbine_x[upstream_turbine_id]
-        dy = locy-(turbine_y[upstream_turbine_id]+deflection_y)
-        dz = locz-(turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
+    dx = locx-turbine_x[upstream_turbine_id]
+    dy = locy-(turbine_y[upstream_turbine_id]+deflection_y)
+    dz = locz-(turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
 
-        if dx < 0.
-            c = 0.0
-        else
-            del = sqrt(dy^2+dz^2) #distance from wake center to the point of interest
-
-            # calculate the diameter of the wake in each of the three zones (at the specified dx)
-            Dw = zeros(3)
-            for i = 1:3
-                Dw[i] = max(dt+2*ke*me[i]*dx,0) # equation (13) from the paper
-            end
-            Rw = Dw./2 # radius of the wake zones
-
-            # calculate the coefficient c of the appropriate wake zone:
-            if del > Rw[3]
-                c = 0.0
-            else
-                # equations (15, 16, and 17) from the paper
-                if del < Rw[1]
-                    MUi = MU[1]
-                elseif del < Rw[2]
-                    MUi = MU[2]
-                elseif del < Rw[3]
-                    mUi = MU[3]
-                end
-                mU = MUi/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
-                c = (dt/(dt+2.0*ke*mU*dx))^2
-            end
-
-        end
-
-        loss = 2.0*turbine_ai[upstream_turbine_id]*c # calculate the wake loss. Equation (14) fro mthe paper
-
-    else            # this section will calculate the wind effect on an entire turbine.
-
-        # find delta x, y, and z. dx is the downstream distance from the turbine to
-        # the point of interest. dy and dz are the distances from the point of interest
-        # and the wake center (in y and z)
-        dxt = turbine_x[downstream_turbine_id]-turbine_x[upstream_turbine_id]
-        dyt = turbine_y[downstream_turbine_id]-(turbine_y[upstream_turbine_id]+deflection_y)
-        dzt = turbine_z[downstream_turbine_id]-(turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
-
-        posz = turbine_z[downstream_turbine_id] + hub_height[downstream_turbine_id] # finds the z coordinate of the turbine hub
-
-        del = sqrt(dyt^2+dzt^2) #distance from wake center to the point of interest
+    if dx < 0.
+        c = 0.0
+    else
+        del = sqrt(dy^2+dz^2) #distance from wake center to the point of interest
 
         # calculate the diameter of the wake in each of the three zones (at the specified dx)
         Dw = zeros(3)
-        ovlp = zeros(3)
         for i = 1:3
-            Dw[i] = max(dt+2*ke*me[i]*dxt,0) # equation (13) from the paper
-            overlap = overlap_area_func(turbine_y[downstream_turbine_id], posz,
-            Dw[i], wake_center_y, wake_center_z, wake_diameter; tol=1E-6)
-            area = pi*(Dw[i]^2)/4
-            ovlp[i] = overlap/area
+            Dw[i] = max(dt+2*ke*me[i]*dx,0) # equation (13) from the paper
         end
         Rw = Dw./2 # radius of the wake zones
 
-        mU1 = MU[1]/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
-        c1 = (dt/(dt+2.0*ke*mU1*dxt))^2
-        loss1 = 2.0*turbine_ai[upstream_turbine_id]*c1*ovlp[1]
-        mU2 = MU[2]/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
-        c2 = (dt/(dt+2.0*ke*mU2*dxt))^2
-        loss2 = 2.0*turbine_ai[upstream_turbine_id]*c2*ovlp[2]
-        mU3 = MU[3]/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
-        c3 = (dt/(dt+2.0*ke*mU3*dxt))^2
-        loss3 = 2.0*turbine_ai[upstream_turbine_id]*c3*ovlp[3]
+        # calculate the coefficient c of the appropriate wake zone:
+        if del > Rw[3]
+            c = 0.0
+        else
+            # equations (15, 16, and 17) from the paper
+            if del < Rw[1]
+                MUi = MU[1]
+            elseif del < Rw[2]
+                MUi = MU[2]
+            elseif del < Rw[3]
+                mUi = MU[3]
+            end
+            mU = MUi/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
+            c = (dt/(dt+2.0*ke*mU*dx))^2
+        end
 
-        loss = sqrt(loss1^2+loss2^2+loss3^2)
     end
 
+    loss = 2.0*turbine_ai[upstream_turbine_id]*c # calculate the wake loss. Equation (14) fro mthe paper
 
     return loss
 end
@@ -393,7 +350,7 @@ Computes the wake deficit at a given location using the Gaussian wake model pres
 - `deflection_y::Float`: deflection in the y direction of downstream wake 
 - `deflection_z::Float`: deflection in the z direction of downstream wake 
 - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
-- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake
+- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
 - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
 - `rotor_diameter::Array(Float)`: vector containing rotor diameters for all turbines in farm
 - `turbine_ai::Array(Float)`: vector containing initial velocity deficits for all turbines in farm
@@ -525,7 +482,7 @@ Computes the wake deficit at a given location using the The Gaussian wake model 
 - `deflection_y::Float`: deflection in the y direction of downstream wake 
 - `deflection_z::Float`: deflection in the z direction of downstream wake 
 - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
-- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake
+- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
 - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
 - `rotor_diameter::Array(Float)`: vector containing rotor diameters for all turbines in farm
 - `turbine_ai::Array(Float)`: vector containing initial velocity deficits for all turbines in farm
@@ -577,7 +534,7 @@ The spread rate is adjusted based on local turbulence intensity as in Niayifar a
 - `deflection_y::Float`: deflection in the y direction of downstream wake 
 - `deflection_z::Float`: deflection in the z direction of downstream wake 
 - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
-- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake
+- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
 - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
 - `rotor_diameter::Array(Float)`: vector containing rotor diameters for all turbines in farm
 - `turbine_ai::Array(Float)`: vector containing initial velocity deficits for all turbines in farm
@@ -629,7 +586,7 @@ Computes the wake deficit at a given location using the Gaussian wake model pres
 - `deflection_y::Float`: deflection in the y direction of downstream wake 
 - `deflection_z::Float`: deflection in the z direction of downstream wake 
 - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
-- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake
+- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
 - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
 - `rotor_diameter::Array(Float)`: vector containing rotor diameters for all turbines in farm
 - `turbine_ai::Array(Float)`: vector containing initial velocity deficits for all turbines in farm
