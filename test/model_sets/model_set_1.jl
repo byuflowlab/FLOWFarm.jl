@@ -1,18 +1,18 @@
 import FlowFarm; const ff = FlowFarm
 
-turbine_x = [0.0]
-turbine_y = [0.0]
-turbine_z = [0.0]
-rotor_diameter = [40.0]
-hub_height = [90.0]
+turbine_x = [0.0,0.0]
+turbine_y = [0.0,0.0]
+turbine_z = [0.0,0.0]
+rotor_diameter = [40.0,40.0]
+hub_height = [90.0,90.0]
 ai = 1.0/3.0
-turbine_ai = [ai]
+turbine_ai = [ai,ai]
 ct = 0.7
-turbine_ct = [ct]
+turbine_ct = [ct,ct]
 yaw = 0.0
-turbine_yaw = [yaw]
+turbine_yaw = [yaw,yaw]
 ambient_ti = 0.1
-turbine_local_ti = [ambient_ti]
+turbine_local_ti = [ambient_ti,ambient_ti]
 
 sorted_turbine_index = [1]
 
