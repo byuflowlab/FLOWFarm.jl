@@ -15,10 +15,11 @@ for i = 1:length(turbine_x)
     plt.gcf().gca().add_artist(plt.Circle((turbine_x[i],turbine_y[i]), rotor_diameter[1]/2.0, fill=false,color="C0"))
 end
 
+# add boundary
+println(maximum(turbine_x), maximum(turbine_y))
+
 println("AEP: ", AEP)
 
 # set up and show plot
 axis("square")
-plt.xlim([0, 5000])
-plt.ylim([0, 5000])
 plt.show()
