@@ -132,7 +132,7 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
 
             # velocity difference in the wake
             deltav = wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, horizontal_deflection, vertical_deflection,
-                            upwind_turb_id, hub_height, rotor_diameter, turbine_ai,
+                            upwind_turb_id, downwind_turbine_id, hub_height, rotor_diameter, turbine_ai,
                             turbine_local_ti, turbine_ct, turbine_yaw, wakedeficitmodel)
 
             # combine deficits according to selected wake combination method
