@@ -4,7 +4,7 @@ using ForwardDiff
 
 # using CCBlade
 # using PyPlot
-using FLOWMath: linear,trapz
+using FLOWMath: linear,trapz,Akima
 # using Statistics
 using Distributed
 
