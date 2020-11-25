@@ -1,4 +1,3 @@
-using QuadGK
 """
 Convert angle from cartesian coordinate system to meterological coordinate system
 """
