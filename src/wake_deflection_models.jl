@@ -88,7 +88,9 @@ function wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine
 end
 
 function _bpa_theta_0(yaw, ct)
-
+    if ct > 1
+        ct = 1.0
+    end
     theta0 = (0.3*yaw/cos(yaw))*(1.0-sqrt(1.0-ct*cos(yaw)))
 
     return theta0

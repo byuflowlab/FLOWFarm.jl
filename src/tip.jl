@@ -1,4 +1,4 @@
-
+using QuadGK
 """
 Convert angle from cartesian coordinate system to meterological coordinate system
 """
@@ -50,7 +50,7 @@ function tip_get_effvelocity(turbid, x, y, wind_rose, uave, probability_spline, 
         dx = x[j] - x[turbid]
         dy = y[j] - y[turbid]
         dr = sqrt(dx^2+dy^2)
-        angle = 180.0*tip_cart2met(get_angle(dx, dy))/pi
+        angle = 180.0*tip_cart2met(tip_get_angle(dx, dy))/pi
         z = r0/alpha
         beta = 180.0*atan(alpha)/pi
         p=0.0

@@ -313,7 +313,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
         Rw = Dw./2 # radius of the wake zones
 
         # calculate the coefficient c of the appropriate wake zone:
-        if del > Rw[3]
+        if del >= Rw[3]
             c = 0.0
         else
             # equations (15, 16, and 17) from the paper
@@ -322,7 +322,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
             elseif del < Rw[2]
                 MUi = MU[2]
             elseif del < Rw[3]
-                mUi = MU[3]
+                MUi = MU[3]
             end
             mU = MUi/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
             c = (dt/(dt+2.0*ke*mU*dx))^2
