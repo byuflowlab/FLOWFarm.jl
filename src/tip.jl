@@ -72,14 +72,14 @@ function tip_get_effvelocity(turbid, x, y, wind_rose, uave, probability_spline, 
 end
 
 # get effective cp for a turbine in a given direction
-function tip_get_cp_spline(cpct)
-    cp_spline = Akima(cpct[:,1], cpct[:,2])
+function tip_get_cp_spline(cpdata)
+    cp_spline = Akima(cpdata[:,1], cpdata[:,2])
     return cp_spline
 end
     
 # create spline for thrust coefficient
-function tip_get_ct_spline(cpct)
-    ct_spline = Akima(cpct[:,1], cpct[:,3])
+function tip_get_ct_spline(ctdata)
+    ct_spline = Akima(ctdata[:,1], ctdata[:,2])
     return ct_spline
 end
 
@@ -124,14 +124,14 @@ function tip_get_effpower(turbid, x, y, wind_rose, uave, probability_spline, spe
 end
 
 # get annual energy production
-function tip_get_aep(x, y, wind_rose, cpct; density=1.176, r0=0.5, alpha=0.1, a=1.0/3.0)
+function tip_get_aep(x, y, wind_rose, cpdata, ctdata; density=1.176, r0=0.5, alpha=0.1, a=1.0/3.0)
     nturbines = length(x)
     uave = tip_get_ave_wind_speed(wind_rose)
     power = zeros(nturbines)
     probability_spline = tip_get_probability_spline(wind_rose)
     speed_spline = tip_get_speed_spline(wind_rose)
-    cp_spline = tip_get_cp_spline(cpct)
-    ct_spline = tip_get_ct_spline(cpct)
+    cp_spline = tip_get_cp_spline(cpdata)
+    ct_spline = tip_get_ct_spline(ctdata)
     for i = 1:nturbines
         power[i] = tip_get_effpower(i, x, y, wind_rose, uave, probability_spline, speed_spline, cp_spline, ct_spline, r0=r0)
     end
