@@ -344,23 +344,27 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
         dxt = turbine_x[downstream_turbine_id]-turbine_x[upstream_turbine_id]
         dyt = turbine_y[downstream_turbine_id]-(turbine_y[upstream_turbine_id]+deflection_y)
         dzt = turbine_z[downstream_turbine_id]-(turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
-
+    
         posz = turbine_z[downstream_turbine_id] + hub_height[downstream_turbine_id] # finds the z coordinate of the turbine hub
-
-        del = sqrt(dyt^2+dzt^2) #distance from wake center to the point of interest
-
+    
+        del = sqrt(dxt^2+dzt^2) #distance from wake center to the point of interest
+    
+        wake_center_y = (turbine_y[upstream_turbine_id]+deflection_y)
+        wake_center_z = (turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
+    
         # calculate the diameter of the wake in each of the three zones (at the specified dx)
         Dw = zeros(3)
         ovlp = zeros(3)
         for i = 1:3
             Dw[i] = max(dt+2*ke*me[i]*dxt,0) # equation (13) from the paper
             overlap = overlap_area_func(turbine_y[downstream_turbine_id], posz,
-            Dw[i], wake_center_y, wake_center_z, wake_diameter; tol=1E-6)
-            area = pi*(Dw[i]^2)/4
+            rotor_diameter[downstream_turbine_id], wake_center_y, wake_center_z, Dw[i]; tol=1E-6)
+            area = pi*(rotor_diameter[downstream_turbine_id]^2)/4
             ovlp[i] = overlap/area
         end
+    
         Rw = Dw./2 # radius of the wake zones
-
+        #ovlp[1] = 1.0
         mU1 = MU[1]/(cosd(aU+bU*turbine_yaw[upstream_turbine_id]))
         c1 = (dt/(dt+2.0*ke*mU1*dxt))^2
         loss1 = 2.0*turbine_ai[upstream_turbine_id]*c1*ovlp[1]
@@ -370,7 +374,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
         mU3 = MU[3]/(cosd(aU+bU*turbine_yaw[upstream_turbine_id]))
         c3 = (dt/(dt+2.0*ke*mU3*dxt))^2
         loss3 = 2.0*turbine_ai[upstream_turbine_id]*c3*ovlp[3]
-
+    
         loss = sqrt(loss1^2+loss2^2+loss3^2)
     end
 

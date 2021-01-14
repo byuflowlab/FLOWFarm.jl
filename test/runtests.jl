@@ -1246,7 +1246,7 @@ using Distributed
             
             u = 8
             air_density = 1.225
-            generator_efficiency = .768
+            generator_efficiency = .94
             rotor_area = .25*pi*D^2
             Fd = 0
             ai = 1.0/3.0
@@ -1266,16 +1266,17 @@ using Distributed
 
             model = ff.Multizone()#me,ke,MU,aU,bU)
 
-            locx,locy,locz = 0.0
-            deflection_y, deflection_z = 0.0
 
             upstream_turbine_id = 2
             downstream_turbine_id = 1
-
+            println(u)
             loss = ff.wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model)
+            println(loss)
             wt_velocity = u*(1-loss)
+            println(wt_velocity)
             wt_yaw = 0
-            @test ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity, wt_yaw; pp=2) == 813.18
+            println(ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity, wt_yaw; pp=2))
+            @test ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity, wt_yaw; pp=2) ≈ 813184 atol=1
         end
 
         @testset "Gauss Yaw Model" begin
