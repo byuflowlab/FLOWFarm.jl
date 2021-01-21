@@ -300,6 +300,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
         # find delta x, y, and z. dx is the downstream distance from the turbine to
         # the point of interest. dy and dz are the distances from the point of interest
         # and the wake center (in y and z)
+
         dx = locx-turbine_x[upstream_turbine_id]
         dy = locy-(turbine_y[upstream_turbine_id]+deflection_y)
         dz = locz-(turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
@@ -326,9 +327,10 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
                 elseif del < Rw[2]
                     MUi = MU[2]
                 elseif del < Rw[3]
-                    mUi = MU[3]
+                    MUi = MU[3]
                 end
-                mU = MUi/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
+
+                mU = MUi/(cosd(aU+bU*turbine_yaw[upstream_turbine_id]))
                 c = (dt/(dt+2.0*ke*mU*dx))^2
             end
 
@@ -341,16 +343,22 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
         # find delta x, y, and z. dx is the downstream distance from the turbine to
         # the point of interest. dy and dz are the distances from the point of interest
         # and the wake center (in y and z)
+        println(dt)
         dxt = turbine_x[downstream_turbine_id]-turbine_x[upstream_turbine_id]
+        println(dxt)
         dyt = turbine_y[downstream_turbine_id]-(turbine_y[upstream_turbine_id]+deflection_y)
-        dzt = turbine_z[downstream_turbine_id]-(turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
+        println(dyt)
+        dzt = (turbine_z[downstream_turbine_id]+hub_height[downstream_turbine_id])-(turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
+        println(dzt)
     
         posz = turbine_z[downstream_turbine_id] + hub_height[downstream_turbine_id] # finds the z coordinate of the turbine hub
-    
+        println(posz)
         del = sqrt(dxt^2+dzt^2) #distance from wake center to the point of interest
     
         wake_center_y = (turbine_y[upstream_turbine_id]+deflection_y)
         wake_center_z = (turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
+
+        println(wake_center_y, wake_center_z)
     
         # calculate the diameter of the wake in each of the three zones (at the specified dx)
         Dw = zeros(3)
@@ -362,18 +370,23 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
             area = pi*(rotor_diameter[downstream_turbine_id]^2)/4
             ovlp[i] = overlap/area
         end
+        println(ovlp)
     
         Rw = Dw./2 # radius of the wake zones
+        println(Rw)
         #ovlp[1] = 1.0
         mU1 = MU[1]/(cosd(aU+bU*turbine_yaw[upstream_turbine_id]))
         c1 = (dt/(dt+2.0*ke*mU1*dxt))^2
         loss1 = 2.0*turbine_ai[upstream_turbine_id]*c1*ovlp[1]
+        println(mU1, c1, loss1)
         mU2 = MU[2]/(cosd(aU+bU*turbine_yaw[upstream_turbine_id]))
         c2 = (dt/(dt+2.0*ke*mU2*dxt))^2
         loss2 = 2.0*turbine_ai[upstream_turbine_id]*c2*ovlp[2]
+        println(mU2, c2, loss2)
         mU3 = MU[3]/(cosd(aU+bU*turbine_yaw[upstream_turbine_id]))
         c3 = (dt/(dt+2.0*ke*mU3*dxt))^2
         loss3 = 2.0*turbine_ai[upstream_turbine_id]*c3*ovlp[3]
+        println(mU3, c3, loss3)
     
         loss = sqrt(loss1^2+loss2^2+loss3^2)
     end

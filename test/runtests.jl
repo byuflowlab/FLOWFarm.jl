@@ -1225,7 +1225,7 @@ using Distributed
             D = 126.4
             locx = 7D
             locy = 0
-            locz = 0
+            locz = 90
             turbine_x = [7D,0]
             turbine_y = [0,0]
             turbine_z = [0,0]
@@ -1264,7 +1264,7 @@ using Distributed
             aU = 5
             bU = 1.66
 
-            model = ff.Multizone()#me,ke,MU,aU,bU)
+            model = ff.Multizone()
 
 
             upstream_turbine_id = 2
@@ -1276,7 +1276,9 @@ using Distributed
             println(wt_velocity)
             wt_yaw = 0
             println(ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity, wt_yaw; pp=2))
+            @test ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, u, wt_yaw; pp=2) ≈ 813184 atol=1
             @test ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity, wt_yaw; pp=2) ≈ 813184 atol=1
+
         end
 
         @testset "Gauss Yaw Model" begin
