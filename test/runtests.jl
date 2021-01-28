@@ -1275,7 +1275,6 @@ using Distributed
             wt_velocity = u*(1-loss)
             println(wt_velocity)
             wt_yaw = 0
-            println(ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity, wt_yaw; pp=2))
             @test ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, u, wt_yaw; pp=2) ≈ 813184 atol=1
             @test ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity, wt_yaw; pp=2) ≈ 813184 atol=1
 
