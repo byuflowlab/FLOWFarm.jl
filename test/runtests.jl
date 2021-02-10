@@ -1221,62 +1221,18 @@ using Distributed
 
         @testset "Multizone Model" begin
 
-            # based on data from Gebraad et al. (2014)
-            D = 126.4
-            locx = 7D
-            locy = 0
-            locz = 90
-            turbine_x = [7D,0]
-            turbine_y = [0,0]
-            turbine_z = [0,0]
-            deflection_y = 0
-            deflection_z = 0
-            upstream_turbine_id = 2
-            downstream_turbine_id = 1
-            hub_height = [90,90]
-            rotor_diameter = [D,D]
-            turbine_ai = [1.0/3.0,1.0/3.0]
-            turbine_yaw = [0,0]
-            dt = rotor_diameter[upstream_turbine_id]
-            cut_in_speed = 0.0
-            cut_out_speed = 25.0
-            rated_speed = 12.0
-            rated_power = 1.0176371581904552e6
-#            turbine_yaw = [-40,-20,0,20,40]
-            
-            u = 8
-            air_density = 1.225
-            generator_efficiency = .94
-            rotor_area = .25*pi*D^2
-            Fd = 0
-            ai = 1.0/3.0
-            cp = 4*ai*(1-ai)^2
-            ambient_ti = .06
-            ct = 2*Fd/(air_density*rotor_area*u^2)
+            include("./model_sets/model_set_Multizone.jl")
 
-            turbine_ai = [ai,ai]
-            turbine_ct = [ct,ct]
-            turbine_local_ti = [ambient_ti,ambient_ti]
+            turbine_inflow_velocities = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+                    sorted_turbine_index, ct_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+                    model_set)
 
-            me = [-.5,.22,1]
-            ke = .065
-            MU = [.5,1,5.5]
-            aU = 5
-            bU = 1.66
+            turbine_powers = ff.turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, 
+                    rated_speed, rated_power, rotor_diameter, turbine_inflow_velocities, turbine_yaw, air_density, 
+                    power_models)
 
-            model = ff.Multizone()
-
-
-            upstream_turbine_id = 2
-            downstream_turbine_id = 1
-            println(u)
-            loss = ff.wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model)
-            println(loss)
-            wt_velocity = u*(1-loss)
-            println(wt_velocity)
-            wt_yaw = 0
-            @test ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, u, wt_yaw; pp=2) ≈ 813184 atol=1
-            @test ff.calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity, wt_yaw; pp=2) ≈ 813184 atol=1
+            @test turbine_powers[1] ≈ 790066 atol=0.1
+            @test turbine_powers[2] ≈ 1720536.3 atol=0.1
 
         end
 
