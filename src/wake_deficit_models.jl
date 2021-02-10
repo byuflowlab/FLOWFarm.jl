@@ -289,6 +289,7 @@ Computes the wake deficit at a given location using the original multizone "FLOR
 function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::Multizone)
 
     dt = rotor_diameter[upstream_turbine_id]
+    
     # extract model parameters
     ke = model.ke
     me = model.me
@@ -296,9 +297,11 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     aU = model.aU
     bU = model.bU
 
-    #[-0.5 0.22 1.0], 0.065, [0.5 1.0 5.5], 5.0, 1.66
+    # aU is given in degrees when it should be radians
+    aU = deg2rad(aU)
 
-    if downstream_turbine_id == 0
+    if downstream_turbine_id == 0             # Finds the velocity at that point if not looking for a turbine
+
         # find delta x, y, and z. dx is the downstream distance from the turbine to
         # the point of interest. dy and dz are the distances from the point of interest
         # and the wake center (in y and z)
@@ -332,7 +335,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
                     MUi = MU[3]
                 end
 
-                mU = MUi/(cosd(aU+bU*turbine_yaw[upstream_turbine_id]))
+                mU = MUi/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
                 c = (dt/(dt+2.0*ke*mU*dx))^2
             end
 
@@ -360,6 +363,8 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
 
     
         # calculate the diameter of the wake in each of the three zones (at the specified dx)
+        # after calculating the size of the wake the model will then find its overlap with the turbine
+
         Dw = zeros(3)
         ovlp = zeros(3)
         for i = 1:3
@@ -373,25 +378,26 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     
         Rw = Dw./2 # radius of the wake zones
 
-        mU1 = MU[1]/(cosd(aU+bU*turbine_yaw[upstream_turbine_id]))
+        # equations (15, 16, and 17) from the paper calculated for all 3 zones
+        # losses computed for each zone and the subsequently added together
+
+        mU1 = MU[1]/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
         c1 = (dt/(dt+2.0*ke*mU1*dxt))^2
         loss1 = 2.0*turbine_ai[upstream_turbine_id]*c1*ovlp[1]
 
-        mU2 = MU[2]/(cosd(aU+bU*turbine_yaw[upstream_turbine_id]))
+        mU2 = MU[2]/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
         c2 = (dt/(dt+2.0*ke*mU2*dxt))^2
         loss2 = 2.0*turbine_ai[upstream_turbine_id]*c2*ovlp[2]
 
-        mU3 = MU[3]/(cosd(aU+bU*turbine_yaw[upstream_turbine_id]))
+        mU3 = MU[3]/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
         c3 = (dt/(dt+2.0*ke*mU3*dxt))^2
         loss3 = 2.0*turbine_ai[upstream_turbine_id]*c3*ovlp[3]
 
     
-        loss = sqrt(loss1^2+loss2^2+loss3^2)
-        lossnew = loss1 + loss2 + loss3
+        loss = loss1 + loss2 + loss3
     end
 
-    #println(loss)
-    return lossnew
+    return loss
 end
 
 """

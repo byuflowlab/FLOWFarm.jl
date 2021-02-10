@@ -136,9 +136,9 @@ function wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine
     d = initial_yaw_angle*diam*(15.0 + initial_yaw_angle^2)
     e = 30.0*kd
 
+    # [2] eq. 10, 11, and 12 define deflection
     yaw_deflection = b/c - d/e
     rotation_deflection = ad + bd*(dx)
-
     y_deflection = -1*(yaw_deflection + rotation_deflection)
 
     return y_deflection
