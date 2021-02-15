@@ -18,7 +18,7 @@ function get_turb_loc_YAML(file_name; returnaep=false)
 
     # Rip the (x,y) coordinates (Convert from <list> to <ndarray>)
     turb_coords = defs["position"]["items"]
-    println(turb_coords)
+    # println(turb_coords)
     nturbs = length(turb_coords)
     turbine_x = zeros(nturbs)
     turbine_y = zeros(nturbs)

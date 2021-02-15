@@ -1,6 +1,7 @@
 """
 Convert angle from cartesian coordinate system to meterological coordinate system
 """
+
 function tip_cart2met(wind_direction_cart)
     # convert from cart. polar system (CCW, 0 rad.=E) to meteorological polar system (CW, 0 rad.=N) 
     wind_direction_met = 3.0*pi/2.0 - wind_direction_cart
@@ -30,8 +31,9 @@ function tip_get_angle(dx, dy)
 end
 
 # get probability for a given angle
-function tip_get_probability_spline(wind_rose)
-    p_spline = Akima(wind_rose[:,1], wind_rose[:,3])
+function tip_get_probability_spline(wind_rose, step)
+    pre_spline = Akima(wind_rose[:,1], wind_rose[:,3])
+    p_spline(x) = pre_spline(x)*length(wind_rose[:,1])/(2*pi/step)
     return p_spline
 end
 
@@ -42,25 +44,25 @@ function tip_get_speed_spline(wind_rose)
 end
 
 # get effective velocity for a given turbine
-function tip_get_effvelocity(turbid, x, y, wind_rose, uave, probability_spline, speed_spline, ct_spline; r0=0.5, alpha=0.1, a=1.0/3.0)
+function tip_get_effvelocity(turbid, x, y, uave, probability_spline, speed_spline, ct_spline, pstep; r0=0.5, alpha=0.1)
     nturbines = length(x)
     deficit_sum = 0.0
     for j = 1:nturbines
         dx = x[j] - x[turbid]
         dy = y[j] - y[turbid]
         dr = sqrt(dx^2+dy^2)
-        angle = 180.0*tip_cart2met(tip_get_angle(dx, dy))/pi
-        z = r0/alpha
-        beta = 180.0*atan(alpha)/pi
-        p=0.0
-        wind_speed = 0.0
-        counter = 0
-        for ang in (angle-beta*0.0):1:(angle+beta*0.0)
-            p += probability_spline(ang)
-            wind_speed += speed_spline(ang)
-            counter += 1
-        end
-        wind_speed /= counter
+        angle = tip_cart2met(tip_get_angle(dx, dy)) # radians
+        
+        wake_range = angle-atan(alpha):pstep:angle+atan(alpha)
+        p = sum(probability_spline(wake_range))
+        wind_speed = sum(speed_spline(wake_range))/length(wake_range)
+        # counter = 0
+        # for ang in (angle-beta*0.0):1:(angle+beta*0.0)
+        #     p += probability_spline(ang)
+        #     wind_speed += speed_spline(ang)
+        #     counter += 1
+        # end
+        # wind_speed /= counter
         a = tip_get_ai(wind_speed, ct_spline)
         deficit = p*2.0*a*(r0/(r0+alpha*dr))^2
         
@@ -103,11 +105,10 @@ function tip_get_ave_wind_speed(wind_rose)
 end
 
 # get average power for a given turbine
-function tip_get_effpower(turbid, x, y, wind_rose, uave, probability_spline, speed_spline, cp_spline, ct_spline;prated=5E6, u_cut_in=3.0, u_cut_out=25.0, density=1.225, r0=0.5, alpha=0.1, a=1.0/3.0)
+function tip_get_effpower(turbid, x, y, uave, probability_spline, speed_spline, cp_spline, ct_spline, pstep; prated=5E6, u_cut_in=3.0, u_cut_out=25.0, density=1.225, r0=0.5, alpha=0.1)
     area = pi*r0^2
-    ueff = tip_get_effvelocity(turbid, x, y, wind_rose, uave, probability_spline, speed_spline, ct_spline, r0=r0)
+    ueff = tip_get_effvelocity(turbid, x, y, uave, probability_spline, speed_spline, ct_spline, pstep, r0=r0, alpha=alpha)
     peff = 0.0
-    
     if ueff < u_cut_in
         return peff
     elseif ueff > u_cut_out
@@ -124,17 +125,17 @@ function tip_get_effpower(turbid, x, y, wind_rose, uave, probability_spline, spe
 end
 
 # get annual energy production
-function tip_get_aep(x, y, wind_rose, cpdata, ctdata; density=1.176, r0=0.5, alpha=0.1, a=1.0/3.0)
+function tip_get_aep(x, y, wind_rose, cpdata, ctdata; pstep=0.01, prated=5E6, u_cut_in=3.0, u_cut_out=25.0, density=1.225, r0=0.5, alpha=0.1)
     nturbines = length(x)
     uave = tip_get_ave_wind_speed(wind_rose)
     power = zeros(nturbines)
-    probability_spline = tip_get_probability_spline(wind_rose)
+    probability_spline = tip_get_probability_spline(wind_rose,pstep)
     speed_spline = tip_get_speed_spline(wind_rose)
     cp_spline = tip_get_cp_spline(cpdata)
     ct_spline = tip_get_ct_spline(ctdata)
     for i = 1:nturbines
-        power[i] = tip_get_effpower(i, x, y, wind_rose, uave, probability_spline, speed_spline, cp_spline, ct_spline, r0=r0)
+        power[i] = tip_get_effpower(i, x, y, uave, probability_spline, speed_spline, cp_spline, ct_spline, pstep, prated=prated, u_cut_in=u_cut_in, u_cut_out=u_cut_out, density=density, r0=r0, alpha=alpha)
     end
-    aep = (365.0)*(24.0)*sum(power)
+    aep = (365.25)*(24.0)*sum(power)
     return aep
 end
