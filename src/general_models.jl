@@ -101,6 +101,9 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
     wind_shear_model = wind_resource.wind_shear_model
     shear_exponent = wind_shear_model.shear_exponent
 
+    # set ground height 
+    ground_height = turbine_z[1]    # TODO: allow topology to be given
+
     # get number of turbines
     nturbines = length(turbine_x)
 
@@ -116,13 +119,14 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
         # get index of upstream turbine
         upwind_turb_id = Int(sorted_turbine_index[u])
 
+        # skip this loop if it would include a turbine's impact on itself)
+        if upwind_turb_id==downwind_turbine_id; continue; end
+
         # downstream distance between upstream turbine and point
         x = locx - turbine_x[upwind_turb_id]
 
         if x > -eps*rotor_diameter[upwind_turb_id]
-            # skip this loop if it would include a turbine's impact on itself)
-            if upwind_turb_id==downwind_turbine_id; continue; end
-
+            
             # check turbine relative locations and use a spline to smooth the deficit jump
             # at the rotor hub location
             if x < 0.0
@@ -169,13 +173,14 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
             turb_inflow = wtvelocities[upwind_turb_id]
             deficit_sum = wake_combination_model(deltav, wind_speed, wtvelocities[upwind_turb_id], deficit_sum, wakecombinationmodel)
         end
-        # find velocity at point without shear
-        point_velocity_without_shear = wind_speed - deficit_sum
-
-        # adjust sample point velocity for shear
-        point_velocity_with_shear = adjust_for_wind_shear(locz, point_velocity_without_shear, reference_height, turbine_z[upwind_turb_id], wind_shear_model)
-
     end
+
+    # find velocity at point without shear
+    point_velocity_without_shear = wind_speed - deficit_sum
+
+    # adjust sample point velocity for shear
+    point_velocity_with_shear = adjust_for_wind_shear(locz, point_velocity_without_shear, reference_height, ground_height, wind_shear_model)
+
 
     return point_velocity_with_shear
 
