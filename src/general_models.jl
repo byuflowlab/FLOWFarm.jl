@@ -101,6 +101,9 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
     wind_shear_model = wind_resource.wind_shear_model
     shear_exponent = wind_shear_model.shear_exponent
 
+    # set ground height 
+    ground_height = turbine_z[1]    # TODO: allow topology to be given
+
     # get number of turbines
     nturbines = length(turbine_x)
 
@@ -140,14 +143,14 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
             deficit_sum = wake_combination_model(deltav, wind_speed, wtvelocities[upwind_turb_id], deficit_sum, wakecombinationmodel)
             # println("horizontal_deflection: ", horizontal_deflection)
         end
-
-        # find velocity at point without shear
-        point_velocity_without_shear = wind_speed - deficit_sum
-
-        # adjust sample point velocity for shear
-        point_velocity_with_shear = adjust_for_wind_shear(locz, point_velocity_without_shear, reference_height, turbine_z[upwind_turb_id], wind_shear_model)
-
     end
+
+    # find velocity at point without shear
+    point_velocity_without_shear = wind_speed - deficit_sum
+
+    # adjust sample point velocity for shear
+    point_velocity_with_shear = adjust_for_wind_shear(locz, point_velocity_without_shear, reference_height, ground_height, wind_shear_model)
+
 
     return point_velocity_with_shear
 
