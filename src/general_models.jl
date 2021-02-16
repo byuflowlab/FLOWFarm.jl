@@ -119,13 +119,13 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
         # downstream distance between upstream turbine and point
         x = locx - turbine_x[upwind_turb_id]
 
-        # skip this loop if it would include a turbine's impact on itself)
-        if upwind_turb_id==downwind_turbine_id; continue; end
-
         if x > -eps*rotor_diameter[upwind_turb_id]
+            # skip this loop if it would include a turbine's impact on itself)
+            if upwind_turb_id==downwind_turbine_id; continue; end
+
             # check turbine relative locations and use a spline to smooth the deficit jump
             # at the rotor hub location
-            if x < eps*rotor_diameter[upwind_turb_id]
+            if x < 0.0
                 
                 # set horizontal and vertical deflection of upstream "wake"
                 # calculate wake deflection of the current wake at epsilon
@@ -150,7 +150,7 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
                 # calculate deltav using a hermite spline across the rotor hub region
                 deltav = hermite_spline(locx, turbine_x[upwind_turb_id]-eps*rotor_diameter[upwind_turb_id], turbine_x[upwind_turb_id]+eps*rotor_diameter[upwind_turb_id], deltav_upstream, deltav_deriv_up_stream, deltav_downstream, deltav_deriv_down_stream)
 
-            elseif x > eps*rotor_diameter[upwind_turb_id]
+            else
 
                 # calculate wake deflection of the current wake at the point of interest
                 horizontal_deflection = wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct,
