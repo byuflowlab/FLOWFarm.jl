@@ -89,7 +89,7 @@ Calculates the wind speed at a given point for a given state
 function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
                     wind_resource, model_set::AbstractModelSet;
-                    wind_farm_state_id=1, downwind_turbine_id=0)
+                    wind_farm_state_id=1, downwind_turbine_id=0, eps=1E-6)
 
     wakedeficitmodel = model_set.wake_deficit_model
     wakedeflectionmodel = model_set.wake_deflection_model
@@ -119,28 +119,56 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
         # downstream distance between upstream turbine and point
         x = locx - turbine_x[upwind_turb_id]
 
-        # check turbine relative locations
-        if x > 0.0
-            # skip this loop if it would include a turbine's impact on itself)
-            if upwind_turb_id==downwind_turbine_id; continue; end
+        # skip this loop if it would include a turbine's impact on itself)
+        if upwind_turb_id==downwind_turbine_id; continue; end
 
-            # calculate wake deflection of the current wake at the point of interest
-            horizontal_deflection = wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct,
-                            upwind_turb_id, rotor_diameter, turbine_local_ti, wakedeflectionmodel)
+        if x > -eps*rotor_diameter[upwind_turb_id]
+            # check turbine relative locations and use a spline to smooth the deficit jump
+            # at the rotor hub location
+            if x < eps*rotor_diameter[upwind_turb_id]
+                
+                # set horizontal and vertical deflection of upstream "wake"
+                # calculate wake deflection of the current wake at epsilon
+                horizontal_deflection = wake_deflection_model(turbine_x[upwind_turb_id] + eps*rotor_diameter[upwind_turb_id], locy, locz, turbine_x, turbine_yaw, turbine_ct,
+                                upwind_turb_id, rotor_diameter, turbine_local_ti, wakedeflectionmodel)
+                vertical_deflection = 0.0
 
-            vertical_deflection = 0.0
+                # get deficit at downstream end of spline
+                deltav_downstream = wake_deficit_model(turbine_x[upwind_turb_id] + eps*rotor_diameter[upwind_turb_id], locy, locz, turbine_x, turbine_y, turbine_z, horizontal_deflection, vertical_deflection,
+                                            upwind_turb_id, downwind_turbine_id, hub_height, rotor_diameter, turbine_ai,
+                                            turbine_local_ti, turbine_ct, turbine_yaw, wakedeficitmodel)
 
-            # velocity difference in the wake
-            deltav = wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, horizontal_deflection, vertical_deflection,
-                            upwind_turb_id, downwind_turbine_id, hub_height, rotor_diameter, turbine_ai,
-                            turbine_local_ti, turbine_ct, turbine_yaw, wakedeficitmodel)
+                # set deficit derivative at downstream end of spline
+                deltav_deriv_down_stream = 0.0
+
+                # set deficit at upstream end of spline 
+                deltav_upstream = 0.0
+
+                # set deficit derivative at upstream end of spline
+                deltav_deriv_up_stream = 0.0
+
+                # calculate deltav using a hermite spline across the rotor hub region
+                deltav = hermite_spline(locx, turbine_x[upwind_turb_id]-eps*rotor_diameter[upwind_turb_id], turbine_x[upwind_turb_id]+eps*rotor_diameter[upwind_turb_id], deltav_upstream, deltav_deriv_up_stream, deltav_downstream, deltav_deriv_down_stream)
+
+            elseif x > eps*rotor_diameter[upwind_turb_id]
+
+                # calculate wake deflection of the current wake at the point of interest
+                horizontal_deflection = wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct,
+                                upwind_turb_id, rotor_diameter, turbine_local_ti, wakedeflectionmodel)
+
+                vertical_deflection = 0.0
+
+                # velocity difference in the wake
+                deltav = wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, horizontal_deflection, vertical_deflection,
+                                upwind_turb_id, downwind_turbine_id, hub_height, rotor_diameter, turbine_ai,
+                                turbine_local_ti, turbine_ct, turbine_yaw, wakedeficitmodel)
+                # println("horizontal_deflection: ", horizontal_deflection)
+            end
 
             # combine deficits according to selected wake combination method
             turb_inflow = wtvelocities[upwind_turb_id]
             deficit_sum = wake_combination_model(deltav, wind_speed, wtvelocities[upwind_turb_id], deficit_sum, wakecombinationmodel)
-            # println("horizontal_deflection: ", horizontal_deflection)
         end
-
         # find velocity at point without shear
         point_velocity_without_shear = wind_speed - deficit_sum
 

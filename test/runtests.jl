@@ -1675,7 +1675,7 @@ using Distributed
             locz = hub_height[1]
             @test ff.point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
             rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
-            windresource, model_set, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity  rtol=rtol
+            windresource, model_set, wind_farm_state_id=1, downwind_turbine_id=0, eps=0.0) ≈ expected_velocity  rtol=rtol
         end
 
         # @testset "Turbine Inflow Velocities one direction" begin
