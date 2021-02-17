@@ -355,42 +355,48 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     
         posz = turbine_z[downstream_turbine_id] + hub_height[downstream_turbine_id] # finds the z coordinate of the turbine hub
 
+        if dxt < 0.
+            c1,c2,c3 = 0,0,0
+        else
+            del = sqrt(dxt^2+dzt^2) #distance from wake center to the point of interest
+        
+            wake_center_y = (turbine_y[upstream_turbine_id]+deflection_y)
+            wake_center_z = (turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
 
-        del = sqrt(dxt^2+dzt^2) #distance from wake center to the point of interest
-    
-        wake_center_y = (turbine_y[upstream_turbine_id]+deflection_y)
-        wake_center_z = (turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
+        
+            # calculate the diameter of the wake in each of the three zones (at the specified dx)
+            # after calculating the size of the wake the model will then find its overlap with the turbine
 
-    
-        # calculate the diameter of the wake in each of the three zones (at the specified dx)
-        # after calculating the size of the wake the model will then find its overlap with the turbine
+            Dw = zeros(3)
+            ovlp = zeros(3)
+            for i = 1:3
+                Dw[i] = max(dt+2*ke*me[i]*dxt,0) # equation (13) from the paper
+                overlap = overlap_area_func(turbine_y[downstream_turbine_id], posz,
+                rotor_diameter[downstream_turbine_id], wake_center_y, wake_center_z, Dw[i]; tol=1E-6)
+                area = pi*(rotor_diameter[downstream_turbine_id]^2)/4
+                ovlp[i] = overlap/area
+            end
 
-        Dw = zeros(3)
-        ovlp = zeros(3)
-        for i = 1:3
-            Dw[i] = max(dt+2*ke*me[i]*dxt,0) # equation (13) from the paper
-            overlap = overlap_area_func(turbine_y[downstream_turbine_id], posz,
-            rotor_diameter[downstream_turbine_id], wake_center_y, wake_center_z, Dw[i]; tol=1E-6)
-            area = pi*(rotor_diameter[downstream_turbine_id]^2)/4
-            ovlp[i] = overlap/area
+        
+            Rw = Dw./2 # radius of the wake zones
+
+            # equations (15, 16, and 17) from the paper calculated for all 3 zones
+            # losses computed for each zone and the subsequently added together
+
+            mU1 = MU[1]/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
+            c1 = (dt/(dt+2.0*ke*mU1*dxt))^2
+
+            mU2 = MU[2]/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
+            c2 = (dt/(dt+2.0*ke*mU2*dxt))^2
+
+            mU3 = MU[3]/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
+            c3 = (dt/(dt+2.0*ke*mU3*dxt))^2
+
         end
 
-    
-        Rw = Dw./2 # radius of the wake zones
-
-        # equations (15, 16, and 17) from the paper calculated for all 3 zones
-        # losses computed for each zone and the subsequently added together
-
-        mU1 = MU[1]/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
-        c1 = (dt/(dt+2.0*ke*mU1*dxt))^2
+        # losses calculated for all 3 zones with equation [14] from the paper
         loss1 = 2.0*turbine_ai[upstream_turbine_id]*c1*ovlp[1]
-
-        mU2 = MU[2]/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
-        c2 = (dt/(dt+2.0*ke*mU2*dxt))^2
         loss2 = 2.0*turbine_ai[upstream_turbine_id]*c2*ovlp[2]
-
-        mU3 = MU[3]/(cos(aU+bU*turbine_yaw[upstream_turbine_id]))
-        c3 = (dt/(dt+2.0*ke*mU3*dxt))^2
         loss3 = 2.0*turbine_ai[upstream_turbine_id]*c3*ovlp[3]
 
     
