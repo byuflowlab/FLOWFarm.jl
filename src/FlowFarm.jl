@@ -4,7 +4,7 @@ using ForwardDiff
 
 # using CCBlade
 # using PyPlot
-using FLOWMath: linear,trapz
+using FLOWMath: linear,trapz,Akima
 # using Statistics
 using Distributed
 
@@ -24,4 +24,5 @@ include("power_models.jl")
 include("user_functions.jl")
 include("optimization_functions.jl")
 include("fatigue_model.jl")
+include("tip.jl")
 end # module
