@@ -23,10 +23,10 @@ pkg> add FlowFarm.jl
 
 **Documentation:**
 
-* Tutorials
-* How-to Guides
-* Explanation
-* Reference
+* Tutorials [Here](https://www.google.com)
+* How-to Guides [Here](https://www.google.com)
+* Explanation [Here](https://www.google.com)
+* Reference [Here](https://www.google.com)
 
 ```@autodocs
 Modules = [FlowFarm]
