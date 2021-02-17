@@ -1,6 +1,6 @@
 @everywhere import FlowFarm; const ff = FlowFarm
 
-# based on IEA case study 3
+# based on IEA case study 4
 
 # set initial turbine x and y locations
 layout_file_name = "./inputfiles/iea37-ex-opt4.yaml"

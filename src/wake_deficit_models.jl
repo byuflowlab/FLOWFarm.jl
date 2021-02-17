@@ -352,7 +352,6 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
         dyt = turbine_y[downstream_turbine_id]-(turbine_y[upstream_turbine_id]+deflection_y)
         dzt = (turbine_z[downstream_turbine_id]+hub_height[downstream_turbine_id])-(turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
 
-    
         posz = turbine_z[downstream_turbine_id] + hub_height[downstream_turbine_id] # finds the z coordinate of the turbine hub
 
         if dxt < 0.
@@ -363,7 +362,6 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
             wake_center_y = (turbine_y[upstream_turbine_id]+deflection_y)
             wake_center_z = (turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
 
-        
             # calculate the diameter of the wake in each of the three zones (at the specified dx)
             # after calculating the size of the wake the model will then find its overlap with the turbine
 
@@ -376,8 +374,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
                 area = pi*(rotor_diameter[downstream_turbine_id]^2)/4
                 ovlp[i] = overlap/area
             end
-
-        
+ 
             Rw = Dw./2 # radius of the wake zones
 
             # equations (15, 16, and 17) from the paper calculated for all 3 zones
@@ -399,7 +396,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
         loss2 = 2.0*turbine_ai[upstream_turbine_id]*c2*ovlp[2]
         loss3 = 2.0*turbine_ai[upstream_turbine_id]*c3*ovlp[3]
 
-    
+        # losses of 3 zones are summed to get total loss
         loss = loss1 + loss2 + loss3
     end
 
