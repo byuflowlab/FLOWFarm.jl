@@ -31,7 +31,7 @@ pkg> add FlowFarm.jl
 ```@autodocs
 Modules = [FlowFarm]
 ```
-**Citing**
+**Citing:**
 1. Jensen
 2. Katic
 3. Gebraad
