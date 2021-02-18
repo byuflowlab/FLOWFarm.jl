@@ -32,7 +32,7 @@ pkg> add FlowFarm.jl
 Modules = [FlowFarm]
 ```
 **Citing:**
-1. Jensen
-2. Katic
-3. Gebraad
-4. Jiminez
+1. N.O. Jensen "A Note on Wind Generator Interaction" *Roskilde: Risø National Laboratory* (1983)
+2. I. Katic, k. Hølstrup, N.O. Jensen. "A simple model for cluster efficiency"* European Wind Energy Association Conference and exhibition* (1986) 
+3. Gebraad et al. "Wind plant power optimization through yaw control using a parametric model for wake effects—a CFD simulation study" (2014) 
+4. Jimenez et al. "Application of a LES technique to characterize the wake deflection of a wind turbine in yaw" *Wind Energy* (2010)
