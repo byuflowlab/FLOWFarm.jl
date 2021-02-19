@@ -23,7 +23,7 @@ pkg> add FlowFarm.jl
 
 **Documentation:**
 
-* Tutorials [Here](https://github.com/ericlee215/FlowFarm.jl/blob/master/docs/src/Tutorial.md)
+* Tutorials [Here](Tutorial.md)
 * How-to Guides [Here](https://github.com/ericlee215/FlowFarm.jl/blob/master/docs/src/How_to.md)
 * Explanation [Here](https://github.com/ericlee215/FlowFarm.jl/blob/master/docs/src/Explanation.md)
 * Reference [Here](https://github.com/ericlee215/FlowFarm.jl/blob/master/docs/src/Reference.md)
