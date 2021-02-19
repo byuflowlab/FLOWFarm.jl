@@ -24,9 +24,9 @@ pkg> add FlowFarm.jl
 **Documentation:**
 
 * Tutorials [Here](Tutorial.md)
-* How-to Guides [Here](https://github.com/ericlee215/FlowFarm.jl/blob/master/docs/src/How_to.md)
-* Explanation [Here](https://github.com/ericlee215/FlowFarm.jl/blob/master/docs/src/Explanation.md)
-* Reference [Here](https://github.com/ericlee215/FlowFarm.jl/blob/master/docs/src/Reference.md)
+* How-to Guides [Here](How_to.md)
+* Explanation [Here](Explanation.md)
+* Reference [Here](Reference.md)
 
 ```@autodocs
 Modules = [FlowFarm]
