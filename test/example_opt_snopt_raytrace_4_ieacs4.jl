@@ -123,6 +123,7 @@ function wind_farm_opt(x, params)
     # calculate the objective function and jacobian (negative sign in order to maximize AEP)
     AEP = -aep_wrapper(x)[1]
     dAEP_dx = -ForwardDiff.jacobian(aep_wrapper,x)
+    
 
     it[1] += 1
     params.funcalls_AEP[it[1]] = it[1]

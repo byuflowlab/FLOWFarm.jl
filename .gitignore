@@ -7,3 +7,11 @@
 Untitled.ipynb
 *.out
 *.png
+/test/cs4_functionvalue_at_iteration_log.csv
+/test/cs4_functionvalue_log.csv
+/test/cs4_xopt.csv
+/test/fort.*
+/test/ipoptresults_iteration_details
+/test/ipoptresults_summary.txt
+/test/snoptresults_summary.txt
+.vscode/

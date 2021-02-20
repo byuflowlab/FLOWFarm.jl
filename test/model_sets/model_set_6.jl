@@ -55,7 +55,7 @@ ctdata = readdlm("inputfiles/predicted_ct_vestas_v80_niayifar2016.txt",  ',', sk
 ctvelpoints = ctdata[:,1]
 ctpoints = ctdata[:,2]
 
-# initialize thurst model
+# initialize thrust model
 ct_model = ff.ThrustModelCtPoints(ctvelpoints, ctpoints)
 ct_models = Vector{typeof(ct_model)}(undef, nturbines)
 for i = 1:nturbines

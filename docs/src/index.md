@@ -1,13 +1,17 @@
 # FlowFarm.jl
 
+
 **Summary:** Flow Farm is a tool that enables the user to perform wind farm optimization.
 
 **Authors:** Jared Thomas, Andrew P.J. Stanley
 
 **Features:**
 
+
 * AEP
 * Wind Farm Layouts
+
+
 
 **Tools:**
 
@@ -15,11 +19,15 @@
 * Wake Deflection Models
 * Power Models
 
+
+
 **Installation:**
+
 
 ```@autodocs
 pkg> add FlowFarm.jl
 ```
+
 
 **Documentation:**
 
@@ -27,6 +35,7 @@ pkg> add FlowFarm.jl
 * Help with using specific functions found in the [How-to guide](How_to.md).
 * Theory and Methodology surrounding Flow Farm in the [theory](Explanation.md) section.
 * Doc Strings and information on the code structure is contatained [Here](Reference.md).
+
 
 ```@autodocs
 Modules = [FlowFarm]
