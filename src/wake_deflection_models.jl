@@ -53,6 +53,23 @@ end
 JiminezYawDeflection() = JiminezYawDeflection(0.1)
 
 """
+    MultizoneDeflection(horizontal_spread_rate)
+
+Container for parameters related to the Jiminez deflection model
+
+# Arguments
+- `horizontal_spread_rate::Float`: parameter controlling the wake spreading rate and deficit decay. Default value is 0.1
+- `ad::Float`:Helps define the horizontal deflection of the wake at 0 deg yaw
+- `bd::Float`:Helps define the horizontal deflection of the wake due to downwind distance at 0 deg yaw
+"""
+struct MultizoneDeflection{TF} <: AbstractWakeDeflectionModel
+    horizontal_spread_rate::TF
+    ad::TF
+    bd::TF
+end
+MultizoneDeflection() = MultizoneDeflection(0.15, -4.5, -0.01)
+
+"""
     wake_deflection_model(locx, locy, locz, turbine_id, turbine_definition::TurbineDefinition, model::JiminezYawDeflection, windfarmstate::SingleWindFarmState)
 
     Calculates the horizontal deflection of the wind turbine wake
@@ -87,8 +104,49 @@ function wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine
 
 end
 
-function _bpa_theta_0(yaw, ct)
+"""
+    wake_deflection_model(locx, locy, locz, turbine_id, turbine_definition::TurbineDefinition, model::MultizoneDeflection, windfarmstate::SingleWindFarmState)
 
+    Calculates the horizontal deflection of the wind turbine wake accounting for both yaw and rotational deflection
+
+    Based on:
+    [1] Jiminez 2010 "Wake defl ection of a wind turbine in yaw"
+    [2] Gebraad 2014 "Wind plant optimization by yaw control using a parametric wake model"
+    this version ignores the corrections made to the yaw model for rotor rotation as described in [2] and
+    [3] Thomas 2017 "Improving the FLORIS wind plant model for compatibility with gradient-based optimization"
+"""
+
+function wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::MultizoneDeflection)
+
+    dx = locx-turbine_x[turbine_id]
+    yaw = -turbine_yaw[turbine_id] # Jiminez used opposite rotation convention, hence (-) sign
+    ct = turbine_ct[turbine_id]
+    diam = rotor_diameter[turbine_id]
+
+    kd = model.horizontal_spread_rate
+    ad = model.ad
+    bd = model.bd
+
+    initial_yaw_angle = 0.5*((cos(yaw))^2)*sin(yaw)*ct  # [1] eq. 20, [2] eq. 8
+
+    # [2] eq. 10
+    a = 2.0*kd*dx/diam + 1.0
+    b = initial_yaw_angle*(15.0*a^4+initial_yaw_angle^2)
+    c = (30.0*kd/diam)*a^5
+    d = initial_yaw_angle*diam*(15.0 + initial_yaw_angle^2)
+    e = 30.0*kd
+
+    # [2] eq. 10, 11, and 12 define deflection
+    yaw_deflection = b/c - d/e
+    rotation_deflection = ad + bd*(dx)
+    y_deflection = -1*(yaw_deflection + rotation_deflection)
+
+    return y_deflection
+
+end
+
+function _bpa_theta_0(yaw, ct)
+    
     theta0 = (0.3*yaw/cos(yaw))*(1.0-sqrt(1.0-ct*cos(yaw)))
 
     return theta0

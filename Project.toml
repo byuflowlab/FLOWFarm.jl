@@ -4,7 +4,6 @@ authors = ["PJ Stanley <stanley_andrewpj@yahoo.com>"]
 version = "0.1.0"
 
 [deps]
-CCBlade = "e1828068-15df-11e9-03e4-ef195ea46fa4"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 FLOWMath = "6cb5d3fb-0fe8-4cc2-bd89-9fe0b19a99d3"
@@ -12,6 +11,7 @@ ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 Geodesy = "0ef565a4-170c-5f04-8de2-149903a85f3d"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
+XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
