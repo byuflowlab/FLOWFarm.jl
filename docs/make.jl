@@ -5,6 +5,10 @@ makedocs(;
     format=Documenter.HTML(),
     pages=[
         "Home" => "index.md",
+        "Tutorial" => "Tutorial.md",
+        "How-To" => "How_to.md",
+        "Explanation" => "Explanation.md",
+        "Reference" => "Reference.md"
     ],
     repo="https://github.com/byuflowlab/FlowFarm.jl/blob/{commit}{path}#L{line}",
     sitename="FlowFarm.jl",
