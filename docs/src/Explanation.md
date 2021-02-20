@@ -14,4 +14,16 @@ This section will explain the fundamental principles behind the wind models used
 ### Gauss
 
 ## Wake Combination Models
+### Katic
+### Whatever Else there is 
 
+## Local Turbulence Intensity
+
+## Power Models
+
+## AEP
+
+## Other Functions
+### Overlap 
+
+## Optimization
