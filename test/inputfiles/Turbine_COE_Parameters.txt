@@ -1,0 +1,5 @@
+LCOE 
+Turbine, FCR, ICC, AEP, LLC, OandM, LRC
+NREL_5MW, num, num, num, num, num, num
+Vestas_V80, num, num, num, num, num, num
+Siemens_swp_3.6, num, num, num, num, num, num
