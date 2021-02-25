@@ -2,6 +2,8 @@ name: Run tests
 
 on: [push, pull_request]
 
+uses: julia-actions/setup-julia@v1.6.0
+
 jobs:
   test:
     runs-on: ${{ matrix.os }}
