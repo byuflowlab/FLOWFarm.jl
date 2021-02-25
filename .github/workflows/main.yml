@@ -1,2 +1,0 @@
-name: Setup Julia environment
-uses: julia-actions/setup-julia@v1.6.0
