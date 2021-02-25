@@ -1,4 +1,4 @@
-![](https://github.com/byuflowlab/FlowFarm.jl/workflows/Run%20ci/badge.svg)
+![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/jaredthomas68/85c89303da1343dbbcce75b746ee30ab/raw/test.json)
 
 # FlowFarm.jl
 Wind farm optimization tools based in Julia. 
