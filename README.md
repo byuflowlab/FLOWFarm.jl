@@ -1,3 +1,5 @@
+![](https://github.com/byuflowlab/FlowFarm.jl/workflows/Run%20ci/badge.svg)
+
 # FlowFarm.jl
 Wind farm optimization tools based in Julia. 
 
