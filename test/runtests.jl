@@ -1219,6 +1219,23 @@ using Distributed
 
         end
 
+        @testset "Multizone Model" begin
+
+            include("./model_sets/model_set_Multizone.jl")
+
+            turbine_inflow_velocities = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+                    sorted_turbine_index, ct_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+                    model_set)
+
+            turbine_powers = ff.turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, 
+                    rated_speed, rated_power, rotor_diameter, turbine_inflow_velocities, turbine_yaw, air_density, 
+                    power_models)
+
+            @test turbine_powers[1] ≈ 790066 atol=0.1
+            @test turbine_powers[2] ≈ 1720536.3 atol=0.1
+
+        end
+
         @testset "Gauss Yaw Model" begin
             rtol = 0.1
             # [1] based on data from Bastankhah and Porte-Agel 2016
