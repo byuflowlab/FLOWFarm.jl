@@ -1,4 +1,4 @@
-![Tests](https://github.com/byuflowlab/FlowFarm/actions/workflows/test.yml/badge.svg)
+![Tests](https://github.com/byuflowlab/FlowFarm.jl/actions/workflows/test.yml/badge.svg)
 
 # FlowFarm.jl
 Wind farm optimization tools based in Julia. 
