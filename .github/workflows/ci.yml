@@ -44,6 +44,16 @@ jobs:
       - uses: codecov/codecov-action@v1
         with:
           file: lcov.info
+      - name: Create Test Badge
+        uses: schneegans/dynamic-badges-action@v1.0.0
+        with:
+          auth: ${{ secrets.FLOWFARMTESTSECRET}}
+          gistID: <85c89303da1343dbbcce75b746ee30ab>
+          filename: test.json
+          label: Build
+          message: Passing
+          color: green
+        
   docs:
     name: Documentation
     runs-on: ubuntu-latest
