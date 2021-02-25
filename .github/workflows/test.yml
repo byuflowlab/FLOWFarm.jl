@@ -14,7 +14,7 @@ jobs:
       matrix:
         julia-version: ['1.4']
         julia-arch: [x64]
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        os: [ubuntu-latest, macOS-latest]
 
     steps:
       - uses: actions/checkout@v1.0.0
@@ -22,3 +22,12 @@ jobs:
         with:
           version: ${{ matrix.julia-version }}
       - uses: julia-actions/julia-runtest@master
+      - name: Create Test Badge
+        uses: schneegans/dynamic-badges-action@v1.0.0
+        with:
+          auth: ${{ secrets.FLOWFARMTESTSECRET}}
+          gistID: <85c89303da1343dbbcce75b746ee30ab>
+          filename: test.json
+          label: Test
+          message: Message
+          color: green
