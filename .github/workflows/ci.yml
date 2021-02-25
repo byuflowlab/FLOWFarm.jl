@@ -50,6 +50,6 @@ jobs:
           auth: ${{ secrets.FLOWFARMTESTSECRET}}
           gistID: <85c89303da1343dbbcce75b746ee30ab>
           filename: test.json
-          label: Build
-          message: Passing
+          label: Test
+          message: Message
           color: green
