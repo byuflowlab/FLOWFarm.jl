@@ -98,12 +98,15 @@ function Levelized_Cost_Of_Energy(nturbines, rotor_diameter, hub_height, PlantKW
         swept_area = pi*(rotor_diameter[i]/2)^2
         Mass += .2694*hub_height[i]*swept_area + 1779.3
     end
+    # Values taken from Table 3 in CSM (831 is TCC - Tower in table)
     TCC = 831 + 3.08*Mass/PlantKW
     BOS = 364
     FC = 155
+
+    # Taken from 2016 Cost of Wind Energy Review
     FCR = .079
 
-    # Uses parameters in COE function
+    # Uses parameters in COE function from eq 1 in 2016 Cost of Wind Energy Review
     LCOE = ((TCC+BOS+FC)*FCR)/(AEP/1000/PlantKW)
 
     return LCOE
