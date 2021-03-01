@@ -147,7 +147,8 @@ x0 = [copy(turbine_x);copy(turbine_y)]
 xinit = deepcopy(x0)
 println(size(x0))
 # report initial objective value
-println("starting objective value: ", aep_wrapper(x0, params)[1])
+aep_init = aep_wrapper(x0, params)[1]
+println("starting objective value: ", aep_init)
 
 plot(0,0)
 # add initial turbine location to plot
@@ -195,6 +196,8 @@ xopt, fopt, info, out = minimize(obj_func!, x0, ng, lx, ux, lg, ug, options)
 t2 = time()
 clk = t2-t1
 
+aep_final = aep_wrapper(xopt, params)[1]
+
 # print optimization results
 println("Finished in : ", clk, " (s)")
 println("info: ", info)
@@ -202,6 +205,7 @@ println("end objective value: ", -fopt)
 println("major iter = ", out.major_iter)
 println("iterations = ", out.iterations)
 println("solve time = ", out.run_time)
+println("AEP improvement (%) = ", 100*(aep_final - aep_init)/aep_init) 
 
 # extract final turbine locations
 turbine_x = copy(xopt[1:nturbines])
