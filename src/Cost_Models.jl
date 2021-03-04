@@ -13,31 +13,31 @@ Container for parameters related to the Levelized Cost of Energy model (NREL 201
 - `FCR::Float`: Fixed Charge Rate
 - `OpEx::Float`: Operational Expenditures
 """
-struct CapEx{TF} <: AbstractCostParameter
+struct CostParameters{TF} <: AbstractCostParameter
     TCC::TF
     BOS::TF
     FC::TF
     FCR::TF
     OpEx::TF
 end
-CapEx() = CapEx(776, 326, 120, .0655, 43)
+CostParameters() = CostParameters(776, 326, 120, .0655, 43) # Default values taken from NREL 2019 Cost of Wind Energy
 
 
 """
-    Levelized_Cost_Of_Energy(turbine)
+    cost_of_energy(rotor_diameter, hub_height, AEP, Cost::CostParameters)
 
 Calculates the LCOE using the same numbers as NREL's FLORIS Model
 
 # Arguments
-- `nturbines::Int`: Number of Turbines in the farm
 - `rotor_diameter::array`: Vector of Rotor Diameters for the Turbines
 - `hub_height::array`: Vector of Hub Heights for the Turbines
 - `AEP::Float`: Annual Energy Production
 - `OpEx::AbstractCostParameter`: KW of the Farm
 """
 
-function Levelized_Cost_Of_Energy(nturbines, rotor_diameter, hub_height, AEP, Cost::CostParameters)
+function cost_of_energy(rotor_diameter, hub_height, AEP, Cost::CostParameters)
     
+    nturbines = length(rotor_diameter)
     # Taken from 2019 Cost of Wind Energy Review
     TCC = Cost.TCC
     BOS = Cost.BOS
