@@ -25,4 +25,5 @@ include("user_functions.jl")
 include("optimization_functions.jl")
 include("fatigue_model.jl")
 include("tip.jl")
+include("cost_models.jl")
 end # module

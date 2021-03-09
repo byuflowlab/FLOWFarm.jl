@@ -1,4 +1,4 @@
-abstract type AbstractCostParameter end
+abstract type AbstractCostModel end
 
 """
     CostParameters(TCC, BOS, FC, FCR, OpEx)
@@ -13,29 +13,30 @@ Container for parameters related to the Levelized Cost of Energy model (NREL 201
 - `FCR::Float`: Fixed Charge Rate
 - `OpEx::Float`: Operational Expenditures
 """
-struct CostParameters{TF} <: AbstractCostParameter
+struct Levelized{TF} <: AbstractCostModel
     TCC::TF
     BOS::TF
     FC::TF
     FCR::TF
     OpEx::TF
 end
-CostParameters() = CostParameters(776, 326, 120, .0655, 43) # Default values taken from NREL 2019 Cost of Wind Energy
+Levelized() = Levelized(776.0, 326.0, 120.0, .0655, 43.0) # Default values taken from NREL 2019 Cost of Wind Energy
 
 
 """
-    cost_of_energy(rotor_diameter, hub_height, AEP, Cost::CostParameters)
+    cost_of_energy(rotor_diameter, hub_height, AEP, Cost::Levelized)
 
 Calculates the LCOE using the same numbers as NREL's FLORIS Model
 
 # Arguments
 - `rotor_diameter::array`: Vector of Rotor Diameters for the Turbines
 - `hub_height::array`: Vector of Hub Heights for the Turbines
+- `rated_power::array`: Vector of rated powers for the Turbines in kW
 - `AEP::Float`: Annual Energy Production
 - `OpEx::AbstractCostParameter`: KW of the Farm
 """
 
-function cost_of_energy(rotor_diameter, hub_height, AEP, Cost::CostParameters)
+function cost_of_energy(rotor_diameter, hub_height, rated_power, AEP, Cost::Levelized)
     
     nturbines = length(rotor_diameter)
     # Taken from 2019 Cost of Wind Energy Review
@@ -43,7 +44,9 @@ function cost_of_energy(rotor_diameter, hub_height, AEP, Cost::CostParameters)
     BOS = Cost.BOS
     FC = Cost.FC
     FCR = Cost.FCR
-    OpEx = Cost.OpExp
+    OpEx = Cost.OpEx
+
+    PlantKW = sum(rated_power)
 
     Mass = 0
     for i = 1:nturbines
@@ -51,7 +54,8 @@ function cost_of_energy(rotor_diameter, hub_height, AEP, Cost::CostParameters)
         Mass += .2694*hub_height[i]*swept_area + 1779.3
     end
     # Adding the mass of the turbines
-    TCC =  TCC*nturbines + 3.08*Mass/PlantKW
+    TCC =  TCC + 3.08*Mass/PlantKW
+    println(TCC)
 
     # Uses parameters in COE function from eq 1 in 2016 Cost of Wind Energy Review
     LCOE = ((TCC+BOS+FC)*FCR + OpEx)/(AEP/1000)
