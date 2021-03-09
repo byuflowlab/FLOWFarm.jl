@@ -647,7 +647,6 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     return loss
 end
 
-
 """
     wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::GaussSimple)
 
