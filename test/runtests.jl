@@ -97,6 +97,16 @@ using Distributed
 
     end
 
+    @testset "cost_models" begin
+        Parameters = ff.Levelized()
+        rotor_diameter = [70]
+        hub_height = [65]
+        AEP = 3734
+        rated_power = [5000]
+        COE = ff.cost_of_energy(rotor_diameter, hub_height, rated_power, AEP, Parameters)
+        @test COE ≈ 33.69894269249007 atol=1E-6
+    end
+
     @testset "utilities" begin
 
         @testset "latitude longitude to xy" begin

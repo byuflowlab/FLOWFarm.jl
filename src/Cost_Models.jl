@@ -55,7 +55,6 @@ function cost_of_energy(rotor_diameter, hub_height, rated_power, AEP, Cost::Leve
     end
     # Adding the mass of the turbines
     TCC =  TCC + 3.08*Mass/PlantKW
-    println(TCC)
 
     # Uses parameters in COE function from eq 1 in 2016 Cost of Wind Energy Review
     LCOE = ((TCC+BOS+FC)*FCR + OpEx)/(AEP/1000)
