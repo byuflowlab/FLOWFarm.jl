@@ -1,7 +1,7 @@
 abstract type AbstractCostModel end
 
 """
-    CostParameters(TCC, BOS, FC, FCR, OpEx)
+    Levelized(TCC, BOS, FC, FCR, OpEx)
 
 Container for parameters related to the Levelized Cost of Energy model (NREL 2016 Cost of Wind Energy)
 
