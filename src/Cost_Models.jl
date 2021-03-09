@@ -46,14 +46,14 @@ function cost_of_energy(rotor_diameter, hub_height, rated_power, AEP, Cost::Leve
     FCR = Cost.FCR
     OpEx = Cost.OpEx
 
-    PlantKW = sum(rated_power)
+    PlantKW = sum(rated_power) # Combines total Wind Farm Capacity
 
     Mass = 0
     for i = 1:nturbines
         swept_area = pi*(rotor_diameter[i]/2)^2
         Mass += .2694*hub_height[i]*swept_area + 1779.3
     end
-    # Adding the mass of the turbines
+    # Adding the mass of the turbines to the Total Capitol Cost
     TCC =  TCC + 3.08*Mass/PlantKW
 
     # Uses parameters in COE function from eq 1 in 2016 Cost of Wind Energy Review
