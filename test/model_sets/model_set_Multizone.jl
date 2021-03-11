@@ -68,7 +68,7 @@ sorted_turbine_index = sortperm(turbine_x)
 eta = .768
 
 # import cp and ct corresponding to wind velocity
-powerdata = readdlm("./inputfiles/NREL5MWCPCT.txt", skipstart=1)
+powerdata = readdlm("inputfiles/NREL5MWCPCT.txt", ' ', skipstart=1)
 vel_points = powerdata[:,1]
 cp_points = powerdata[:,2]
 ct_points = powerdata[:,3]

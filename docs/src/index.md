@@ -31,10 +31,10 @@ pkg> add FlowFarm.jl
 
 **Documentation:**
 
-* For introductory usage help can be found [Here](Tutorial.md).
-* Help with using specific functions found in the [How-to guide](How_to.md).
+* For introductory usage help can be found [here](Tutorial.md).
+* Help with using specific functions found in the [how-to guide](How_to.md).
 * Theory and Methodology surrounding Flow Farm in the [theory](Explanation.md) section.
-* Doc Strings and information on the code structure is contatained [Here](Reference.md).
+* Doc Strings and information on the code structure is contained [here](Reference.md).
 
 
 ```@autodocs
