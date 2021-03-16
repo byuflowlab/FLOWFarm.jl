@@ -1,6 +1,8 @@
 using SNOW
+using Snopt
 using DelimitedFiles 
 using PyPlot
+# using Distrib@uted
 
 # set up boundary constraint wrapper function
 function boundary_wrapper(x, params)
@@ -70,7 +72,7 @@ function aep_wrapper(x, params)
                 rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)
     
     # return the objective as an array
-    return [AEP]
+    return AEP
 end
 
 # set up optimization problem wrapper function
@@ -98,7 +100,7 @@ function wind_farm_opt!(g, x)
     # set fail flag to false
     # fail = false
     # println("constraints: ", minimum(g[length(g)-nturbines:end]), " ", maximum(g[length(g)-nturbines:end]))
-    println("obj: ", AEP)
+    # println("obj: ", AEP)
     # return objective, constraint, and jacobian values
     # quit()
     return AEP #, dAEP_dx, dcdx, fail
@@ -108,7 +110,8 @@ end
 include("./model_sets/model_set_9_38turb_round_farm.jl")
 
 # scale objective to be between 0 and 1
-obj_scale = 1E-11
+obj_scale = 1E0
+xyscale = 1E4
 
 # set wind farm boundary parameters
 boundary_center = [0.0,0.0]
@@ -125,6 +128,7 @@ struct params_struct{}
     boundary_center
     boundary_radius
     obj_scale
+    xyscale
     hub_height
     turbine_yaw
     ct_models
@@ -138,7 +142,7 @@ struct params_struct{}
 end
 
 params = params_struct(model_set, rotor_points_y, rotor_points_z, turbine_z, ambient_ti, 
-    rotor_diameter, boundary_center, boundary_radius, obj_scale, hub_height, turbine_yaw, 
+    rotor_diameter, boundary_center, boundary_radius, obj_scale, xyscale, hub_height, turbine_yaw, 
     ct_models, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, 
     windresource, power_models)
 
@@ -165,14 +169,14 @@ obj_func!(g, x) = wind_farm_opt!(g, x)
 # set SNOPT options
 snopt_opt = Dict(
     "Derivative option" => 1,
-    "Verify level" => -1,
-    "Major optimality tolerance" => 1e-6,
-    "Major iterations limit" => 500,
-    "Summary file" => "snopt_summary.out",
-    "Print file" => "snopt_print.out"
+    "Verify level" => 0,
+    "Major optimality tolerance" => 1e-4,
+    "Major iterations limit" => 1E5,
+    "Summary file" => "snopt_summary1.out",
+    "Print file" => "snopt_print1.out"
 )
 solver = SNOPT(options=snopt_opt)
-options = Options(;solver)
+options = Options(;solver, derivatives=ForwardAD())
 
 # set general lower and upper bounds for design variables
 lx = zeros(length(x0)) .- boundary_radius
@@ -180,23 +184,24 @@ ux = zeros(length(x0)) .+ boundary_radius
 
 # set general lower and upper bounds for constraints
 ng = Int(nturbines + (nturbines)*(nturbines - 1)/2)
-println("ng: ", ng)
-lg = [-Inf*ones(Int((nturbines)*(nturbines - 1)/2)); -boundary_radius*ones(nturbines)]
+# println("ng: ", ng)
+lg = [-Inf*ones(Int((nturbines)*(nturbines - 1)/2)); -Inf*ones(nturbines)]
 println(minimum(lg), maximum(lg))
 # quit()
 ug = [zeros(Int((nturbines)*(nturbines - 1)/2)); zeros(nturbines)]
-println("ug: ", minimum(lg), maximum(ug))
+# println("ug: ", minimum(lg), maximum(ug))
 # run and time optimization
 # quit()
 t1 = time()
 
-println(length(x0))
-println(length(lg))
+# println(length(x0))
+# println(length(lg))
 xopt, fopt, info, out = minimize(obj_func!, x0, ng, lx, ux, lg, ug, options)
 t2 = time()
 clk = t2-t1
 
-aep_final = aep_wrapper(xopt, params)[1]
+println("xopt ", xopt)
+aep_final = aep_wrapper(xopt, params)
 
 # print optimization results
 println("Finished in : ", clk, " (s)")
@@ -206,7 +211,7 @@ println("major iter = ", out.major_iter)
 println("iterations = ", out.iterations)
 println("solve time = ", out.run_time)
 println("AEP improvement (%) = ", 100*(aep_final - aep_init)/aep_init) 
-
+println("opt locs: ", xopt)
 # extract final turbine locations
 turbine_x = copy(xopt[1:nturbines])
 turbine_y = copy(xopt[nturbines+1:end])
