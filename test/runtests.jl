@@ -231,7 +231,7 @@ using Distributed
             radius = 500
             testing_x = [100,100,100,100,-500,700]
             testing_y = [500,1100,-100,0,500,500]
-            test_values = [-500,100,100,0,100,100]
+            test_values = (testing_x .- center[1]).^2 + (testing_y .- center[2]).^2 .- radius.^2
 
             @test ff.circle_boundary(center,radius,testing_x,testing_y) == test_values
 
