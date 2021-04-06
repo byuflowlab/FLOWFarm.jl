@@ -56,6 +56,7 @@ function tip_get_effvelocity(turbid, x, y, uave, probability_spline, speed_splin
         wake_range = angle-atan(alpha):pstep:angle+atan(alpha)
         p = sum(probability_spline(wake_range))
         pp = probability_spline(wake_range)./p
+        # gp = 
         wind_speed = sum(speed_spline(wake_range).*pp)/length(wake_range)
         # counter = 0
         # for ang in (angle-beta*0.0):1:(angle+beta*0.0)
