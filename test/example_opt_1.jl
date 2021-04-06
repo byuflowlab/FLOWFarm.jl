@@ -43,7 +43,7 @@ function aep_wrapper(x)
     global rotor_diameter
     global hub_height
     global turbine_yaw
-    global ct_model
+    global ct_models
     global generator_efficiency
     global cut_in_speed
     global cut_out_speed
@@ -65,7 +65,7 @@ function aep_wrapper(x)
 
     # calculate AEP
     AEP = obj_scale*ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
-                hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+                hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
                 cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
                 rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z)
     
@@ -74,7 +74,7 @@ function aep_wrapper(x)
 end
 
 # set up optimization problem wrapper function
-function wind_farm_opt(x)
+function wind_farm_opt(g, df, dg, x, deriv)
 
     # calculate spacing constraint value and jacobian
     spacing_con = spacing_wrapper(x)
@@ -87,16 +87,19 @@ function wind_farm_opt(x)
     # combine constaint values and jacobians into overall constaint value and jacobian arrays
     c = [spacing_con; boundary_con]
     dcdx = [ds_dx; db_dx]
+    dg[:] = c[:]
+    g[:] = c[:]
 
     # calculate the objective function and jacobian (negative sign in order to maximize AEP)
     AEP = -aep_wrapper(x)[1]
     dAEP_dx = -ForwardDiff.jacobian(aep_wrapper,x)
-
+    df = dAEP_dx
     # set fail flag to false
     fail = false
 
     # return objective, constraint, and jacobian values
-    return AEP, c, dAEP_dx, dcdx, fail
+    # return AEP, c, dAEP_dx, dcdx, fail
+    return AEP, fail
 end
 
 # import model set with wind farm and related details
@@ -134,6 +137,8 @@ end
 # set general lower and upper bounds for design variables
 lb = zeros(length(x)) .- boundary_radius
 ub = zeros(length(x)) .+ boundary_radius
+lg = -Inf*ones(Int(nturbines + (nturbines-1)*nturbines/2))
+ug = zeros(Int(nturbines + (nturbines-1)*nturbines/2))
 
 # set up options for SNOPT
 options = Dict{String, Any}()
@@ -146,7 +151,7 @@ options["Print file"] = "print.out"
 
 # run and time optimization
 t1 = time()
-xopt, fopt, info = snopt(wind_farm_opt, x, lb, ub, options)
+xopt, fopt, info, out = snopta(wind_farm_opt, x, lb, ub, lg, ug, [], [], options)
 t2 = time()
 clkt = t2-t2
 

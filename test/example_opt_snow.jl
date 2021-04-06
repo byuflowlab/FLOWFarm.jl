@@ -110,7 +110,7 @@ end
 include("./model_sets/model_set_9_38turb_round_farm.jl")
 
 # scale objective to be between 0 and 1
-obj_scale = 1E0
+obj_scale = 1E-11
 xyscale = 1E4
 
 # set wind farm boundary parameters
@@ -167,15 +167,20 @@ boundary_wrapper(x) = boundary_wrapper(x, params)
 obj_func!(g, x) = wind_farm_opt!(g, x)
 
 # set SNOPT options
-snopt_opt = Dict(
-    "Derivative option" => 1,
-    "Verify level" => 0,
-    "Major optimality tolerance" => 1e-4,
-    "Major iterations limit" => 1E5,
-    "Summary file" => "snopt_summary1.out",
-    "Print file" => "snopt_print1.out"
+# snopt_opt = Dict(
+#     "Derivative option" => 1,
+#     "Verify level" => 0,
+#     "Major optimality tolerance" => 1e-4,
+#     "Major iterations limit" => 1E5,
+#     "Summary file" => "snopt_summary1.out",
+#     "Print file" => "snopt_print1.out"
+# )
+# solver = SNOPT(options=snopt_opt)
+ip_options = Dict(
+    "max_iter" => 3,
+    "tol" => 1e-6
 )
-solver = SNOPT(options=snopt_opt)
+solver = IPOPT(ip_options)
 options = Options(;solver, derivatives=ForwardAD())
 
 # set general lower and upper bounds for design variables
@@ -207,9 +212,9 @@ aep_final = aep_wrapper(xopt, params)
 println("Finished in : ", clk, " (s)")
 println("info: ", info)
 println("end objective value: ", -fopt)
-println("major iter = ", out.major_iter)
-println("iterations = ", out.iterations)
-println("solve time = ", out.run_time)
+# println("major iter = ", out.major_iter)
+# println("iterations = ", out.iterations)
+# println("solve time = ", out.run_time)
 println("AEP improvement (%) = ", 100*(aep_final - aep_init)/aep_init) 
 println("opt locs: ", xopt)
 # extract final turbine locations
