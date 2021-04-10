@@ -5,6 +5,7 @@ using DelimitedFiles
 using LinearAlgebra
 using FLOWMath: linear
 using Distributed
+using YAML
 
 @testset "All Tests" begin
 
@@ -208,6 +209,57 @@ using Distributed
             c = [-30.0;-20.0;-10.0;-4.0;y]
             m = ff.smooth_max(c, s=4)
             @test m ≈ y atol=1E-6
+
+        end
+
+        @testset "boundary normals" begin
+
+            boundary_file_name = string("./inputfiles/iea37-boundary-cs3.yaml")
+            boundary_data = YAML.load_file(boundary_file_name)
+            bv = boundary_data["boundaries"]["IIIa"]
+            boundary_vertices = [bv[i][j] for i in 1:length(bv), j in 1:length(bv[1])]
+            correct_vertices = [10363.8  6490.3;
+                                9449.7  1602.2;
+                                9387.0  1056.6;
+                                9365.1   625.5;
+                                9360.8   360.2;
+                                9361.5   126.9;
+                                9361.3   137.1;
+                                7997.6  1457.9;
+                                6098.3  3297.5;
+                                8450.3  6455.3;
+                                8505.4  6422.3;
+                                9133.0  6127.4;
+                                9332.8  6072.6;
+                                9544.2  6087.1;
+                                9739.0  6171.2;
+                                9894.9  6316.9;
+                                10071.8  6552.5;
+                                10106.9  6611.1]
+            boundary_normals = ff.boundary_normals_calculator(boundary_vertices)
+        
+            correct_normals = [0.9829601758936983 -0.1838186405319916; 
+                               0.9934614633172962 -0.11416795042154541; 
+                               0.9987121579438882 -0.050734855622757584; 
+                               0.9998686751666075 -0.01620593781838486; 
+                               0.9999954987444023 0.0030004151269687495; 
+                               -0.9998078216567232 -0.019604074934516894; 
+                               -0.6957179389375846 -0.718315076718037; 
+                               -0.6957275377423737 -0.7183057797532565; 
+                               -0.8019887481131871 0.5973391397688945; 
+                               0.5138086803485797 0.8579047965820281; 
+                               0.4252760929807897 0.905063668886888; 
+                               0.2645057513093967 0.9643841078762402; 
+                               -0.0684295708121141 0.9976559496331737; 
+                               -0.39636379138742883 0.9180935381958544; 
+                               -0.6828023205475376 0.7306031693435896; 
+                               -0.7996740386176392 0.6004343694034798; 
+                               -0.8578802011411015 0.5138497450520954; 
+                               0.42552559023380465 0.9049463918134445]
+
+            @test boundary_vertices ≈ correct_vertices atol=1E-6
+
+            @test boundary_normals ≈ correct_normals atol=1E-6
 
         end
 

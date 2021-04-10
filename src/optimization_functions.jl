@@ -4,33 +4,6 @@ author: PJ Stanley and Jared Thomas
 contributors: Nicholas F. Baker and Wesley Holt
 """
 
-abstract type AbstractBoundary end
-
-"""
-CircleBoundary(boundary_center, boundary_radius)
-
-# Arguments
-- `boundary_center::Float`: center of wind farm boundary
-- 'boundary_radius::Float': radius of wind farm boundary
-"""
-struct CircleBoundary{TF,TF} <: AbstractBoundary
-    boundary_center::TF
-    boundary_radius::TF
-end
-
-"""
-PolygonBoundary(boundary_center, boundary_radius)
-
-# Arguments
-- `boundary_center::Float`: center of wind farm boundary
-- 'boundary_radius::Float': radius of wind farm boundary
-"""
-struct PolygonBoundary{ATF} <: AbstractBoundary
-    boundary_vertices::ATF
-    boundary_normals::ATF
-end
-
-
 """
     turbine_spacing(turbine_x,turbine_y)
 
@@ -62,7 +35,7 @@ function turbine_spacing(turbine_x, turbine_y)
 end
 
 """
-    boundary(center,radius,turbine_x,turbine_y)
+    circle_boundary(center,radius,turbine_x,turbine_y)
 
 calculate the distance from each turbine to a circular boundary. Negative means the
 turbine is inside the boundary
@@ -73,13 +46,13 @@ turbine is inside the boundary
 - `turbine_x::Array{Float}`: turbine x locations
 - `turbine_y::Array{Float}`: turbine y locations
 """
-function windfarm_boundary(boundary::AbstractBoundary, turbine_x, turbine_y)
+function circle_boundary(center, radius, turbine_x, turbine_y)
     nturbines = length(turbine_x)
     boundary_vec = zeros(typeof(turbine_x[1]), nturbines)
     for i in 1:nturbines
         boundary_vec[i] =
-            (boundary.center[1] - turbine_x[i])^2 + (boundary.center[2] - turbine_y[i])^2 -
-            boundary.radius^2
+            (center[1] - turbine_x[i])^2 + (center[2] - turbine_y[i])^2 -
+            radius^2
     end
     return boundary_vec
 end
@@ -350,8 +323,8 @@ the ray-trace algorithm. Negative means the turbine is inside the boundary.
 - `turbine_x::Array{Float}`: turbine x locations
 - `turbine_y::Array{Float}`: turbine y locations
 """
-function windfarm_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_y;discrete=false)
-
+function ray_trace_boundary(boundary_vertices, boundary_normals, turbine_x, turbine_y)
+    discrete=boundary.discrete
     # single region
     if discrete == false
 

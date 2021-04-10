@@ -1,5 +1,3 @@
-import YAML
-
 """
     get_turb_loc_YAML(file_name)
 
