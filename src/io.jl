@@ -236,3 +236,45 @@ function getNextFileName(directory, file_name, file_type, max_check=100)
     end
     return full_file_name
 end
+
+"""
+    get_boundary_yaml(filename)
+
+Returns the boundaries of a wind farm as defined in a yaml file in the format
+used in FLOWFarm. Returns N by 2 array for single region farm and an array of 
+N by 2 arrays for multiple regions. Returned regions are sorted alphabetically
+by the keys provided in the yaml file.
+
+# Arguments
+- `file_name::String`: relative/path/to/file
+"""
+function get_boundary_yaml(filename)
+
+    # load data from boundary yaml
+    boundary_data = YAML.load_file(filename)
+
+    # load just the boundaries portion of the data
+    bv = boundary_data["boundaries"]
+
+    # initialize counter
+    keyn = 0
+
+    # initialize boundary vertices array
+    boundary_vertices = []
+
+    # populate vertices array with regions concatenated
+    for k in sort!(collect(keys(bv)))
+        keyn += 1   # increment counter
+        println(k)
+        if keyn == 1    # can't concatenate on the first region
+            boundary_vertices = [bv[k][i][j] for i in 1:length(bv[k]), j in 1:length(bv[k][1])]
+        else    # can concatenate on the remaining regions
+            if keyn == 2 # if multiple regions, put first one in its own array
+                boundary_vertices = [boundary_vertices]
+            end
+            nextregion = [bv[k][i][j] for i in 1:length(bv[k]), j in 1:length(bv[k][1])]
+            boundary_vertices = vcat(boundary_vertices, [nextregion])
+        end
+    end
+    return boundary_vertices
+end
