@@ -548,6 +548,10 @@ using YAML
             end
         end
 
+        @testset "raytrace boundary" begin
+
+        end
+
     end
 
 

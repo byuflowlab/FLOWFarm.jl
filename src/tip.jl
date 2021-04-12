@@ -16,7 +16,7 @@ end
 
 function tip_wake_combination_model(deficit, wind_speed, old_deficit_sum)
     # Katic et al. 1986
-    new_deficit_sum = sqrt(old_deficit_sum^2 + (wind_speed*deficit)^2)
+    new_deficit_sum = norm([old_deficit_sum, wind_speed*deficit])
     if new_deficit_sum > wind_speed
         new_deficit_sum = wind_speed
     end
@@ -50,7 +50,7 @@ function tip_get_effvelocity(turbid, x, y, uave, probability_spline, speed_splin
     for j = 1:nturbines
         dx = x[j] - x[turbid]
         dy = y[j] - y[turbid]
-        dr = sqrt(dx^2+dy^2)
+        dr = norm([dx, dy])
         angle = tip_cart2met(tip_get_angle(dx, dy)) # radians
         
         wake_range = angle-atan(alpha):pstep:angle+atan(alpha)

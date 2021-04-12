@@ -140,7 +140,7 @@ function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, ksta
 
         # Calculate the total turbulence intensity at the downstream turbine based on
         # the result of the smooth max function
-        ti_dst = sqrt(ti_amb^2 + ti_area_ratio^2)
+        ti_dst = norm([ti_amb, ti_area_ratio])
 
     end
 
@@ -289,7 +289,7 @@ function GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbin
         if dx > 1e-6
             dy = loc[2] - turbine_y[turb]
             dz = loc[3] - hub_height[turb]
-            r = sqrt(dy^2 + dz^2)
+            r = norm([dy, dz])
             ct = turbine_ct[turb]
 
             kstar = 0.11*ct^1.07*ambient_ti^0.2

@@ -375,7 +375,7 @@ function calc_TI(constant,ai,TI_free,initial,sep,downstream)
 
     ti_calculation = constant * (1.0/3.0)^ai * TI_free^initial * sep^downstream
 
-    TI = sqrt(ti_calculation^2 + TI_free^2)
+    TI = norm([ti_calculation, TI_free])
 
     return TI
 end

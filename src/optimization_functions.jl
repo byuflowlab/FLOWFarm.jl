@@ -10,7 +10,7 @@ contributors: Nicholas F. Baker and Wesley Holt
 Calculate the distance between turbines in a wind farm. There is an infinite gradient
 of this function if two points are exactly the same. This can be avoided by returning the
 square of the turbine spacing rather than the actual distance, but it makes the gradients
-scale much more poorly. Because it is very vanishinly rare to have turbines exactly in the
+scale much more poorly. Because it is very vanishingly rare to have turbines exactly in the
 same location, this function leaves the square root in the calculations.
 
 # Arguments
@@ -24,10 +24,7 @@ function turbine_spacing(turbine_x, turbine_y)
     k = 1
     for i in 1:nturbines
         for j in i+1:nturbines
-            spacing_vec[k] = sqrt(
-                (turbine_x[j] - turbine_x[i])^2 +
-                (turbine_y[j] - turbine_y[i])^2,
-            )
+            spacing_vec[k] = norm([turbine_x[j] - turbine_x[i], turbine_y[j] - turbine_y[i]])
             k += 1
         end
     end
@@ -387,13 +384,13 @@ function ray_trace_boundary(boundary_vertices, boundary_normals, turbine_x, turb
                 elseif sum(boundary_vector .* -turbine_to_first_facepoint) <= 0
 
                     # distance from turbine to first facepoint
-                    turbine_to_face_distance[j] = sqrt(sum(turbine_to_first_facepoint.^2))
+                    turbine_to_face_distance[j] = norm(turbine_to_first_facepoint)
 
                 # distance to second facepoint is shortest
                 else
 
                     # distance from turbine to second facepoint
-                    turbine_to_face_distance[j] = sqrt(sum(turbine_to_second_facepoint.^2))
+                    turbine_to_face_distance[j] = norm(turbine_to_second_facepoint)
 
                 end
                 
@@ -495,13 +492,13 @@ function ray_trace_boundary(boundary_vertices, boundary_normals, turbine_x, turb
                         elseif sum(boundary_vector .* -turbine_to_first_facepoint) <= 0
 
                             # distance from turbine to first facepoint
-                            turbine_to_face_distance[j] = sqrt(sum(turbine_to_first_facepoint.^2))
+                            turbine_to_face_distance[j] = norm(turbine_to_first_facepoint)
 
                         # distance to second facepoint is shortest
                         else
 
                             # distance from turbine to second facepoint
-                            turbine_to_face_distance[j] = sqrt(sum(turbine_to_second_facepoint.^2))
+                            turbine_to_face_distance[j] = norm(turbine_to_second_facepoint)
 
                         end
                         
@@ -555,13 +552,13 @@ function ray_trace_boundary(boundary_vertices, boundary_normals, turbine_x, turb
                         elseif sum(boundary_vector .* -turbine_to_first_facepoint) <= 0
 
                             # distance from turbine to first facepoint
-                            push!(turbine_to_face_distance, sqrt(sum(turbine_to_first_facepoint.^2)))
+                            push!(turbine_to_face_distance, norm(turbine_to_first_facepoint))
 
                         # distance to second facepoint is shortest
                         else
 
                             # distance from turbine to second facepoint
-                            push!(turbine_to_face_distance, sqrt(sum(turbine_to_second_facepoint.^2)))
+                            push!(turbine_to_face_distance, norm(turbine_to_second_facepoint))
 
                         end
                         

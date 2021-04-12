@@ -120,7 +120,7 @@ function overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y,
 
     # distance between wake center and rotor center
     if (wake_center_z > (turbine_z + tol)) || (wake_center_z < (turbine_z - tol))
-        OVdYd = sqrt((wake_center_y-turbine_y)^2 + (wake_center_z - turbine_z)^2)
+        OVdYd = norm([wake_center_y-turbine_y, wake_center_z - turbine_z])
     elseif (wake_center_y > (turbine_y + tol))
         OVdYd = wake_center_y - turbine_y
     elseif (turbine_y > (wake_center_y + tol))
@@ -343,7 +343,7 @@ function calcMinorAngle(bndry_x, bndry_y, bndry_z=[0,0,0])
     
     Num = (ABx*BCx) + (ABy*BCy) + (ABz*BCz) # Dot Product
     
-    Denom = sqrt(ABx^2 + ABy^2 + ABz^2) * sqrt(BCx^2 + BCy^2 + BCz^2) # Multiplication of magnitudes
+    Denom = norm([ABx, ABy, ABz]) * norm([BCx, BCy, BCz]) # Multiplication of magnitudes
     Theta = acosd(Num/Denom) # Get the angle formed
 
     # If it's greater than 180, get the 
@@ -406,9 +406,7 @@ function getPerimeterLength(bndry_x_clsd, bndry_y_clsd)
     num_bndry_pts = length(bndry_x_clsd)-1
     nLength = zeros(num_bndry_pts)
     for i in 1:num_bndry_pts
-        nLength[i] = sqrt(
-                 (bndry_x_clsd[i+1]-bndry_x_clsd[i])^2
-                +(bndry_y_clsd[i+1]-bndry_y_clsd[i])^2)
+        nLength[i] = norm([bndry_x_clsd[i+1]-bndry_x_clsd[i], bndry_y_clsd[i+1]-bndry_y_clsd[i]])
     end
     
     return nLength
@@ -429,7 +427,7 @@ them
 function coordDist(x1, y1, x2, y2)
     xDiff = x1 - x2
     yDiff = y1 - y2
-    return sqrt(xDiff^2 + yDiff^2)
+    return norm([xDiff, yDiff])
 end
 
 """
@@ -461,7 +459,7 @@ function boundary_normals_calculator(boundary_vertices)
         boundary_normals[i, :] = [ -(boundary_vertices[i+1, 2] - boundary_vertices[i, 2]) ; boundary_vertices[i+1, 1] - boundary_vertices[i, 1] ]
         
         # normalize the vector
-        boundary_normals[i, :] = boundary_normals[i, :] / sqrt(sum(boundary_normals[i, :].^2))
+        boundary_normals[i, :] = boundary_normals[i, :] / norm(boundary_normals[i, :])
     
     end
 
