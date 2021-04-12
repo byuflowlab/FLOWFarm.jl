@@ -1,6 +1,7 @@
 module FlowFarm
 using Geodesy; const gd = Geodesy
 using ForwardDiff
+using LinearAlgebra
 
 # using CCBlade
 # using PyPlot

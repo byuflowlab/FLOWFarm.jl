@@ -323,8 +323,8 @@ the ray-trace algorithm. Negative means the turbine is inside the boundary.
 - `turbine_x::Array{Float}`: turbine x locations
 - `turbine_y::Array{Float}`: turbine y locations
 """
-function ray_trace_boundary(boundary_vertices, boundary_normals, turbine_x, turbine_y)
-    discrete=boundary.discrete
+function ray_trace_boundary(boundary_vertices, boundary_normals, turbine_x, turbine_y; discrete=false)
+    # discrete=boundary.discrete
     # single region
     if discrete == false
 

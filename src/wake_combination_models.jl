@@ -44,7 +44,7 @@ end
 function wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model::SumOfSquaresFreestreamSuperposition)
     # Katic et al. 1986
 
-    new_deficit_sum = sqrt(old_deficit_sum^2 + (wind_speed*deltav)^2)
+    new_deficit_sum = norm([old_deficit_sum, wind_speed*deltav])
     
     check_negative_deficits!(new_deficit_sum, wind_speed)
 
@@ -55,7 +55,7 @@ end
 function wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model::SumOfSquaresLocalVelocitySuperposition)
     # Voutsinas 1990
 
-    new_deficit_sum = sqrt(old_deficit_sum^2 + (turb_inflow*deltav)^2)
+    new_deficit_sum = norm([old_deficit_sum, turb_inflow*deltav])
     
     check_negative_deficits!(new_deficit_sum, wind_speed)
 

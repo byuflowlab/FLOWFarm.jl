@@ -265,7 +265,6 @@ function get_boundary_yaml(filename)
     # populate vertices array with regions concatenated
     for k in sort!(collect(keys(bv)))
         keyn += 1   # increment counter
-        println(k)
         if keyn == 1    # can't concatenate on the first region
             boundary_vertices = [bv[k][i][j] for i in 1:length(bv[k]), j in 1:length(bv[k][1])]
         else    # can concatenate on the remaining regions
