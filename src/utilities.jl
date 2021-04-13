@@ -466,3 +466,36 @@ function boundary_normals_calculator(boundary_vertices)
     return boundary_normals
 
 end
+
+function sunflower_points(n; alpha=0.0)
+    # this function generates n points within a circle in a sunflower seed pattern
+    # the code is based on the example found at
+    # https://stackoverflow.com/questions/28567166/uniformly-distribute-x-points-inside-a-circle
+
+    function radius(k, n, b)
+        if k > n - b
+            r = 1 # put on the boundary
+        else
+            r = sqrt(k - 1.0/2.0)/sqrt(n - (b + 1.0)/2.0)  # apply squareroot
+        end
+        return r
+    end
+
+    x = zeros(n)
+    y = zeros(n)
+
+    b = round(alpha*sqrt(n)) # number of boundary points
+
+    phi = (sqrt(5.0) + 1.0)/2.0  # golden ratio
+
+    for k in 1:n
+        r = radius(k, n, b)
+
+        theta = 2.0*pi*k/phi^2
+
+        x[k] = r*cos(theta)
+        y[k] = r*sin(theta)
+    end
+
+    return x, y
+end
