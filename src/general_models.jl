@@ -141,6 +141,7 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
             # combine deficits according to selected wake combination method
             turb_inflow = wtvelocities[upwind_turb_id]
             deficit_sum = wake_combination_model(deltav, wind_speed, wtvelocities[upwind_turb_id], deficit_sum, wakecombinationmodel)
+            # println("def sum: ", deficit_sum, turbine_x, turbine_y)
             # println("horizontal_deflection: ", horizontal_deflection)
         end
     end

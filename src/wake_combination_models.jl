@@ -47,7 +47,7 @@ function wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum
     new_deficit_sum = norm([old_deficit_sum, wind_speed*deltav])
     
     check_negative_deficits!(new_deficit_sum, wind_speed)
-
+    # println("here")
     return new_deficit_sum
 
 end

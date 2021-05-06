@@ -6,7 +6,6 @@
 layout_file_name = "./inputfiles/iea37-ex-opt4.yaml"
 turbine_x, turbine_y, fname_turb, fname_wr = ff.get_turb_loc_YAML(layout_file_name)
 
-
 # calculate the number of turbines
 nturbines = length(turbine_x)
 

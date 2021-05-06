@@ -242,6 +242,11 @@ using PyPlot
 
             @test boundary_normals ≈ correct_normals atol=1E-6
 
+            boundary_vertices = [0 0; 0 1; 1 1; 1 0]
+            boundary_normals = ff.boundary_normals_calculator(boundary_vertices)
+            correct_normals = [-1 0; 0 1; 1 0; 0 -1]
+            @test boundary_normals ≈ correct_normals atol=1E-6
+
         end
 
         @testset "sunflower_points" begin

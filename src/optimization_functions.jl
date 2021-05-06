@@ -320,8 +320,9 @@ the ray-trace algorithm. Negative means the turbine is inside the boundary.
 - `turbine_x::Array{Float}`: turbine x locations
 - `turbine_y::Array{Float}`: turbine y locations
 """
-function ray_trace_boundary(boundary_vertices, boundary_normals, turbine_x, turbine_y; discrete=false)
+function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, turbine_y; discrete=false, s=100)
     # discrete=boundary.discrete
+
     # single region
     if discrete == false
 
@@ -400,7 +401,7 @@ function ray_trace_boundary(boundary_vertices, boundary_normals, turbine_x, turb
             end
 
             # magnitude of the constraint value
-            c[i] = -ff.smooth_max(-turbine_to_face_distance, s=100.0)
+            c[i] = -ff.smooth_max(-turbine_to_face_distance, s=s)
 
             # sign of the constraint value (- is inside, + is outside)
             if mod(intersection_counter, 2) == 1
@@ -570,7 +571,7 @@ function ray_trace_boundary(boundary_vertices, boundary_normals, turbine_x, turb
                 end
 
                 # magnitude of the constraint value
-                c[i] = -ff.smooth_max(-turbine_to_face_distance, s=100.0)
+                c[i] = -ff.smooth_max(-turbine_to_face_distance, s=s)
                 status[i] = 1
 
             end

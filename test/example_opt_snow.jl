@@ -110,8 +110,8 @@ end
 include("./model_sets/model_set_9_38turb_round_farm.jl")
 
 # scale objective to be between 0 and 1
-obj_scale = 1E-11
-xyscale = 1E4
+obj_scale = 1E-0#1E-11
+xyscale = 1 #1E4
 
 # set wind farm boundary parameters
 boundary_center = [0.0,0.0]
@@ -167,20 +167,20 @@ boundary_wrapper(x) = boundary_wrapper(x, params)
 obj_func!(g, x) = wind_farm_opt!(g, x)
 
 # set SNOPT options
-# snopt_opt = Dict(
-#     "Derivative option" => 1,
-#     "Verify level" => 0,
-#     "Major optimality tolerance" => 1e-4,
-#     "Major iterations limit" => 1E5,
-#     "Summary file" => "snopt_summary1.out",
-#     "Print file" => "snopt_print1.out"
-# )
-# solver = SNOPT(options=snopt_opt)
-ip_options = Dict(
-    "max_iter" => 3,
-    "tol" => 1e-6
+snopt_opt = Dict(
+    "Derivative option" => 1,
+    "Verify level" => 0,
+    "Major optimality tolerance" => 1e-4,
+    "Major iterations limit" => 1E5,
+    "Summary file" => "snopt_summary1.out",
+    "Print file" => "snopt_print1.out"
 )
-solver = IPOPT(ip_options)
+solver = SNOPT(options=snopt_opt)
+# ip_options = Dict(
+#     "max_iter" => 3,
+#     "tol" => 1e-6
+# )
+# solver = IPOPT(ip_options)
 options = Options(;solver, derivatives=ForwardAD())
 
 # set general lower and upper bounds for design variables
