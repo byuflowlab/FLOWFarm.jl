@@ -1,4 +1,4 @@
-# FlowFarm.jl
+# FLOWFarm.jl
 
 
 **Summary:** Flow Farm is a tool that enables the user to perform wind farm optimization.
@@ -25,7 +25,7 @@
 
 
 ```@autodocs
-pkg> add FlowFarm.jl
+pkg> add FLOWFarm.jl
 ```
 
 
@@ -38,7 +38,7 @@ pkg> add FlowFarm.jl
 
 
 ```@autodocs
-Modules = [FlowFarm]
+Modules = [FLOWFarm]
 ```
 **Citing:**
 1. N.O. Jensen "A Note on Wind Generator Interaction" *Roskilde: Risø National Laboratory* (1983)

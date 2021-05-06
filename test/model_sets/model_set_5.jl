@@ -1,4 +1,4 @@
-import FlowFarm; const ff = FlowFarm
+import FLOWFarm; const ff = FLOWFarm
 
 rotor_diameter = 0.57
 hub_height = 0.7

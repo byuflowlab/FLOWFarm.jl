@@ -1,4 +1,4 @@
-import FlowFarm; const ff = FlowFarm
+import FLOWFarm; const ff = FLOWFarm
 
 # based on IEA case study 3
 

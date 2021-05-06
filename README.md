@@ -1,20 +1,20 @@
-![Tests](https://github.com/byuflowlab/FlowFarm.jl/actions/workflows/test.yml/badge.svg)
+![Tests](https://github.com/byuflowlab/FLOWFarm.jl/actions/workflows/test.yml/badge.svg)
 
-# FlowFarm.jl
+# FLOWFarm.jl
 Wind farm optimization tools based in Julia. 
 
-FlowFarm provides a modular framework of common wind farm analyis models written specifically for optimization.
+FLOWFarm provides a modular framework of common wind farm analyis models written specifically for optimization.
 
 ## Installation
 
-### Install FlowFarm
+### Install FLOWFarm
 
 ```julia
-(v1.x) pkg> dev https://github.com/byuflowlab/FlowFarm.jl.git
+(v1.x) pkg> dev https://github.com/byuflowlab/FLOWFarm.jl.git
 ```
 
 ### Enable NaN Safe Mode in ForwardDiff
-NaN Safe Mode must be enables in ForwardDiff for ForwardDiff to work properly with FlowFarm.
+NaN Safe Mode must be enables in ForwardDiff for ForwardDiff to work properly with FLOWFarm.
 
 ```julia
 (v1.x) pkg> dev ForwardDiff
@@ -28,14 +28,14 @@ http://www.juliadiff.org/ForwardDiff.jl/latest/user/advanced.html
 
 ## Testing
 
-To test FlowFarm, run the following in the test directory:
+To test FLOWFarm, run the following in the test directory:
 
 ```julia
 include("runtests.jl")
 ```
 
 Currently, all tests should pass except for the Gaussian turbulence intensity. This model
-has not been fully integrated into the FlowFarm architecture.
+has not been fully integrated into the FLOWFarm architecture.
 
 ## Documentation
 
@@ -77,7 +77,7 @@ using Distributed
 using ClusterManagers
 
 addprocs(SlurmManager(parse(Int, ENV["SLURM_NTASKS"])-1))
-@everywhere import FlowFarm; const ff = FlowFarm
+@everywhere import FLOWFarm; const ff = FLOWFarm
 ```
 
 Also include the `@everywhere` macro in front of any function definitions or include statements
@@ -103,7 +103,7 @@ For more information on using julia in a distributed environment, please see htt
 
 ## Quick Start
 
-There are four main steps to setting up and running an analysis in FlowFarm. 
+There are four main steps to setting up and running an analysis in FLOWFarm. 
 (1) setting up the problem description, (2) setting up the analysis model set, and 
 (3) running the analysis. Details for setting up an optimization will depend heavily on the
 optimization package you are using, your objective, and your design variables. Optimization
@@ -112,7 +112,7 @@ examples using various packages are provided in the example scripts located in t
 ### (1) Setting up the problem description
 
 ```julia
-import FlowFarm; const ff = FlowFarm
+import FLOWFarm; const ff = FLOWFarm
 
 # define the rotor diameter
 diameter = 80.0
@@ -191,7 +191,7 @@ for i = 1:nturbines
     ct_models[i] = ct_model
 end
 
-``` set up wake and related models. Here we will use the default values provided in FlowFarm.
+``` set up wake and related models. Here we will use the default values provided in FLOWFarm.
 However, it is important to use the correct model parameters. More information and references
 are provided in the doc strings attached to each model.```
 

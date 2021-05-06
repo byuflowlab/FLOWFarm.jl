@@ -1,7 +1,7 @@
-#=== Set everything up for FlowFarm ===#
-cd("/Users/nbaker/Documents/GitHub/FlowFarm.jl/test/")
+#=== Set everything up for FLOWFarm ===#
+cd("/Users/nbaker/Documents/GitHub/FLOWFarm.jl/test/")
 include("iea37_specific_functions.jl")
-using FlowFarm; const ff = FlowFarm
+using FLOWFarm; const ff = FLOWFarm
 import YAML
 using PyPlot
 using CSV
