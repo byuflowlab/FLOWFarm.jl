@@ -499,3 +499,25 @@ function sunflower_points(n; alpha=0.0)
 
     return x, y
 end
+
+"""
+    rotor_sample_points(nsamplepoints=1)
+
+Initializes the sampling locations in the rotor-swept-area. Returns values such that
+zero is at the turbine hub location and 1 is at the tip of the blades. If a single
+sample is requested, it will be at the hub location. Otherwise, the points will be located
+using the sunflower packcing algorithm.
+
+# Arguments
+- `nsamplepoints::Int`: controlls how many sample points to generate
+"""
+function rotor_sample_points(nsamplepoints=1)
+
+    if nsamplepoints > 1
+        rotor_sample_points_y, rotor_sample_points_z = ff.sunflower_points(nsamplepoints)
+    else
+        rotor_sample_points_y = rotor_sample_points_z = [0.0]
+    end
+
+    return rotor_sample_points_y, rotor_sample_points_z
+end

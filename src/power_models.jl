@@ -396,7 +396,7 @@ Calculate AEP for each requested state respectively
 function calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
             hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
             cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set::AbstractModelSet;
-            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0)
+            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0, weighted=true)
 
     wind_probabilities = wind_resource.wind_probabilities
 
@@ -420,7 +420,13 @@ function calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
                             rated_power, rotor_diameter, turbine_velocities, turbine_yaw, wind_resource.air_density, power_models)
 
         state_power = sum(wt_power)
-        state_energy[i] = state_power*hours_per_year*wind_probabilities[i]
+
+        if weighted
+            state_energy[i] = state_power*hours_per_year*wind_probabilities[i]    
+        else
+            state_energy[i] = state_power
+        end
+        
     end
 
     return state_energy
@@ -429,7 +435,7 @@ end
 function calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, 
     turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
     rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-    model_set; wind_farm_state_id=1, hours_per_year=365.25*24.0, velocity_only=true)
+    model_set; wind_farm_state_id=1, hours_per_year=365.25*24.0, velocity_only=true, weighted=true)
 
     rot_x, rot_y = rotate_to_wind_direction(turbine_x, turbine_y, wind_resource.wind_directions[wind_farm_state_id])
 
@@ -444,9 +450,11 @@ function calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hu
 
     state_power = sum(wt_power)
 
-    state_energy = state_power*hours_per_year*wind_resource.wind_probabilities[wind_farm_state_id]
-
-    return state_energy
+    if weighted
+        return state_power*hours_per_year*wind_resource.wind_probabilities[wind_farm_state_id]
+    else
+        return state_power
+    end
 
 end
 
