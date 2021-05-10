@@ -1,4 +1,4 @@
-module FlowFarm
+module FLOWFarm
 using Geodesy; const gd = Geodesy
 using ForwardDiff
 using LinearAlgebra

@@ -154,7 +154,7 @@ end
 """
     splined_boundary_discreet_regions(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies, turbs_per_region)
 
-Uses FlowFarm's splined_boundary() function to calculate the turbine-boundary
+Uses FLOWFarm's splined_boundary() function to calculate the turbine-boundary
 constraints for one or more discreet regions, with pre-allocated turbines
 for each region. Returns four values for every turbine, corresponding to the
 distance from each turb to the upper, lower, left, and right splined "sides" for
@@ -207,7 +207,7 @@ end
 """
     getUpDwnYvals(turbine_x, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies)
 
-Supplements FlowFarm's splined_boundary() function by calculating (for a given x
+Supplements FLOWFarm's splined_boundary() function by calculating (for a given x
 location) the maximum and minimum y-value permitted to remain "inside" the
 boundary. If turbine_x is located left of the boundary's leftmost vertex or
 right of the boundary's rightmost vertex, it return's that corresponding

@@ -7,7 +7,7 @@ Test based on:
 by Jiufa Cao, Weijun Zhu, Xinbo Wu, Tongguang Wang, and Haoran Xu
 """
 
-using FlowFarm; const ff = FlowFarm
+using FLOWFarm; const ff = FLOWFarm
 using DelimitedFiles
 using PyPlot
 

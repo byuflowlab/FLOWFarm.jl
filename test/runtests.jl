@@ -1,4 +1,4 @@
-using FlowFarm; const ff = FlowFarm
+using FLOWFarm; const ff = FLOWFarm
 using Test
 using Distributed
 using DelimitedFiles

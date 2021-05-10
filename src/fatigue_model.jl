@@ -1,7 +1,7 @@
-using FlowFarm
+using FLOWFarm
 using CCBlade
 
-const ff=FlowFarm
+const ff=FLOWFarm
 
 
 """
@@ -197,10 +197,10 @@ function get_speeds(turbine_x,turbine_y,turbine_z,turb_index,hub_height,r,turbin
         point_velocities = zeros(npts)
             for i in 1:npts
                 loc = [x_locs[i], y_locs[i], z_locs[i]]
-                # point_velocities[i] = FlowFarm.point_velocity(loc, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, 0)
+                # point_velocities[i] = FLOWFarm.point_velocity(loc, windfarm, windfarmstate, windresource, wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, 0)
 
-                # point_velocities[i] = FlowFarm.point_velocity(loc, model_set, problem_description)
-                point_velocities[i] = FlowFarm.point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+                # point_velocities[i] = FLOWFarm.point_velocity(loc, model_set, problem_description)
+                point_velocities[i] = FLOWFarm.point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
                                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
                                     wind_resource, model_set;
                                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=downwind_turbine_id)

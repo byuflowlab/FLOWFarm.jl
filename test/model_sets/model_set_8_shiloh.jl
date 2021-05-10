@@ -1,4 +1,4 @@
-import FlowFarm; const ff = FlowFarm
+import FLOWFarm; const ff = FLOWFarm
 using DelimitedFiles
 using CSV 
 using PyPlot

@@ -1,4 +1,4 @@
-import FlowFarm; const ff = FlowFarm
+import FLOWFarm; const ff = FLOWFarm
 
 turbine_x = [0.0,0.0]
 turbine_y = [0.0,0.0]

@@ -1,4 +1,4 @@
-import FlowFarm; const ff = FlowFarm
+import FLOWFarm; const ff = FLOWFarm
 
 # based on https://backend.orbit.dtu.dk/ws/portalfiles/portal/146793996/Pena18_wes_3_191_2018.pdf
 

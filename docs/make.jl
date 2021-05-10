@@ -1,7 +1,7 @@
-using Documenter, FlowFarm
+using Documenter, FLOWFarm
 
 makedocs(;
-    modules=[FlowFarm],
+    modules=[FLOWFarm],
     format=Documenter.HTML(),
     pages=[
         "Home" => "index.md",
@@ -10,12 +10,12 @@ makedocs(;
         "Explanation" => "Explanation.md",
         "Reference" => "Reference.md"
     ],
-    repo="https://github.com/byuflowlab/FlowFarm.jl/blob/{commit}{path}#L{line}",
-    sitename="FlowFarm.jl",
+    repo="https://github.com/byuflowlab/FLOWFarm.jl/blob/{commit}{path}#L{line}",
+    sitename="FLOWFarm.jl",
     authors="PJ Stanley <stanley_andrewpj@yahoo.com>",
     assets=String[],
 )
 
 deploydocs(
-    repo = "github.com/byuflowlab/FlowFarm.jl.git",
+    repo = "github.com/byuflowlab/FLOWFarm.jl.git",
 )
