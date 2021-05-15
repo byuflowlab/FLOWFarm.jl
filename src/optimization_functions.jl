@@ -48,8 +48,7 @@ function circle_boundary(center, radius, turbine_x, turbine_y)
     boundary_vec = zeros(typeof(turbine_x[1]), nturbines)
     for i in 1:nturbines
         boundary_vec[i] =
-            (center[1] - turbine_x[i])^2 + (center[2] - turbine_y[i])^2 -
-            radius^2
+            (center[1] - turbine_x[i])^2 + (center[2] - turbine_y[i])^2 - radius^2
     end
     return boundary_vec
 end
@@ -307,10 +306,10 @@ function getUpDwnYvals(turbine_x, bndry_x_clsd, bndry_y_clsd, bndry_corner_indci
 end
 
 """
-    ray_trace_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_y)
+    ray_casting_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_y)
 
 Calculate the distance from each turbine to the nearest point on the boundary using 
-the ray-trace algorithm. Negative means the turbine is inside the boundary.
+the ray-casting algorithm. Negative means the turbine is inside the boundary.
 
 # Arguments
 - `boundary_vertices::Array{Float,2}`: vertices of the boundary CCW in order s.t.
