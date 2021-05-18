@@ -7,7 +7,6 @@ using LinearAlgebra
 using FLOWMath: linear
 using Distributed
 using YAML
-using PyPlot
 
 @testset ExtendedTestSet "all tests" begin
     @testset "cost_models" begin
