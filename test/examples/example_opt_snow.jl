@@ -107,8 +107,9 @@ function wind_farm_opt!(g, x)
 end
 
 # import model set with wind farm and related details
-include("./model_sets/model_set_9_38turb_round_farm.jl")
-
+cd("../")
+include("../model_sets/model_set_9_38turb_round_farm.jl")
+cd("examples/")
 # scale objective to be between 0 and 1
 obj_scale = 1E-0#1E-11
 xyscale = 1 #1E4
