@@ -357,6 +357,76 @@ function turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_ou
 end
 
 """
+    calculate_state_turbine_powers(turbine_x, turbine_y, turbine_z, rotor_diameter,
+    hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+    cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set::AbstractModelSet;
+    rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0])
+
+Calculate power for each turbine for all states respectively
+
+# Arguments
+- `turbine_x::Array{Float,nTurbines}`: turbine east-west locations in the global 
+    reference frame
+- `turbine_y::Array{Float,nTurbines}`: turbine north-south locations in the global 
+    reference frame
+- `turbine_z::Array{Float,nTurbines}`: turbine base height in the global reference frame
+- `rotor_diameter::Array{Float,nTurbines}`
+- `hub_height::Array{TF,nTurbines}`: turbine hub heights
+- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in 
+    radians
+- `ct_model::AbstractThrustCoefficientModel`: defines how the thrust coefficient changes 
+    with state etc
+- `generator_efficiency::Array{Float,nTurbines}`
+- `cut_in_speed::Array{Float,nTurbines}` 
+- `cut_out_speed::Array{Float,nTurbines}`
+- `rated_speed::Array{Float,nTurbines}`
+- `rated_power::Array{Float,nTurbines}`
+- `wind_resource::DiscretizedWindResource`: wind resource discreption (directions, speeds, 
+    frequencies, etc)
+- `power_models::Array{nTurbines}`: elemenst of array should be sub-types of AbstractPowerModel
+- `model_set::AbstractModelSet`: defines wake-realated models to be used in analysis
+- rotor_sample_points_y::Array{TF,N}`: horizontal wind location of points to sample across 
+    the rotor swept area when calculating the effective wind speed for the wind turbine. 
+    Points are centered at the hub (0,0) and scaled by the radius (1=tip of blades) 
+- rotor_sample_points_z::Array{TF,N}`: vertical wind location of points to sample across the 
+    rotor swept area when calculating the effective wind speed for the wind turbine. Points
+    are centered at the hub (0,0) and scaled by the radius (1=tip of blades)
+"""
+function calculate_state_turbine_powers(turbine_x, turbine_y, turbine_z, rotor_diameter,
+    hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+    cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set::AbstractModelSet;
+    rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0])
+
+    nturbines = length(turbine_x)
+
+    wind_probabilities = wind_resource.wind_probabilities
+
+    nstates = length(wind_probabilities)
+
+    arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),typeof(hub_height[1]),typeof(turbine_yaw[1]),
+            typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),typeof(rated_power[1]))
+    
+    turbine_powers_by_direction = zeros(arr_type,(nstates, nturbines))
+
+    for i = 1:nstates
+
+        rot_x, rot_y = rotate_to_wind_direction(turbine_x, turbine_y, wind_resource.wind_directions[i])
+
+        sorted_turbine_index = sortperm(rot_x)
+
+        turbine_velocities = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+                            sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+                            model_set, wind_farm_state_id=i, velocity_only=true)
+
+        wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
+                            rated_power, rotor_diameter, turbine_velocities, turbine_yaw, wind_resource.air_density, power_models)
+        turbine_powers_by_direction[i,:] = wt_power
+    end
+    
+    return turbine_powers_by_direction
+end
+
+"""
     calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
     hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
     cut_out_speed, rated_speed, rated_power, wind_resource, power_models::Array{AbstractPowerModel}, model_set::AbstractModelSet;

@@ -8,7 +8,19 @@ struct PowerLawWindShear{TF} <: AbstractWindShearModel
 end
 
 #TODO add log shear
+"""
+    adjust_for_wind_shear(locz, reference_velocity, reference_height, ground_height, model::PowerLawWindShear)
 
+Uses provided velocity at a given height to estimate the velocity at
+a different height due to wind shear.
+
+# Arguments
+- `locz::Float`: height of desired velocity
+- `reference_velocity::Float`: known velocity at reference_height
+- `reference_height::Float`: height of known velocity 
+- `ground_height::Float`: height of the ground (typically zero)
+- `model::AbstractWindShearModel`: wind shear model to use for calculations
+"""
 function adjust_for_wind_shear(locz, reference_velocity, reference_height, ground_height, model::PowerLawWindShear)
 
     # initialize adjusted wind speed to zero

@@ -1,5 +1,7 @@
 using Documenter, FLOWFarm
 
+DocMeta.setdocmeta!(FLOWFarm, :DocTestSetup, :(using FLOWFarm; const ff=FLOWFarm); recursive=true)
+
 makedocs(;
     modules=[FLOWFarm],
     format=Documenter.HTML(),
@@ -12,10 +14,10 @@ makedocs(;
     ],
     repo="https://github.com/byuflowlab/FLOWFarm.jl/blob/{commit}{path}#L{line}",
     sitename="FLOWFarm.jl",
-    authors="PJ Stanley <stanley_andrewpj@yahoo.com>",
-    assets=String[],
+    authors="Jared J. Thomas <jaredthomas68@gmail.com>, PJ Stanley <stanley_andrewpj@yahoo.com>",
+    doctest=true
 )
 
 deploydocs(
-    repo = "github.com/byuflowlab/FLOWFarm.jl.git",
+    repo = "github.com/byuflowlab/FLOWFarm.jl.git"
 )
