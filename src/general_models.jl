@@ -99,19 +99,18 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
     wind_speed = wind_resource.wind_speeds[wind_farm_state_id]
     reference_height = wind_resource.measurement_heights[wind_farm_state_id]
     wind_shear_model = wind_resource.wind_shear_model
-    shear_exponent = wind_shear_model.shear_exponent
 
     # set ground height 
     ground_height = turbine_z[1]    # TODO: allow topology to be given
+
+    # adjust wind speed for wind shear
+    wind_speed_with_shear = adjust_for_wind_shear(locz, wind_speed, reference_height, ground_height, wind_shear_model)
 
     # get number of turbines
     nturbines = length(turbine_x)
 
     # initialize deficit summation term to zero
     deficit_sum = 0.0
-
-    # initialize point velocity with shear to zero
-    point_velocity_with_shear = 0.0
 
     # loop through all turbines
     for u=1:nturbines
@@ -139,21 +138,15 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
                             turbine_local_ti, turbine_ct, turbine_yaw, wakedeficitmodel)
 
             # combine deficits according to selected wake combination method
-            turb_inflow = wtvelocities[upwind_turb_id]
-            deficit_sum = wake_combination_model(deltav, wind_speed, wtvelocities[upwind_turb_id], deficit_sum, wakecombinationmodel)
-            # println("def sum: ", deficit_sum, turbine_x, turbine_y)
-            # println("horizontal_deflection: ", horizontal_deflection)
+            deficit_sum = wake_combination_model(deltav, wind_speed_with_shear, wtvelocities[upwind_turb_id], deficit_sum, wakecombinationmodel)
+            
         end
     end
 
     # find velocity at point without shear
-    point_velocity_without_shear = wind_speed - deficit_sum
+    point_velocity = wind_speed_with_shear - deficit_sum
 
-    # adjust sample point velocity for shear
-    point_velocity_with_shear = adjust_for_wind_shear(locz, point_velocity_without_shear, reference_height, ground_height, wind_shear_model)
-
-
-    return point_velocity_with_shear
+    return point_velocity
 
 end
 
