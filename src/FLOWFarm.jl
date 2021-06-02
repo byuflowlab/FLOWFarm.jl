@@ -9,7 +9,7 @@ using FLOWMath: linear,trapz,Akima
 # using Statistics
 using Distributed
 using YAML
-
+using XLSX
 
 include("io.jl")
 include("utilities.jl")

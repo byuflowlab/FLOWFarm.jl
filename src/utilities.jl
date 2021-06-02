@@ -521,3 +521,44 @@ function rotor_sample_points(nsamplepoints=1)
 
     return rotor_sample_points_y, rotor_sample_points_z
 end
+
+"""
+    print_state_layouts_in_cartesian_frame(turbinex, turbiney, winddirections)
+
+Given a wind farm layout in the global reference frame, print the layout rotated to the 
+cartesian frame with wind to the positive x axis (right) for all wind directions.
+
+# Arguments
+- `turbinex::Array{T,1}`: x locations of turbines in global reference frame 
+- `turbiney::Array{T,1}`: y locations of turbines in global reference frame
+- `winddirections::Array{T,1}`: all wind directions in radians in meteorological coordinates (0 rad. = from North)
+"""
+function print_layout_in_cartesian_frame_excel(turbinex, turbiney, winddirections; center=[0.0,0.0])
+    # get number of directions 
+    ndirections = length(winddirections)
+
+    # initialize excel file
+    outfile = "round_38_turbines_cartesian.xlsx"
+    XLSX.openxlsx(outfile, mode="w") do xf
+    
+        sheet = xf[1]
+        sheet["A1"] = "wind direction"
+        sheet["B1"] = "turbine x"
+        sheet["C1"] = "turbine y"
+
+        # loop through directions 
+        for i in 1:ndirections
+
+            # rotate turbinex and turbiney to current direction 
+            rotx, roty = rotate_to_wind_direction(turbinex, turbiney, winddirections[i], center=center)
+
+            XLSX.rename!(sheet, "rotated layouts")
+
+            # print rotated coordinates to specified output
+            sheet["A$(i+1)"] = winddirections[i]*180.0/pi
+            sheet["B$(i+1)"] = join(rotx, ",")
+            sheet["C$(i+1)"] = join(roty, ",")
+
+        end
+    end
+end
