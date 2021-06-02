@@ -10,6 +10,7 @@ using FLOWMath: linear,trapz,Akima
 using Distributed
 using YAML
 using XLSX
+using Plots
 
 include("io.jl")
 include("utilities.jl")
@@ -29,4 +30,5 @@ include("optimization_functions.jl")
 include("fatigue_model.jl")
 include("tip.jl")
 include("cost_models.jl")
+include("plotting.jl")
 end # module
