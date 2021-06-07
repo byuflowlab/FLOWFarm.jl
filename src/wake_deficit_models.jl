@@ -63,7 +63,7 @@ Container for parameters related to the origina Gaussian deficit model presented
 struct GaussOriginal{TF} <: AbstractWakeDeficitModel
     k_star::TF
 end
-GaussianOriginal() = GaussOriginal(0.075)
+GaussOriginal() = GaussOriginal(0.075)
 
 """
     GaussYaw(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
@@ -90,6 +90,7 @@ GaussYaw(a, b, c, d) = GaussYaw(a, b, c, d, [1.0])
     GaussYawVariableSpread(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
 
 Container for parameters related to the Gaussian deficit model with yaw presented by Bastankhah and Porte-Agel 2016
+    and the farm model presented by Niayifar and Porte-Agel in 2016.
 
 # Arguments
 - `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
@@ -249,13 +250,14 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
         loss = 0.0 # no loss outside the wake
     else
         d = wec_factor*r0/tan(model.beta) # distance from fulcrum of wake cone to wind turbine hub
-        theta = atan(dy/(dx+d)) # angle from center of wake to point of interest
+        theta = atan(del/(dx+d)) # angle from center of wake to point of interest
         if theta > model.beta # if you're outside the wake
             loss = 0.0
         else # if you're inside the wake
             n = pi / model.beta # see Jensen 1983 eq. 3. Value used for n in paper was 9, corresponding to beta = 20.0 deg.
             ftheta = (1.0 + cos(n * theta)) / 2.0 # cosine term to be applied to loss equation as per Jensen 1983
             loss = 2.0*turbine_ai[upstream_turbine_id]*(ftheta*r0/(r0+model.alpha*dx))^2 #equation (2) from the paper
+            println(loss, " ", turbine_ct[upstream_turbine_id], " ", theta)
         end
     end
 
@@ -446,37 +448,28 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
 
     # extract turbine properties
     dt = rotor_diameter[upstream_turbine_id]
-    yaw = turbine_yaw[upstream_turbine_id]
     ct = turbine_ct[upstream_turbine_id]
-
-    as = model.alpha_star
-    bs = model.beta_star
-    ti = model.turbulence_intensity
 
     # extract model parameters
     ks = model.k_star       # wake spread rate (k* in 2014 paper)
-    ky = model.horizontal_spread_rate
-    kz = model.vertical_spread_rate
-    as = model.alpha_star
-    bs = model.beta_star
-
-    ti = turbine_local_ti[upstream_turbine_id]
 
     # calculate beta (paper eq: 6)
     beta = 0.5*(1.0+sqrt(1.0-ct))/sqrt(1.0-ct)
 
-    # calculate the length of the potential core (2016 paper eq: 7.3)
-    x0 = ((1.0+sqrt(1.0+ct)))/(sqrt(2.0)*as*ti+bs*(1.0-sqrt(1.0-ct)))
+    # use 2 as length of potential core #TODO calculate this
+    x0 = 2.0*dt
 
     # calculate loss (paper eq: 23)
-    enum =((dz/dt)^2+(dy/dt)^2)
+    num =((dz/dt)^2+(dy/dt)^2)
     if dx > x0
         denom = (ks*dx/dt+0.2*sqrt(beta))^2
     else
         denom = (ks*x0/dt+0.2*sqrt(beta))^2
     end
 
-    loss = (1.0 - sqrt(1.0-ct/(8.0*denom)))*exp(-enum/(2.0*denom))
+    loss = (1.0 - sqrt(1.0-ct/(8.0*denom)))*exp(-num/(2.0*denom))
+
+    return loss
 
 end
 
