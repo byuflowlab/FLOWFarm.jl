@@ -1813,9 +1813,9 @@ using YAML
                 rotor_diameter, hub_height, sorted_turbine_index, ct_models, rotor_sample_points_y, rotor_sample_points_z,
                 wind_resource)  
 
-            ffvelocitiesbp2014 = reshape(ffvelocitiesbp2014, (length(u0_t)))
+            ffvelocitiesbp2014 = reshape(ffvelocitiesbp2014, (length(u0_b)))
 
-            @test isapprox(ffvelocitiesbp2014, u_b, atol=0.01)
+            @test isapprox(ffvelocitiesbp2014, u_b, atol=0.1)
 
         end
 

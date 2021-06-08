@@ -17,7 +17,7 @@ rated_power = zeros(nturbines) .+2.0E6  # W
 generator_efficiency = zeros(nturbines) .+0.944
 
 # load power curve
-powerdata = readdlm("../niayifar_vestas_v80_power_curve_observed.txt",  ',', skipstart=1)
+powerdata = readdlm("./inputfiles/niayifar_vestas_v80_power_curve_observed.txt",  ',', skipstart=1)
 velpoints = powerdata[:,1]
 powerpoints = powerdata[:,2]*1E6
 
@@ -29,7 +29,7 @@ for i = 1:nturbines
 end
 
 # load thrust curve
-ctdata = readdlm("../mfg-ct-vestas-v80-niayifar2016.txt",  ',', skipstart=1)
+ctdata = readdlm("./inputfiles/mfg-ct-vestas-v80-niayifar2016.txt",  ',', skipstart=1)
 velpoints = ctdata[:,1]
 ctpoints = ctdata[:,2]
 
