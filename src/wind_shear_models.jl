@@ -1,18 +1,31 @@
 abstract type AbstractWindShearModel end
 
+"""
+    PowerLawWindShear(shear_exponent, ground_height)
+
+Provides shear exponent and ground height to define wind shear curve.
+Ground height may be tuned because the power law does not always hold near the ground.
+
+# Arguments
+- `shear_exponent::Float`: defines trajectory of wind shear
+- `ground_height::Float`: height of the ground (typically zero)
+"""
 struct PowerLawWindShear{TF} <: AbstractWindShearModel
     
     # model parameter
     shear_exponent::TF
+    ground_height::TF
 
 end
+PowerLawWindShear(x) = PowerLawWindShear(x,0.0)
 
 #TODO add log shear
 """
     adjust_for_wind_shear(locz, reference_velocity, reference_height, ground_height, model::PowerLawWindShear)
 
 Uses provided velocity at a given height to estimate the velocity at
-a different height due to wind shear.
+a different height due to wind shear. Ground height may be tuned because the power law does
+not always hold near the ground.
 
 # Arguments
 - `locz::Float`: height of desired velocity

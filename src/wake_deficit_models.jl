@@ -32,9 +32,9 @@ JensenCosine(x) = JensenCosine(x, 20.0*pi/180.0, [1.0])
 JensenCosine(x, y) = JensenCosine(x, y, [1.0])
 
 """
-    Multizone(me, ke, MU, aU, bU)
+    MultiZone(me, ke, MU, aU, bU)
 
-Container for parameters related to the Multizone deficit model
+Container for parameters related to the MultiZone deficit model
 
 # Arguments
 - `me::Float`: parameter controlling general wake expansion. Default value is 0.065
@@ -43,14 +43,14 @@ Container for parameters related to the Multizone deficit model
 - `aU::Float`: parameter impacting the wake deficit decay for a constant wake deflection. Default value is 5.0.
 - `bU::Float`: parameter changing the wake deficit decay under yawed conditions. Default value is 1.66.
 """
-struct Multizone{ATF, TF} <: AbstractWakeDeficitModel
+struct MultiZone{ATF, TF} <: AbstractWakeDeficitModel
     me::ATF
     ke::TF
     MU::ATF
     aU::TF
     bU::TF
 end
-Multizone() = Multizone([-0.5 0.22 1.0], 0.065, [0.5 1.0 5.5], 5.0, 1.66)
+MultiZone() = MultiZone([-0.5 0.22 1.0], 0.065, [0.5 1.0 5.5], 5.0, 1.66)
 
 """
     GaussOriginal(k_star)
@@ -169,10 +169,11 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
         if (dx < 0.0) || (del > r)
             totloss = 0.0
         else
-            loss = 2.0*turbine_ai[upstream_turbine_id]*(r0/(r))^2 #equation (2) from the paper
+            loss = 2.0*turbine_ai[upstream_turbine_id]*(r0/r)^2 #equation (2) from the paper
             totloss = loss
         end  
     else
+        r1 = rotor_diameter[downstream_turbine_id]/2.0
         # find delta x, y, and z. dx is the downstream distance from the upstream turbine hub to
         # the downstream turbine hub of interest. dy and dz are the distances from the point of interest
         # and the wake center (in y and z)
@@ -187,14 +188,14 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
         # finds the wakediameter
         wake_center_y = (turbine_y[upstream_turbine_id]+deflection_y)
         wake_center_z = (turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
-        wake_diameter = 2*r
+        wake_diameter = 2.0*r
 
-        loss = 2.0*turbine_ai[upstream_turbine_id]*(r0/(r))^2 #equation (2) from the paper
+        loss = 2.0*turbine_ai[upstream_turbine_id]*(r0/r)^2 #equation (2) from the paper
 
-        overlap = overlap_area_func(turbine_y[downstream_turbine_id], posz,
-        rotor_diameter[downstream_turbine_id], wake_center_y, wake_center_z, wake_diameter; tol=1E-6)
+        overlap = overlap_area_func(turbine_y[downstream_turbine_id], posz, 2.0*r1, wake_center_y, wake_center_z, wake_diameter; tol=1E-6)
 
-        ovlpercentage = overlap/(pi*r0^2)
+        ovlpercentage = overlap/(pi*r1^2)
+
         totloss = loss*ovlpercentage
 
     end
@@ -257,7 +258,6 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
             n = pi / model.beta # see Jensen 1983 eq. 3. Value used for n in paper was 9, corresponding to beta = 20.0 deg.
             ftheta = (1.0 + cos(n * theta)) / 2.0 # cosine term to be applied to loss equation as per Jensen 1983
             loss = 2.0*turbine_ai[upstream_turbine_id]*(ftheta*r0/(r0+model.alpha*dx))^2 #equation (2) from the paper
-            println(loss, " ", turbine_ct[upstream_turbine_id], " ", theta)
         end
     end
 
@@ -265,9 +265,9 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
 end
 
 """
-    wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::Multizone)
+    wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::MultiZone)
 
-Computes the wake deficit at a given location using the original multizone "FLORIS" wake model, from the paper:
+Computes the wake deficit at a given location using the original MultiZone "FLORIS" wake model, from the paper:
 "Wind plant power optimization through yaw control using a parametric model for wake effects—a CFD simulation study" by Gebraad et al. (2014)
 
 # Arguments
@@ -287,10 +287,10 @@ Computes the wake deficit at a given location using the original multizone "FLOR
 - `turbine_local_ti::Array(Float)`: vector containing local turbulence intensities for all turbines in farm
 - `turbine_ct::Array(Float)`: vector containing thrust coefficients for all turbines in farm
 - `turbine_yaw::Array(Float)`: vector containing the yaw angle? for all turbines in farm
-- `model::Multizone`: indicates the wake model in use
+- `model::MultiZone`: indicates the wake model in use
 
 """
-function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::Multizone)
+function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::MultiZone)
 
     dt = rotor_diameter[upstream_turbine_id]
 
@@ -454,20 +454,20 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     ks = model.k_star       # wake spread rate (k* in 2014 paper)
 
     # calculate beta (paper eq: 6)
-    beta = 0.5*(1.0+sqrt(1.0-ct))/sqrt(1.0-ct)
+    beta = 0.5*(1.0 + sqrt(1.0 - ct))/sqrt(1.0 - ct)
 
     # use 2 as length of potential core #TODO calculate this
     x0 = 2.0*dt
 
     # calculate loss (paper eq: 23)
-    num =((dz/dt)^2+(dy/dt)^2)
+    num = (dz/dt)^2 + (dy/dt)^2
     if dx > x0
-        denom = (ks*dx/dt+0.2*sqrt(beta))^2
+        denom = (ks*dx/dt + 0.2*sqrt(beta))^2
     else
-        denom = (ks*x0/dt+0.2*sqrt(beta))^2
+        denom = (ks*x0/dt + 0.2*sqrt(beta))^2
     end
 
-    loss = (1.0 - sqrt(1.0-ct/(8.0*denom)))*exp(-num/(2.0*denom))
+    loss = (1.0 - sqrt(1.0 - ct/(8.0*denom)))*exp(-num/(2.0*denom))
 
     return loss
 
@@ -491,7 +491,7 @@ Helper function for wake_deficit_model when using the GaussYaw model. Computes t
 """
 function _gauss_yaw_spread(dt, k, dx, x0, yaw)
     # from Bastankhah and Porte-Agel 2016 eqn 7.2
-    sigma = dt*(k*(dx-x0)/dt+cos(yaw)/sqrt(8.0))
+    sigma = k*(dx - x0) + dt*cos(yaw)/sqrt(8.0)
 
     return sigma
 
@@ -524,8 +524,9 @@ function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, w
         ey = exp(-0.5*(dy/(wf*sigma_y))^2)
         ez = exp(-0.5*(dz/(wf*sigma_z))^2)
 
-        if (1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2))) >= 1e-8
-            loss = (1.0-sqrt(1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2))))*ey*ez
+        sqrtterm = 1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2))
+        if sqrtterm >= 1e-8
+            loss = (1.0-sqrt(sqrtterm))*ey*ez
         else
             loss = ey*ez
         end

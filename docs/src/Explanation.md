@@ -10,12 +10,12 @@ This section will explain the fundamental principles behind the wind models used
 ### Jensen
 #### Top Hat
 #### Cosine
-### Multizone
+### MultiZone
 ### Bastankah
 
 ## Wake Deflection Models
 ### Jimenez 
-### Multizone
+### MultiZone
 ### Gauss
 
 ## Wake Combination Models
@@ -37,9 +37,7 @@ Wind shear in FLOWFarm is handled using a power law
 
 where ``u`` is the wind speed at the desired height (``z``), ``z_r`` is the height of the known speed (``u_r``), and ``z_0`` is the height of the ground (which is zero for flat terrain). The value of ``\phi`` controls how quickly the wind speed transitions from zero to the free-stream velocity.
 
-The models used by FLOWFarm are simple engineering models and do not account for wind shear. To apply wind shear, we first calculate the expected velocity for a given point as though wind shear did not exist, and then apply wind shear using the power law shown above. 
-
-Because the FLOWFarm relies on effective wind speed across the wind turbine rotors, wind shear is only applied to calculate the velocity of points and is not applied accross the rotor hub of upwind turbines during wake calculations.
+The models used by FLOWFarm are simple engineering models and do not account for wind shear. To apply wind shear, we first adjust the inflow speed using the wind shear equation and then apply the wake deficit for the given point. 
 
 ```jldoctest
 using FLOWFarm; const ff = FLOWFarm

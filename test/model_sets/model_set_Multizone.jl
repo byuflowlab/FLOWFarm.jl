@@ -44,7 +44,7 @@ aU = 5
 bU = 1.66
 
 # identify wake models
-wakedeficitmodel = ff.Multizone()
+wakedeficitmodel = ff.MultiZone()
 wakedeflectionmodel = ff.MultizoneDeflection()
 wakecombinationmodel = ff.LinearLocalVelocitySuperposition()
 localtimodel = ff.LocalTIModelMaxTI()

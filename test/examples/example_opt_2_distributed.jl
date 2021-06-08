@@ -105,7 +105,7 @@ struct params_struct2{MS, AF, F, I, ACTM, WR, APM}
 end
 
 # import model set with wind farm and related details
-include("./model_sets/model_set_6.jl")
+include("../model_sets/model_set_6.jl")
 
 # scale objective to be between 0 and 1
 obj_scale = 1E-11

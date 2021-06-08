@@ -8,12 +8,12 @@ abstract type AbstractWindResourceModel end
     Struct defining a wind resource
 
 # Arguments
-- `wind_directions::Array{Float}(Nstates)`: an array of wind directions corresponding to each wind farm state
-- `wind_speeds::Array{Float}(Nstates)`: an array of wind speeds corresponding to each wind farm state
-- `wind_probabilities::Array{Float}(Nstates)`: an array of probabilities corresponding to each wind farm state
-- `measurement_heights::Array{Float}(Nstates)`: an array of measurement heights corresponding to each wind farm state
+- `wind_directions::Array{Float,1}(Nstates)`: an array of wind directions corresponding to each wind farm state in radians
+- `wind_speeds::Array{Float,1}(Nstates)`: an array of wind speeds corresponding to each wind farm state in meters/second
+- `wind_probabilities::Array{Float,1}(Nstates)`: an array of probabilities corresponding to each wind farm state with values in [0,1]
+- `measurement_heights::Array{Float,1}(Nstates)`: an array of measurement heights corresponding to each wind farm state
 - `air_density::Float`: the air density
-- `ambient_ti::Array{Float}`: an array of the ambient turbulence intensity for each wind direction
+- `ambient_ti::Array{Float,1}`: an array of the ambient turbulence intensity for each wind direction
 - `wind_shear_model::Array{AbstractWindShearModel}(1)`: contains a struct defining the desired turbulence intensity model
 """
 struct DiscretizedWindResource{AF, TF, ASM} <: AbstractWindResourceModel

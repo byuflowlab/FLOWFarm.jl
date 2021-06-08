@@ -1273,7 +1273,7 @@ using YAML
 
         end
 
-        @testset "Multizone Model" begin
+        @testset "MultiZone Model" begin
 
             include("./model_sets/model_set_Multizone.jl")
 
@@ -1746,6 +1746,77 @@ using YAML
             @test ff.point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
             rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
             windresource, model_set, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity  rtol=rtol
+        end
+
+        @testset "calculate_flow_field" begin 
+
+            include("./model_sets/model_set_0_single_turbine.jl")
+
+            # define how many points should be in the flow field
+            npoints = 10
+
+            # define how far off the ground to investigate
+            maxheight = 4.0*rotor_diameter[1]./2.0
+
+            # set up point grid for flow field
+            xrange = -1*rotor_diameter[1]
+            yrange = 0
+            zrange = 0.0001:maxheight/npoints:maxheight
+
+            # test wind shear with uchida 2020 data doe uniform inflow
+            inflowuniform = ones(10).*wind_speed[1]
+            heightuniform = collect((0:4/10:1).*rotor_diameter[1])
+
+            shearexponent = 0.0
+            wind_shear_model = ff.PowerLawWindShear(shearexponent)
+            wind_resource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheights, air_density, ambient_tis, wind_shear_model)
+
+            ffvelocities = ff.calculate_flow_field(xrange, yrange, zrange,
+                model_set, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+                rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
+                wind_resource)           
+
+            @test all(ffvelocities .== inflowuniform)
+
+            # test with data from Bastankhah 2014
+            include("./model_sets/bastankhah2014-single-turb-case-3.jl")
+
+            uh = 9.0
+            hh = 70.0
+
+            # set up point grid for flow field
+            xrange = 7*rotor_diameter[1]
+            yrange = 0
+
+            shearexponent = 0.12539210313906432
+            groundheight = 4.842460795576101
+            wind_shear_model = ff.PowerLawWindShear(shearexponent, groundheight)
+            wind_resource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheights, air_density, ambient_tis, wind_shear_model)
+
+            rotor_sample_points_y, rotor_sample_points_z = ff.rotor_sample_points(1)
+
+            # data_b = readdlm("../inputfiles/results-bastankhah-2014/bastankhah-7d-5E-2.csv", ',', skipstart=1)
+            data_b = readdlm("./inputfiles/results/bastankhah2014/wake-profile-5E-2-7d-fig-7.csv", ',', skipstart=1)
+            zrange_b = data_b[:,2].*rotor_diameter[1]
+            u0_b = zeros(length(zrange_b))
+            u_b = zeros(length(zrange_b))
+            for i in 1:length(zrange_b) 
+                u0_b[i] = ff.adjust_for_wind_shear(zrange_b[i], uh, hh, wind_shear_model.ground_height, wind_shear_model)
+                u_b[i] = u0_b[i]*(1.0-data_b[i,1])
+            end
+
+            wakedeficitmodel = ff.GaussOriginal(0.04)
+            model_set_bp2014 = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
+
+            ffvelocitiesbp2014 = ff.calculate_flow_field(xrange, yrange, zrange_b,
+                model_set_bp2014, turbine_x, turbine_y, turbine_z, turbine_yaw,
+                rotor_diameter, hub_height, sorted_turbine_index, ct_models, rotor_sample_points_y, rotor_sample_points_z,
+                wind_resource)  
+
+            ffvelocitiesbp2014 = reshape(ffvelocitiesbp2014, (length(u0_t)))
+
+            @test isapprox(ffvelocitiesbp2014, u_b, atol=0.01)
+
         end
 
         # @testset "Turbine Inflow Velocities one direction" begin

@@ -47,8 +47,7 @@ function circle_boundary(center, radius, turbine_x, turbine_y)
     nturbines = length(turbine_x)
     boundary_vec = zeros(typeof(turbine_x[1]), nturbines)
     for i in 1:nturbines
-        boundary_vec[i] =
-            (center[1] - turbine_x[i])^2 + (center[2] - turbine_y[i])^2 - radius^2
+        boundary_vec[i] = (center[1] - turbine_x[i])^2 + (center[2] - turbine_y[i])^2 - radius^2
     end
     return boundary_vec
 end

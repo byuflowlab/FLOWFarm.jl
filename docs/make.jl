@@ -1,6 +1,6 @@
 using Documenter, FLOWFarm
 
-DocMeta.setdocmeta!(FLOWFarm, :DocTestSetup, :(using FLOWFarm; const ff=FLOWFarm); recursive=true)
+DocMeta.setdocmeta!(FLOWFarm, :DocTestSetup, :(using FLOWFarm); recursive=true)
 
 makedocs(;
     modules=[FLOWFarm],

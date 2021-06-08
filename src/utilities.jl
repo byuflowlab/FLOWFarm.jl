@@ -533,7 +533,7 @@ cartesian frame with wind to the positive x axis (right) for all wind directions
 - `turbiney::Array{T,1}`: y locations of turbines in global reference frame
 - `winddirections::Array{T,1}`: all wind directions in radians in meteorological coordinates (0 rad. = from North)
 """
-function print_layout_in_cartesian_frame_excel(turbinex, turbiney, winddirections; center=[0.0,0.0], plot=false)
+function print_layout_in_cartesian_frame_excel(turbinex, turbiney, winddirections; center=[0.0,0.0], plot_layouts=false, round_locations=false)
     # get number of directions 
     ndirections = length(winddirections)
 
@@ -552,12 +552,22 @@ function print_layout_in_cartesian_frame_excel(turbinex, turbiney, winddirection
             # rotate turbinex and turbiney to current direction 
             rotx, roty = rotate_to_wind_direction(turbinex, turbiney, winddirections[i], center=center)
 
-            if plot
+            # round if desired
+            if round_locations
+                rotx = round.(rotx)
+                roty = round.(roty)
+            end
+
+            # plot layouts if desired, pause for 5 seconds on each
+            if plot_layouts
                 p = plot()
                 rotordiameter = zeros(length(turbinex)) .+ 126.4
                 ff.plotlayout!(p, rotx, roty, rotordiameter)
                 ff.plotlayout!(p, [rotx[1], rotx[20]], [roty[1], roty[20]], rotordiameter, fillcolor=:red, title="$(winddirections[i]*180.0/pi)")
                 display(p)
+
+                sleep(5)
+
             end
 
             XLSX.rename!(sheet, "rotated layouts")
@@ -566,8 +576,6 @@ function print_layout_in_cartesian_frame_excel(turbinex, turbiney, winddirection
             sheet["A$(i+1)"] = winddirections[i]*180.0/pi
             sheet["B$(i+1)"] = join(rotx, ",")
             sheet["C$(i+1)"] = join(roty, ",")
-
-            sleep(5)
 
         end
     end

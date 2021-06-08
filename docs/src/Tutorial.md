@@ -8,7 +8,7 @@ For basic functionality Flow Farm requires two inputs, the model set, and the pr
 
 ## Model Set
 Model set will recquire a Wake Deficit Model, Wake Deflection Model, Wake Combination Model, and a Local Turbulence Intensity Model
-* Deficit Model options: JensenTopHat, JensenCosine, Multizone, GaussOriginal, GaussYaw, GaussYawVariableSpread, GaussSimple
+* Deficit Model options: JensenTopHat, JensenCosine, MultiZone, GaussOriginal, GaussYaw, GaussYawVariableSpread, GaussSimple
 * Deflection Model options: GaussYawDeflection, GaussYawVariableSpreadDeflection, JiminezYawDeflection, MultizoneDeflection
 * Combination Model options: LinearFreestreamSuperposition, SumOfSquaresFreestreamSuperposition, SumOfSquaresLocalVelocitySuperposition, LinearLocalVelocitySuperposition
 * Turbulence Model options: LocalTIModelNoLocalTI, LocalTIModelMaxTI
