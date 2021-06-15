@@ -1811,7 +1811,7 @@ using YAML
             ffvelocitiesbp2014 = ff.calculate_flow_field(xrange, yrange, zrange_b,
                 model_set_bp2014, turbine_x, turbine_y, turbine_z, turbine_yaw,
                 rotor_diameter, hub_height, sorted_turbine_index, ct_models, rotor_sample_points_y, rotor_sample_points_z,
-                wind_resource)  
+                wind_resource, shearfirst=false)  
 
             ffvelocitiesbp2014 = reshape(ffvelocitiesbp2014, (length(u0_b)))
 
