@@ -78,7 +78,7 @@ Calculate the power for a wind turbine based on standard theory for region 2
 - `wt_velocity::Float`: Inflow velocity to the wind turbine
 """
 function calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity, wt_yaw; pp=2)
-    power = generator_efficiency*(0.5*air_density*rotor_area*cp*(cos(wt_yaw)^pp)*wt_velocity^3)
+    power = generator_efficiency*0.5*air_density*rotor_area*cp*(cos(wt_yaw)^pp)*wt_velocity^3
     return power
 end
 
