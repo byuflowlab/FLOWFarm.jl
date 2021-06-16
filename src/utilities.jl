@@ -467,6 +467,17 @@ function boundary_normals_calculator(boundary_vertices)
 
 end
 
+"""
+
+    sunflower_points(n; alpha=0.0)
+
+Generates points in a circle of radius=1 using the sunflower packing algorithm. 
+
+# Arguments
+- `n::Float`: number of points to generate
+- `alpha::Float`: Control smoothness of the boundary. alpha=0 is the standard "jagged edge" sunflower algoirthm and
+    alpha=1 results in a smooth boundary.
+"""
 function sunflower_points(n; alpha=0.0)
     # this function generates n points within a circle in a sunflower seed pattern
     # the code is based on the example found at
