@@ -475,7 +475,7 @@ Generates points in a circle of radius=1 using the sunflower packing algorithm.
 
 # Arguments
 - `n::Float`: number of points to generate
-- `alpha::Float`: Control smoothness of the boundary. alpha=0 is the standard "jagged edge" sunflower algoirthm and
+- `alpha::Float`: Controls the smoothness of the boundary. alpha=0 is the standard "jagged edge" sunflower algoirthm and
     alpha=1 results in a smooth boundary.
 """
 function sunflower_points(n; alpha=0.0)
@@ -521,11 +521,13 @@ using the sunflower packcing algorithm.
 
 # Arguments
 - `nsamplepoints::Int`: controlls how many sample points to generate
+- `alpha::Float`: Controls smoothness of the sunflower algorithm boundary. alpha=0 is the standard "jagged edge" sunflower algoirthm and
+    alpha=1 results in a smooth boundary.
 """
-function rotor_sample_points(nsamplepoints=1)
+function rotor_sample_points(nsamplepoints=1; alpha=0.0)
 
     if nsamplepoints > 1
-        rotor_sample_points_y, rotor_sample_points_z = ff.sunflower_points(nsamplepoints)
+        rotor_sample_points_y, rotor_sample_points_z = ff.sunflower_points(nsamplepoints, alpha=alpha)
     else
         rotor_sample_points_y = rotor_sample_points_z = [0.0]
     end
