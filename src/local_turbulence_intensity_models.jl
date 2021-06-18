@@ -120,6 +120,8 @@ function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, ksta
     d_w = 4.0*sigma
 
     # calculate wake overlap ratio
+    # println("wol check: ", h_dst, " ", d_dst, " ", delta_y, " ", h_ust, " ", d_w, " ", sigma)
+
     wake_overlap = overlap_area_func(0.0, h_dst, d_dst, delta_y, h_ust, d_w)
 
     # initialize the wake/rotor area overlap ratio
@@ -127,7 +129,6 @@ function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, ksta
 
     # only include turbines with area overlap in the softmax
     if wake_overlap > 0.0
-
         # Calculate the turbulence added to the inflow of the downstream turbine by the
         # wake of the upstream turbine
         ti_added = 0.73*(axial_induction_ust^0.8325)*(ti_ust^0.0325)*((x/d_ust)^(-0.32))
@@ -135,11 +136,14 @@ function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, ksta
         rotor_area_dst = 0.25*pi*d_dst^2
         ti_area_ratio_tmp = ti_added*(wake_overlap/rotor_area_dst)
 
+        # println("ti check: ", axial_induction_ust, " ", ti_ust, " ", d_ust, " ", rotor_area_dst, " ", ti_added, " ", wake_overlap)
+
         # Run through the smooth max to get an approximation of the true max TI area ratio
         ti_area_ratio = smooth_max(ti_area_ratio_in, ti_area_ratio_tmp, s=s)
 
         # Calculate the total turbulence intensity at the downstream turbine based on
         # the result of the smooth max function
+        # println("ti check: ", ti_amb, " ", ti_area_ratio)
         ti_dst = norm([ti_amb, ti_area_ratio])
 
     end
@@ -214,19 +218,18 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
             bstar = ti_model.bstar
             x0 = _gauss_yaw_potential_core(d_ust, yaw_ust, ct_ust, astar, ti_ust, bstar)
 
-            # calculate the distance from the onset of far-wake
-            deltax0 = x - x0
-
             # calculate wake spread rate for current upstream turbine
             kstar_ust = _k_star_func(ti_ust,ti_model.k1,ti_model.k2)
 
             # calculate horizontal and vertical spread standard deviations
-            sigmay = sigmaz = _gauss_yaw_spread(x, x0, kstar_ust, d_ust, yaw_ust)
+            # println("sigma inputs: ", x, " ", x0, " ", kstar_ust, " ", d_ust, " ", yaw_ust)
+            sigmay = sigmaz = _gauss_yaw_spread(d_ust, kstar_ust, x, x0, yaw_ust)
 
             # determine the initial wake angle at the onset of far wake
             theta0 = _bpa_theta_0(yaw_ust, ct_ust)
 
             # horizontal cross-wind wake displacement from hub
+            println("wake offset: ", d_ust, " ", ct_ust, " ", yaw_ust, " ", kstar_ust, " ", kstar_ust, " ", sigmay, " ", sigmaz, " ", theta0, " ", x0)
             wake_offset = _bpa_deflection(d_ust, ct_ust, yaw_ust, kstar_ust, kstar_ust, sigmay, sigmaz, theta0, x0)
 
             # cross wind distance from point location to upstream turbine wake center
@@ -241,7 +244,11 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
 
         end
 
+    end
 
+    if turbine_id == 10
+        println("output")
+        println(ambient_ti, " ", turbine_ct[turbine_id], " ", turbine_x[turbine_id], " ", rotor_diameter[turbine_id], " ", hub_height[turbine_id], " ",700, " ", ti_dst)
     end
 
     return ti_dst
