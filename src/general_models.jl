@@ -1,4 +1,6 @@
 abstract type AbstractModelSet end
+# using CSV
+# using DataFrames
 
 """
     WindFarmModelSet(wakedeficitmodel, wake_deflection_model, wake_combination_model, local_ti_model)
@@ -121,6 +123,8 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
         # get index of upstream turbine
         upwind_turb_id = Int(sorted_turbine_index[u])
 
+        if upwind_turb_id == downwind_turbine_id; continue; end
+
         # downstream distance between upstream turbine and point
         x = locx - turbine_x[upwind_turb_id]
 
@@ -195,7 +199,7 @@ Calculates the wind speed at a given point for a given state
 function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
                     sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set::AbstractModelSet; wind_farm_state_id=1, velocity_only=true, shearfirst=true)
-
+    # println("sorted order: ", sorted_turbine_index)
     # get number of turbines and rotor sample point
     n_turbines = length(turbine_x)
     n_rotor_sample_points = length(rotor_sample_points_y)
@@ -252,12 +256,18 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         # update axial induction for downstream turbine
         turbine_ai[downwind_turbine_id] = _ct_to_axial_ind_func(turbine_ct[downwind_turbine_id])
 
-        # update local turbulence intensity for downstream turbine
+        # get local turbulence intensity for this wind state
         ambient_ti = wind_resource.ambient_tis[wind_farm_state_id]
+        
+        # update local turbulence intensity for downstream turbine
         turbine_local_ti[downwind_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
                             turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=1E-6)
 
+        # println("local ti turb 9: ", turbine_local_ti[downwind_turbine_id])
     end
+
+    # df = DataFrame(ID=1:n_turbines, V=turbine_velocities, TI=turbine_local_ti, CT=turbine_ct)
+    # CSV.write("internaldata.txt", df)
 
     if velocity_only
         return turbine_velocities 
@@ -271,12 +281,12 @@ function turbine_velocities_one_direction(x, turbine_z, rotor_diameter, hub_heig
     model_set::AbstractModelSet; wind_farm_state_id=1, velocity_only=true, shearfirst=true)
 
     n_turbines = Int(length(x)/2)
-    println(typeof(x), n_turbines)
+    # println(typeof(x), n_turbines)
     turbine_x = x[1:n_turbines] 
     turbine_y = x[n_turbines+1:end]
     # println(turbine_x)
-    println("turbine_x type ", typeof(turbine_x))
-    println("type of x ", typeof(x))
+    # println("turbine_x type ", typeof(turbine_x))
+    # println("type of x ", typeof(x))
 
     # get number of turbines and rotor sample point
     # n_turbines = length(turbine_x)

@@ -154,7 +154,7 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
         elseif wt_velocity < rated_speed
             # use cp value corresponding to lowest provided velocity point
             cp = power_model.cp_points[1]
-
+            println(cp)
             # calculate power
             power = calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity, wt_yaw, pp=pp)
         end
@@ -164,7 +164,7 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
 
         # estimate cp_value using linear interpolation
         cp = linear(power_model.vel_points, power_model.cp_points, wt_velocity)
-            
+        println(cp)
         # calculate power
         power = calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity, wt_yaw, pp=pp)
 
@@ -174,7 +174,7 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
         if wt_velocity <= cut_out_speed
             # use cp value corresponding to highest provided velocity point
             cp = power_model.cp_points[end]
-
+            # println(cp)
             # calculate power
             power = calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity, wt_yaw, pp=pp)
         end
@@ -395,7 +395,7 @@ Calculate power for each turbine for all states respectively
 function calculate_state_turbine_powers(turbine_x, turbine_y, turbine_z, rotor_diameter,
     hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
     cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set::AbstractModelSet;
-    rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0])
+    rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], shearfirst=true)
 
     nturbines = length(turbine_x)
 
@@ -416,7 +416,7 @@ function calculate_state_turbine_powers(turbine_x, turbine_y, turbine_z, rotor_d
 
         turbine_velocities = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
                             sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                            model_set, wind_farm_state_id=i, velocity_only=true)
+                            model_set, wind_farm_state_id=i, velocity_only=true, shearfirst=shearfirst)
 
         wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                             rated_power, rotor_diameter, turbine_velocities, turbine_yaw, wind_resource.air_density, power_models)

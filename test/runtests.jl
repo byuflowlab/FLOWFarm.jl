@@ -1721,7 +1721,7 @@ using YAML
             windresource, model_set, wind_farm_state_id=1, downwind_turbine_id=0) == expected_velocity
 
             # test max loss at turbine (data from Jensen 1983)
-            expected_velocity = wind_speed*(1.0 - (2. * 1/3.0))
+            expected_velocity = wind_speed*(1.0 - (2.0 * 1.0/3.0))
             locx = 1E-6
             locy = 0.0
             locz = hub_height[1]

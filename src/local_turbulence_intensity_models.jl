@@ -177,11 +177,11 @@ Returns local turbulence intensity calculated using Niayifar and Porte Agel 2015
 - `tol::Float`: How far upstream a turbine should be before being included in TI calculations
 """
 function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6)
+                    turbine_inflow_velocities, turbine_ct, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6)
 
     # calculate local turbulence intensity at turbI
 
-    # initialize the ri_dst and ti_area_ratio to 0.0 for current turbine
+    # initialize the ti_dst and ti_area_ratio to 0.0 for current turbine
     ti_area_ratio = 0.0
     ti_dst = copy(ambient_ti)
 
@@ -223,13 +223,15 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
 
             # calculate horizontal and vertical spread standard deviations
             # println("sigma inputs: ", x, " ", x0, " ", kstar_ust, " ", d_ust, " ", yaw_ust)
-            sigmay = sigmaz = _gauss_yaw_spread(d_ust, kstar_ust, x, x0, yaw_ust)
+            sigmay = sigmaz = _gauss_yaw_spread_interpolated(d_ust, kstar_ust, x, x0, yaw_ust)
 
             # determine the initial wake angle at the onset of far wake
             theta0 = _bpa_theta_0(yaw_ust, ct_ust)
 
             # horizontal cross-wind wake displacement from hub
-            println("wake offset: ", d_ust, " ", ct_ust, " ", yaw_ust, " ", kstar_ust, " ", kstar_ust, " ", sigmay, " ", sigmaz, " ", theta0, " ", x0)
+            # println("wake offset: ", ct_ust, " ", kstar_ust, " ", kstar_ust, " ", sigmay, " ", sigmaz, " ", theta0, " ", x0)
+
+            # println("wake offset: ", ct, " ", ky, " ", kz, " ", sigmay, " ", sigmaz, " ", theta0, " ", x0)
             wake_offset = _bpa_deflection(d_ust, ct_ust, yaw_ust, kstar_ust, kstar_ust, sigmay, sigmaz, theta0, x0)
 
             # cross wind distance from point location to upstream turbine wake center
@@ -241,15 +243,15 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
 
             # update local turbulence intensity
             ti_dst, ti_area_ratio = _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, kstar_ust, delta_y, ambient_ti, ti_ust, ti_dst, ti_area_ratio_tmp)
-
+            # println("ti output: ", turbine_id, " ", turb, " ", ti_area_ratio, " ", ti_dst)
         end
 
     end
 
-    if turbine_id == 10
-        println("output")
-        println(ambient_ti, " ", turbine_ct[turbine_id], " ", turbine_x[turbine_id], " ", rotor_diameter[turbine_id], " ", hub_height[turbine_id], " ",700, " ", ti_dst)
-    end
+    # if turbine_id == 10
+    #     println("output")
+    #     println(ambient_ti, " ", turbine_ct[turbine_id], " ", turbine_x[turbine_id], " ", rotor_diameter[turbine_id], " ", hub_height[turbine_id], " ",700, " ", ti_dst)
+    # end
 
     return ti_dst
 

@@ -188,8 +188,9 @@ function wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine
 
     # [1] eqn 7.4
     x0 = _gauss_yaw_potential_core(diam, yaw, ct, as, ti, bs)
-    sigmay = _gauss_yaw_spread(diam, ky, dx, x0, yaw)
-    sigmaz = _gauss_yaw_spread(diam, kz, dx, x0, 0.0)
+    
+    sigmay = _gauss_yaw_spread_interpolated(diam, ky, dx, x0, yaw)
+    sigmaz = _gauss_yaw_spread_interpolated(diam, kz, dx, x0, 0.0)
     y_deflection = _bpa_deflection(diam, ct, yaw, ky, kz, sigmay, sigmaz, theta0, x0)
 
     return y_deflection
@@ -225,8 +226,11 @@ function wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine
 
     # [1] eqn 7.4
     x0 = _gauss_yaw_potential_core(diam, yaw, ct, as, ti, bs)
-    sigmay = _gauss_yaw_spread(diam, ky, dx, x0, yaw)
-    sigmaz = _gauss_yaw_spread(diam, kz, dx, x0, 0.0)
+    sigmay = _gauss_yaw_spread_interpolated(diam, ky, dx, x0, yaw)
+    sigmaz = _gauss_yaw_spread_interpolated(diam, kz, dx, x0, 0.0)
+
+    # println("x0 : ", turbine_id, " ", x0, " ", ct, " ", ti, " ", dx)
+    # println("wake offset: ", ct, " ", ky, " ", kz, " ", sigmay, " ", sigmaz, " ", theta0, " ", x0)
     y_deflection = _bpa_deflection(diam, ct, yaw, ky, kz, sigmay, sigmaz, theta0, x0)
 
     return y_deflection

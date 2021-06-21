@@ -497,28 +497,38 @@ function _gauss_yaw_spread(dt, k, dx, x0, yaw)
 
 end
 
+"""
+    _gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw)
+
+Helper function for wake_deficit_model when using the GaussYaw model. Computes the standard deviation of the wake.
+with an interpolation on the near wake. 
+
+"""
+function _gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw)
+    # calculate wake spread
+    if dx > x0 # far wake 
+        sigma = _gauss_yaw_spread(dt, k, dx, x0, yaw)
+
+    else # linear interpolation in the near wakes
+        sigma = _gauss_yaw_spread(dt, k, x0, x0, yaw)
+    end
+
+    return sigma
+end
+
 function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, wf)
 
     if dx > 0.0 # loss in the wake
 
+        # println("x0 inputs:", diam, " ", yaw, " ", ct, " ", as, " ", ti, " ", bs)
         # calculate the length of the potential core (paper eq: 7.3)
         x0 = _gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
 
-        # calculate wake spread
-        if dx > x0
-            # calculate horizontal wake spread (paper eq: 7.2)
-            sigma_y = _gauss_yaw_spread(dt, ky, dx, x0, yaw)
-
-            # calculate vertical wake spread (paper eq: 7.2)
-            sigma_z = _gauss_yaw_spread(dt, kz, dx, x0, 0.0)
-
-        else # linear interpolation in the near wakes
-            # calculate horizontal wake spread
-            sigma_y = _gauss_yaw_spread(dt, ky, x0, x0, yaw)
-
-            # calculate vertical wake spread
-            sigma_z = _gauss_yaw_spread(dt, kz, x0, x0, 0.0)
-        end
+        # calculate horizontal wake spread (paper eq: 7.2)
+        sigma_y = _gauss_yaw_spread_interpolated(dt, ky, dx, x0, yaw)
+        
+        # calculate vertical wake spread (paper eq: 7.2)
+        sigma_z = _gauss_yaw_spread_interpolated(dt, kz, dx, x0, 0.0)
 
         # calculate velocity deficit
         ey = exp(-0.5*(dy/(wf*sigma_y))^2)
