@@ -154,7 +154,7 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
         elseif wt_velocity < rated_speed
             # use cp value corresponding to lowest provided velocity point
             cp = power_model.cp_points[1]
-            println(cp)
+            # println(cp)
             # calculate power
             power = calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity, wt_yaw, pp=pp)
         end
@@ -164,7 +164,7 @@ function calculate_power(generator_efficiency, air_density, rotor_area, wt_veloc
 
         # estimate cp_value using linear interpolation
         cp = linear(power_model.vel_points, power_model.cp_points, wt_velocity)
-        println(cp)
+        # println(cp)
         # calculate power
         power = calculate_power_from_cp(generator_efficiency, air_density, rotor_area, cp, wt_velocity, wt_yaw, pp=pp)
 
