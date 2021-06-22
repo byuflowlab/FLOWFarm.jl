@@ -125,7 +125,7 @@ function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, ksta
     wake_overlap = overlap_area_func(0.0, h_dst, d_dst, delta_y, h_ust, d_w)
 
     # initialize the wake/rotor area overlap ratio
-    ti_area_ratio = 0.0
+    ti_area_ratio = ti_area_ratio_in
 
     # only include turbines with area overlap in the softmax
     if wake_overlap > 0.0
