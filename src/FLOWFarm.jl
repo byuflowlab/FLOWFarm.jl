@@ -4,13 +4,12 @@ using ForwardDiff
 using LinearAlgebra
 
 # using CCBlade
-# using PyPlot
+using PyPlot
 using FLOWMath: linear,trapz,Akima
 # using Statistics
 using Distributed
 using YAML
 using XLSX
-using Plots
 
 include("io.jl")
 include("utilities.jl")

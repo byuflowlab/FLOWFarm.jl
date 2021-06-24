@@ -2,6 +2,7 @@
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 FLOWFarm = "eb2d4cfc-2064-11ea-0a1c-63d372e6a848"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TestSetExtensions = "98d24dd4-01ad-11ea-1b02-c9a08f80db04"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
