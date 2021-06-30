@@ -594,55 +594,75 @@ function print_layout_in_cartesian_frame_excel(turbinex, turbiney, winddirection
     end
 end
 
+function wrap_180(x)
+    """
+    Wrap an angle to between -180 and 180
+    adapted from NREL's floris
+    """  
+
+    x[x .<= -180.0] .+= 360.0
+    x[x .> 180.0] .-= 360.0
+
+    return(x)
+end
 # the following is from floris for ccalcculating wake counts
-# def number_of_wakes_iec(self, wd, return_turbines=True):
-# """
-# Finds the number of turbines waking each turbine for the given
-# wind direction. Waked directions are determined using the formula
-# in Figure A.1 in Annex A of the IEC 61400-12-1:2017 standard.
-# # TODO: Add the IEC standard as a reference.
-# Args:
-#     wd (float): Wind direction for determining waked turbines.
-#     return_turbines (bool, optional): Switch to return turbines.
-#         Defaults to True.
-# Returns:
-#     list(int) or list( (:py:class:`~.turbine.Turbine`, int ) ):
-#     Number of turbines waking each turbine and, optionally,
-#     the list of Turbine objects in the map.
-# TODO:
-# - This could be reworked so that the return type is more consistent.
-# - Describe the method used to find upstream turbines.
-# """
-# wake_list = []
-# for coord0, turbine0 in self.items:
-#     other_turbines = [
-#         (coord, turbine) for coord, turbine in self.items if turbine != turbine0
-#     ]
-#     dists = np.array(
-#         [
-#             np.hypot(coord.x1 - coord0.x1, coord.x2 - coord0.x2)
-#             / turbine.rotor_diameter
-#             for coord, turbine in other_turbines
-#         ]
-#     )
-#     angles = np.array(
-#         [
-#             np.degrees(np.arctan2(coord.x1 - coord0.x1, coord.x2 - coord0.x2))
-#             for coord, turbine in self.items
-#             if turbine != turbine0
-#         ]
-#     )
-#     # angles = (-angles - 90) % 360
-#     waked = dists <= 2.0
-#     waked = waked | (
-#         (dists <= 20.0)
-#         & (
-#             np.abs(wrap_180(wd - angles))
-#             <= 0.5 * (1.3 * np.degrees(np.arctan(2.5 / dists + 0.15)) + 10)
-#         )
-#     )
-#     if return_turbines:
-#         wake_list.append((turbine0, waked.sum()))
-#     else:
-#         wake_list.append(waked.sum())
-# return wake_list
+function number_of_wakes_iec(turbinex, turbiney, wd, diam; return_turbines=true)
+"""
+adapted from NREL's floris
+Finds the number of turbines waking each turbine for the given
+wind direction. Waked directions are determined using the formula
+in Figure A.1 in Annex A of the IEC 61400-12-1:2017 standard.
+# TODO: Add the IEC standard as a reference.
+Args:
+    wd (float): Wind direction for determining waked turbines.
+    return_turbines (bool, optional): Switch to return turbines.
+        Defaults to True.
+Returns:
+    list(int) or list( (:py:class:`~.turbine.Turbine`, int ) ):
+    Number of turbines waking each turbine and, optionally,
+    the list of Turbine objects in the map.
+TODO:
+- This could be reworked so that the return type is more consistent.
+- Describe the method used to find upstream turbines.
+"""
+    # convert wind direction to degrees 
+    wd *= 180.0/pi 
+
+    # get number of turbines
+    nturbines = length(turbinex)
+    
+    # set indices of all turbines
+    turbines = collect(1:nturbines)
+
+    # initialize wake count list
+    wake_list = []
+
+    # loop through turbines
+    for turbi = 1:nturbines
+        # get list of all other turbines
+        other_turbines = turbines[turbines .!= turbi]
+
+        # calculate distance in diameters from turbi to all other turbines
+        dists = hypot.(turbinex[other_turbines] .- turbinex[turbi], turbiney[other_turbines] .- turbiney[turbi])./diam
+        
+        # calculate angles in degrees from other turbines to turbi 
+        angles = rad2deg.(atan.(turbinex[other_turbines] .- turbinex[turbi], turbiney[other_turbines] .- turbiney[turbi]))
+        
+        # angles = (-angles - 90) % 360
+        waked = dists .<= 2.0
+        waked = waked .| (&).(
+            (dists .<= 20.0),
+            (
+                abs.(wrap_180(wd .- angles)) .<= 0.5 .* (1.3 .* rad2deg.(atan.(2.5 ./ dists .+ 0.15)) .+ 10)
+            )
+        )
+
+        # if return_turbines
+        #     push!(wake_list(turbine0, waked.sum()))
+        # else
+        #     push!(wake_list(sum(waked)))
+        # end
+        push!(wake_list, sum(waked))
+    end
+    return wake_list
+end
