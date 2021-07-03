@@ -18,9 +18,9 @@ jobs:
         python-version: ["3.8.6"]
     steps:
       - uses: conda-incubator/setup-miniconda@v2
-          with:
-            auto-update-conda: true
-            python-version: ${{ matrix.python-version }}
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
       - uses: actions/checkout@v1.0.0
       - uses: julia-actions/setup-julia@v1
         with:
