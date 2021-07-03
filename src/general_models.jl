@@ -123,6 +123,7 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
         # get index of upstream turbine
         upwind_turb_id = Int(sorted_turbine_index[u])
 
+        # don't allow turbine to impact itself
         if upwind_turb_id == downwind_turbine_id; continue; end
 
         # downstream distance between upstream turbine and point
