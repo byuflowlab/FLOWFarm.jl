@@ -66,8 +66,8 @@ function calculate_ct(inflow_velocity, thrust_model::ThrustModelCtPoints)
         ct = maxct
     end
 
-    if ct > 1
-        ct = 1.0
+    if ct >= 1.0
+        ct = 1.0 - 1E-9 # check
     end
 
     return ct

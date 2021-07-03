@@ -4,7 +4,7 @@ using ForwardDiff
 using LinearAlgebra
 
 # using CCBlade
-import PyPlot; const plt = PyPlot
+using PyPlot; const plt = PyPlot
 using FLOWMath: linear,trapz,Akima
 # using Statistics
 using Distributed

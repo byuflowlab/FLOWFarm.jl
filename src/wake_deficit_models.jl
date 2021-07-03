@@ -518,7 +518,7 @@ end
 
 function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, wf)
 
-    if dx > 0.0 # loss in the wake
+    if dx > 0.1 # loss in the wake
 
         # println("x0 inputs:", diam, " ", yaw, " ", ct, " ", as, " ", ti, " ", bs)
         # calculate the length of the potential core (paper eq: 7.3)
@@ -530,12 +530,13 @@ function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, w
         # calculate vertical wake spread (paper eq: 7.2)
         sigma_z = _gauss_yaw_spread_interpolated(dt, kz, dx, x0, 0.0)
 
-        # calculate velocity deficit
+        # calculate velocity deficit #check - infty when large input ~= 500
         ey = exp(-0.5*(dy/(wf*sigma_y))^2)
         ez = exp(-0.5*(dz/(wf*sigma_z))^2)
 
+
         sqrtterm = 1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2))
-        if sqrtterm >= 1e-8
+        if sqrtterm >= 1e-8 #check - could try increasing tolerance
             loss = (1.0-sqrt(sqrtterm))*ey*ez
         else
             loss = ey*ez
@@ -628,9 +629,9 @@ The spread rate is adjusted based on local turbulence intensity as in Niayifar a
 """
 function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::GaussYawVariableSpread)
 
-    dx = locx-turbine_x[upstream_turbine_id]
-    dy = locy-(turbine_y[upstream_turbine_id]+deflection_y)
-    dz = locz-(turbine_z[upstream_turbine_id]+hub_height[1]+deflection_z)
+    dx = locx - turbine_x[upstream_turbine_id]
+    dy = locy - (turbine_y[upstream_turbine_id] + deflection_y)
+    dz = locz - (turbine_z[upstream_turbine_id] + hub_height[upstream_turbine_id] + deflection_z)
 
     # extract turbine properties
     dt = rotor_diameter[upstream_turbine_id]

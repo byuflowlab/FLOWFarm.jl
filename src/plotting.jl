@@ -12,10 +12,11 @@
 #     display(p)
 # end
 
-function plotlayout!(ax, turbinex, turbiney, rotordiameter; linecolor=:black, fillcolor=:blue, markeralpha=1, title="")
+function plotlayout!(ax, turbinex, turbiney, rotordiameter; fill=false, color="k", markeralpha=1, title="")
     nturbines = length(turbinex)
+    
     for i in 1:nturbines
-        circle = plt.Circle((turbinex[i], turbiney[i]), rotordiameter[i])
+        circle = matplotlib.patches.Circle((turbinex[i], turbiney[i]), rotordiameter[i]/2.0, fill=fill, color=color)
         ax.add_patch(circle)
     end
 end

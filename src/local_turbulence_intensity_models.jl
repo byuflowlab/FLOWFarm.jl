@@ -57,7 +57,7 @@ Returns ambient turbulence intesity value whenever local turbulence intensity is
 - `tol::Float`: How far upstream a turbine should be before being included in TI calculations
 """
 function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=1E-6)
+                    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=0.1)
     return ambient_ti
 end
 
@@ -177,7 +177,7 @@ Returns local turbulence intensity calculated using Niayifar and Porte Agel 2015
 - `tol::Float`: How far upstream a turbine should be before being included in TI calculations
 """
 function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                    turbine_inflow_velocities, turbine_ct, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6)
+                    turbine_inflow_velocities, turbine_ct, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=0.1)
 
     # calculate local turbulence intensity at turbI
 
