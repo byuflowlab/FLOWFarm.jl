@@ -200,7 +200,7 @@ Calculates the wind speed at a given point for a given state
 function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
                     sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set::AbstractModelSet; wind_farm_state_id=1, velocity_only=true, shearfirst=true)
-    # println("sorted order: ", sorted_turbine_index)
+    
     # get number of turbines and rotor sample point
     n_turbines = length(turbine_x)
     n_rotor_sample_points = length(rotor_sample_points_y)
