@@ -129,7 +129,7 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
         x = locx - turbine_x[upwind_turb_id]
 
         # check turbine relative locations
-        if x > 0.1
+        if x > 1E-6
             # skip this loop if it would include a turbine's impact on itself)
             if upwind_turb_id==downwind_turbine_id; continue; end
 
@@ -261,7 +261,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         
         # update local turbulence intensity for downstream turbine
         turbine_local_ti[downwind_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                            turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=0.1)
+                            turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=1E-6)
 
         # println("local ti turb 9: ", turbine_local_ti[downwind_turbine_id])
     end
@@ -346,7 +346,7 @@ function turbine_velocities_one_direction(x, turbine_z, rotor_diameter, hub_heig
         # update local turbulence intensity for downstream turbine
         ambient_ti = wind_resource.ambient_tis[wind_farm_state_id]
         turbine_local_ti[downwind_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                    turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=0.1)
+                    turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=1E-6)
 
     end
 

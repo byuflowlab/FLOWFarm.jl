@@ -518,7 +518,7 @@ end
 
 function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, wf)
 
-    if dx > 0.1 # loss in the wake
+    if dx > 1E-6 # loss in the wake
 
         # println("x0 inputs:", diam, " ", yaw, " ", ct, " ", as, " ", ti, " ", bs)
         # calculate the length of the potential core (paper eq: 7.3)

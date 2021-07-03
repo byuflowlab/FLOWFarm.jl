@@ -1722,7 +1722,7 @@ using YAML
 
             # test max loss at turbine (data from Jensen 1983)
             expected_velocity = wind_speed*(1.0 - (2.0 * 1.0/3.0))
-            locx = 1E-6
+            locx = 1E-5
             locy = 0.0
             locz = hub_height[1]
             @test ff.point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
