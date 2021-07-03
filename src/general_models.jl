@@ -205,9 +205,11 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
     n_turbines = length(turbine_x)
     n_rotor_sample_points = length(rotor_sample_points_y)
 
+    # initialize correct array types
     arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
                             typeof(hub_height[1]),typeof(turbine_yaw[1]))
 
+    # initialize arrays
     turbine_velocities = zeros(arr_type, n_turbines)
     turbine_ct = zeros(arr_type, n_turbines)
     turbine_ai = zeros(arr_type, n_turbines)
