@@ -275,5 +275,7 @@ function get_boundary_yaml(filename)
             boundary_vertices = vcat(boundary_vertices, [nextregion])
         end
     end
+
     return boundary_vertices
+    
 end
