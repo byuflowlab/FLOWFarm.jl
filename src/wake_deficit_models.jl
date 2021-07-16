@@ -523,7 +523,7 @@ function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, w
         # println("x0 inputs:", diam, " ", yaw, " ", ct, " ", as, " ", ti, " ", bs)
         # calculate the length of the potential core (paper eq: 7.3)
         x0 = _gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
-
+        
         # calculate horizontal wake spread (paper eq: 7.2)
         sigma_y = _gauss_yaw_spread_interpolated(dt, ky, dx, x0, yaw)
         

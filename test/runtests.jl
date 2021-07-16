@@ -169,17 +169,65 @@ using YAML
             
         end
 
+        @testset "grid_points" begin 
+
+            # test with grid wholly inside rotor-swept area
+            x, y = ff.grid_points(9, radius=0.5, use_perimeter_points=false)
+            xtest = [-0.5, -0.5, -0.5, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5]
+            ytest = [-0.5, 0.0, 0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.5]
+            @test x ≈ xtest atol=1E-6
+            @test y ≈ ytest atol=1E-6
+
+            # test with grid at size of rotor-swept area excluding perimeter
+            x, y = ff.grid_points(9, radius=1, use_perimeter_points=false)
+            xtest = [0]
+            ytest = [0]
+            @test x ≈ xtest atol=1E-6
+            @test y ≈ ytest atol=1E-6
+
+            # test with grid at size of rotor-swept area including perimeter
+            x, y = ff.grid_points(9, radius=1, use_perimeter_points=true)
+            xtest = [-1, 0, 0, 0, 1]
+            ytest = [0, -1, 0, 1, 0]
+            @test x ≈ xtest atol=1E-6
+            @test y ≈ ytest atol=1E-6
+
+        end
+
         @testset "rotor_sample_points" begin
 
+            # sunflower points method
             x, y = ff.rotor_sample_points(10)
             xtest = [-0.16916402229765054, 0.03473946036824235, 0.3121225499658305, -0.597698416169296, 0.5807122204996749, -0.19752925784048528, -0.3812485520657022, 0.8346088735992109, -0.8743433632876815, 0.4238459950479107]
             ytest = [0.15496810158044924, -0.3958382330389885, 0.40710859551189754, -0.10572443397953969, -0.36940158024655595, 0.7347989934111504, -0.7340708874922061, 0.30479782203943484, 0.36091623014218815, -0.9057342725556136]
             @test x ≈ xtest atol=1E-6
             @test y ≈ ytest atol=1E-6
 
+            # sunflower points method
             x, y = ff.rotor_sample_points(1)
             xtest = [0.0]
             ytest = [0.0]
+            @test x ≈ xtest atol=1E-6
+            @test y ≈ ytest atol=1E-6
+
+            # test with grid wholly inside rotor-swept area
+            x, y = ff.rotor_sample_points(9, method="grid", radius=0.5, use_perimeter_points=false)
+            xtest = [-0.5, -0.5, -0.5, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5]
+            ytest = [-0.5, 0.0, 0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.5]
+            @test x ≈ xtest atol=1E-6
+            @test y ≈ ytest atol=1E-6
+
+            # test with grid at size of rotor-swept area excluding perimeter
+            x, y = ff.rotor_sample_points(9, method="grid", radius=1, use_perimeter_points=false)
+            xtest = [0]
+            ytest = [0]
+            @test x ≈ xtest atol=1E-6
+            @test y ≈ ytest atol=1E-6
+
+            # test with grid at size of rotor-swept area including perimeter
+            x, y = ff.rotor_sample_points(9, method="grid", radius=1, use_perimeter_points=true)
+            xtest = [-1, 0, 0, 0, 1]
+            ytest = [0, -1, 0, 1, 0]
             @test x ≈ xtest atol=1E-6
             @test y ≈ ytest atol=1E-6
             

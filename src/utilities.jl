@@ -512,6 +512,50 @@ function sunflower_points(n; alpha=0.0)
 end
 
 """
+
+    sunflower_points(n; alpha=0.0)
+
+Generates points in a circle of radius=1 using the sunflower packing algorithm. 
+
+# Arguments
+- `n::Float`: number of points to generate
+- `radius::Float`: the perecnt of the rotor radius to use in generating initial point grid 
+- `use_perimeter_points`: whether or not to include point exactly on the perimeter of the 
+    rotor swept area 
+"""
+function grid_points(n; radius=0.5, use_perimeter_points=false)
+    # this function generates n points within a circle using a grid pattern
+    # the code is based on NREL's floris approach
+
+    # determine length of x and y in grid, round if not perfect square
+    sidepoints = Int(round(sqrt(n), digits=0))
+
+    # generate horizontal points 
+    y = -radius:2*radius/(sidepoints-1):radius
+
+    # generate vertical points 
+    z = -radius:2*radius/(sidepoints-1):radius
+
+    # generate grid
+    grid = repeat(y',length(z),1),repeat(z,1,length(y))
+
+    # get x and y values separately and crop to only include point in the swept area
+    if use_perimeter_points
+        yy = grid[1][hypot.(grid[1],grid[2]) .<= 1]
+        zz = grid[2][hypot.(grid[1],grid[2]) .<= 1]
+    else
+        yy = grid[1][hypot.(grid[1],grid[2]) .< 1]
+        zz = grid[2][hypot.(grid[1],grid[2]) .< 1]
+    end
+
+    # get new number of points
+    nnew = size(yy)
+
+    # return 1D arrays for x and y
+    return reshape(yy, nnew), reshape(zz, nnew)
+end
+
+"""
     rotor_sample_points(nsamplepoints=1)
 
 Initializes the sampling locations in the rotor-swept-area. Returns values such that
@@ -524,10 +568,14 @@ using the sunflower packcing algorithm.
 - `alpha::Float`: Controls smoothness of the sunflower algorithm boundary. alpha=0 is the standard "jagged edge" sunflower algoirthm and
     alpha=1 results in a smooth boundary.
 """
-function rotor_sample_points(nsamplepoints=1; alpha=0.0)
+function rotor_sample_points(nsamplepoints=1; method="sunflower", alpha=0.0, use_perimeter_points=false, radius=0.5)
 
     if nsamplepoints > 1
-        rotor_sample_points_y, rotor_sample_points_z = ff.sunflower_points(nsamplepoints, alpha=alpha)
+        if method == "sunflower"
+            rotor_sample_points_y, rotor_sample_points_z = ff.sunflower_points(nsamplepoints, alpha=alpha)
+        elseif method == "grid"
+            rotor_sample_points_y, rotor_sample_points_z = ff.grid_points(nsamplepoints, radius=radius, use_perimeter_points=use_perimeter_points)
+        end
     else
         rotor_sample_points_y = rotor_sample_points_z = [0.0]
     end
