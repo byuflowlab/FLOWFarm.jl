@@ -2,10 +2,7 @@ name: Tests
 
 on:
   push:
-    paths:
-    - '**.jl'
   pull_request:
-
 
 jobs:
   test:
