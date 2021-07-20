@@ -653,26 +653,25 @@ function wrap_180(x)
 
     return(x)
 end
-# the following is from floris for ccalcculating wake counts
-function number_of_wakes_iec(turbinex, turbiney, wd, diam; return_turbines=true)
+
+# the following is from floris for calcculating wake counts
 """
-adapted from NREL's floris
-Finds the number of turbines waking each turbine for the given
-wind direction. Waked directions are determined using the formula
-in Figure A.1 in Annex A of the IEC 61400-12-1:2017 standard.
-# TODO: Add the IEC standard as a reference.
-Args:
-    wd (float): Wind direction for determining waked turbines.
-    return_turbines (bool, optional): Switch to return turbines.
-        Defaults to True.
-Returns:
-    list(int) or list( (:py:class:`~.turbine.Turbine`, int ) ):
-    Number of turbines waking each turbine and, optionally,
-    the list of Turbine objects in the map.
-TODO:
-- This could be reworked so that the return type is more consistent.
-- Describe the method used to find upstream turbines.
+    wake_count_iec(turbinex, turbiney, winddirection, diameter; return_turbines=true)
+
+    Adapted from NREL's floris
+
+    Finds the number of turbines waking each turbine for the given
+    wind direction. Waked directions are determined using the formula
+    in Figure A.1 in Annex A of the IEC 61400-12-1:2017 standard.
+
+# Arguments
+- `turbinex::Array{T,1}`: x locations of turbines in global reference frame 
+- `turbiney::Array{T,1}`: y locations of turbines in global reference frame
+- `winddirection::Float`: wind direction in radians in meteorological coordinates (0 rad. = from North)
+- `diameter::Array{T,1}`: diameters of all wind turbines
 """
+function wake_count_iec(turbinex, turbiney, wd, diameter; return_turbines=true)
+
     # convert wind direction to degrees 
     wd *= 180.0/pi 
 
@@ -687,16 +686,16 @@ TODO:
 
     # loop through turbines
     for turbi = 1:nturbines
+
         # get list of all other turbines
         other_turbines = turbines[turbines .!= turbi]
 
         # calculate distance in diameters from turbi to all other turbines
-        dists = hypot.(turbinex[other_turbines] .- turbinex[turbi], turbiney[other_turbines] .- turbiney[turbi])./diam
+        dists = hypot.(turbinex[other_turbines] .- turbinex[turbi], turbiney[other_turbines] .- turbiney[turbi])./diameter[other_turbines]
         
         # calculate angles in degrees from other turbines to turbi 
         angles = rad2deg.(atan.(turbinex[other_turbines] .- turbinex[turbi], turbiney[other_turbines] .- turbiney[turbi]))
         
-        # angles = (-angles - 90) % 360
         waked = dists .<= 2.0
         waked = waked .| (&).(
             (dists .<= 20.0),
@@ -705,12 +704,36 @@ TODO:
             )
         )
 
-        # if return_turbines
-        #     push!(wake_list(turbine0, waked.sum()))
-        # else
-        #     push!(wake_list(sum(waked)))
-        # end
         push!(wake_list, sum(waked))
+
     end
+
     return wake_list
+end
+
+"""
+    find_upstream_turbines(turbinex, turbiney, winddirection, diameter; inverse=false)
+
+A convenience function to quickly find either which turbines are waked, or those that are 
+not. 
+
+# Arguments
+- `turbinex::Array{T,1}`: x locations of turbines in global reference frame 
+- `turbiney::Array{T,1}`: y locations of turbines in global reference frame
+- `winddirection::Float`: wind direction in radians in meteorological coordinates (0 rad. = from North)
+- `diameter::Array{T,1}`: diameters of all wind turbines
+"""
+function find_upstream_turbines(turbinex, turbiney, winddirection, diameter; inverse=false)
+
+    # find wake count for all turbines in given wind direction 
+    wake_count = wake_count_iec(turbinex, turbiney, winddirection, diameter)
+
+    if inverse
+        # return waked turbines
+        return collect(1:length(turbinex))[wake_count .!= 0]
+    else
+        # return unwaked turbines 
+        return collect(1:length(turbinex))[wake_count .== 0]
+    end
+
 end

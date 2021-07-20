@@ -233,6 +233,41 @@ using YAML
             
         end
 
+        @testset "number_of_wakes_iec" begin 
+            turbinex = [0, 100, 200, 300]
+            turbiney = zeros(4)
+            diameter = ones(4).*40
+
+            # test with turbines in a row
+            winddirection = 3.0*pi/2.0
+            correct_wake_count = [0, 1, 2, 3]
+            wake_count = ff.wake_count_iec(turbinex, turbiney, winddirection, diameter)
+            @test wake_count == correct_wake_count
+
+            # test with turbines all in free-stream 
+            winddirection = 0.0
+            correct_wake_count = zeros(4)
+            wake_count = ff.wake_count_iec(turbinex, turbiney, winddirection, diameter)
+            @test wake_count == correct_wake_count
+        end
+
+        @testset "find_upstream_turbines" begin 
+            turbinex = [0.0 100.0]
+            turbiney = [0.0 0.0]
+            diameter = [20.0 20.0]
+            winddirection = 0.0
+
+            # test for no waked turbines
+            upstream_turbines = ff.find_upstream_turbines(turbinex, turbiney, winddirection, diameter, inverse=false)
+
+            @test upstream_turbines == [1, 2]
+
+            # test with one waked turbine
+            winddirection = 3.0*pi/2.0
+            upstream_turbines = ff.find_upstream_turbines(turbinex, turbiney, winddirection, diameter, inverse=false)
+            @test upstream_turbines == [1]
+        end
+
     end
 
     @testset "Optimization functions" begin
