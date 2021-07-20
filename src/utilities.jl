@@ -720,10 +720,37 @@ not.
 # Arguments
 - `turbinex::Array{T,1}`: x locations of turbines in global reference frame 
 - `turbiney::Array{T,1}`: y locations of turbines in global reference frame
-- `winddirection::Float`: wind direction in radians in meteorological coordinates (0 rad. = from North)
+- `winddirection::Real` or `winddirection::AbstractArray`: wind direction in radians in meteorological coordinates (0 rad. = from North)
 - `diameter::Array{T,1}`: diameters of all wind turbines
 """
-function find_upstream_turbines(turbinex, turbiney, winddirection, diameter; inverse=false)
+function find_upstream_turbines(turbinex, turbiney, winddirection::AbstractArray, diameter; inverse=false)
+
+    # find wake count for all turbines in given wind direction 
+    wake_count = []
+
+    for wd in winddirection
+        push!(wake_count, wake_count_iec(turbinex, turbiney, wd, diameter))
+    end
+
+    if inverse
+        # return waked turbines
+        returnarray = []
+        for i = 1:length(winddirection)
+            push!(returnarray, collect(1:length(turbinex))[wake_count[i] .!= 0])
+        end
+        return returnarray
+    else
+        # return unwaked turbines 
+        returnarray = []
+        for i = 1:length(winddirection)
+            push!(returnarray, collect(1:length(turbinex))[wake_count[i] .== 0])
+        end
+        return returnarray
+    end
+
+end
+
+function find_upstream_turbines(turbinex, turbiney, winddirection::Real, diameter; inverse=false)
 
     # find wake count for all turbines in given wind direction 
     wake_count = wake_count_iec(turbinex, turbiney, winddirection, diameter)

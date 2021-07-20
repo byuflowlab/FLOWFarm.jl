@@ -255,17 +255,19 @@ using YAML
             turbinex = [0.0 100.0]
             turbiney = [0.0 0.0]
             diameter = [20.0 20.0]
-            winddirection = 0.0
+            winddirection = [0.0, 3.0*pi/2.0]
 
             # test for no waked turbines
-            upstream_turbines = ff.find_upstream_turbines(turbinex, turbiney, winddirection, diameter, inverse=false)
-
+            upstream_turbines = ff.find_upstream_turbines(turbinex, turbiney, winddirection[1], diameter, inverse=false)
             @test upstream_turbines == [1, 2]
 
             # test with one waked turbine
-            winddirection = 3.0*pi/2.0
-            upstream_turbines = ff.find_upstream_turbines(turbinex, turbiney, winddirection, diameter, inverse=false)
+            upstream_turbines = ff.find_upstream_turbines(turbinex, turbiney, winddirection[2], diameter, inverse=false)
             @test upstream_turbines == [1]
+
+            # test with two directions
+            upstream_turbines = ff.find_upstream_turbines(turbinex, turbiney, winddirection, diameter, inverse=false)
+            @test upstream_turbines == [[1, 2],[1]]
         end
 
     end
