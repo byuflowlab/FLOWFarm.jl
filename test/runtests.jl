@@ -1,7 +1,4 @@
-
-Conda.add("nomkl")
-Conda.add("scikit-learn")
-Conda.rm("mkl")
+using Pkg; Pkg.build()
 
 using FLOWFarm; const ff = FLOWFarm
 using Test
