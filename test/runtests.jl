@@ -249,6 +249,12 @@ using YAML
             correct_wake_count = zeros(4)
             wake_count = ff.wake_count_iec(turbinex, turbiney, winddirection, diameter)
             @test wake_count == correct_wake_count
+
+            # test with multiple directions
+            winddirection = [3.0*pi/2.0, 0.0]
+            correct_wake_count = [0 1 2 3; 0 0 0 0]
+            wake_count = ff.wake_count_iec(turbinex, turbiney, winddirection, diameter)
+            @test wake_count == correct_wake_count
         end
 
         @testset "find_upstream_turbines" begin 

@@ -670,7 +670,7 @@ end
 - `winddirection::Float`: wind direction in radians in meteorological coordinates (0 rad. = from North)
 - `diameter::Array{T,1}`: diameters of all wind turbines
 """
-function wake_count_iec(turbinex, turbiney, wd, diameter; return_turbines=true)
+function wake_count_iec(turbinex, turbiney, wd::Real, diameter; return_turbines=true)
 
     # convert wind direction to degrees 
     wd *= 180.0/pi 
@@ -706,6 +706,19 @@ function wake_count_iec(turbinex, turbiney, wd, diameter; return_turbines=true)
 
         push!(wake_list, sum(waked))
 
+    end
+
+    return wake_list
+end
+
+function wake_count_iec(turbinex, turbiney, wd::AbstractArray, diameter; return_turbines=true)
+
+    # initialize wake list 
+    wake_list = zeros(Int, (length(wd), length(turbinex)))
+
+    # call wake_count_iec for each direction 
+    for i = 1:length(wd)
+        wake_list[i,:] = wake_count_iec(turbinex, turbiney, wd[i], diameter)
     end
 
     return wake_list
