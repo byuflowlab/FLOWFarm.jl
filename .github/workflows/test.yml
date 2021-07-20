@@ -2,10 +2,7 @@ name: Tests
 
 on:
   push:
-    paths:
-    - '**.jl'
   pull_request:
-
 
 jobs:
   test:
@@ -14,10 +11,10 @@ jobs:
       matrix:
         julia-version: ['1.6']
         julia-arch: [x64]
-        os: [ubuntu-latest, macOS-latest]
+        os: [ubuntu-latest] #, macOS-latest]
         python-version: ["3.8.6"]
     env:
-      PYTHON: Conda LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/.julia/conda/3/lib
+      PYTHON:  Conda LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/.julia/conda/3/lib julia
     steps:
       - uses: actions/checkout@v1.0.0
       - uses: julia-actions/setup-julia@v1
