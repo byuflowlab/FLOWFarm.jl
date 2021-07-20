@@ -1,6 +1,6 @@
 name = "FLOWFarm"
 uuid = "eb2d4cfc-2064-11ea-0a1c-63d372e6a848"
-authors = ["PJ Stanley <stanley_andrewpj@yahoo.com>"]
+authors = ["Jared J. Thomas <jaredthomas68@gmail.com>", "PJ Stanley <stanley_andrewpj@yahoo.com>"]
 version = "0.1.0"
 
 [deps]
