@@ -173,7 +173,7 @@ obj_func(x) = wind_farm_opt(x)
 wec_steps = 2
 wec_max = 3.0
 wec_end = 1.0
-wec_values = collect(LinRange(wec_max, wec_end, wec_steps))
+wec_values = collect(LinRange(wec_max, wec_end, wec_steps)) #best series for 38 turb round farm: 3.0, 2.6, 2.2, 1.8, 1.4, 1.0, 1.0
 println(wec_values)
 info = fill("",wec_steps)
 # run and time optimization
