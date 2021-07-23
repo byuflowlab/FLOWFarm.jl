@@ -469,6 +469,35 @@ end
 
 """
 
+    _remove_perimeter_points!(n; alpha=0.0)
+
+Internal function. Removes points outside or outside and on the border of the rotor-swept 
+    area 
+
+# Arguments
+- `y::AbstractArray`: horizontal point locations
+- `z::AbstractArray`: vertical point locations 
+- `use_perimeter_points::Bool`: flag that determines whether or not to include points on the 
+    boundary of the rotor-swept area
+"""
+function _remove_out_of_bounds_points(y, z, use_perimeter_points)
+
+    # get x and y values separately and crop to only include points in the swept area
+    if use_perimeter_points
+        yy = y[hypot.(y,z) .<= 1]
+        zz = z[hypot.(y,z) .<= 1]
+    else
+        yy = y[hypot.(y,z) .< 1]
+        zz = z[hypot.(y,z) .< 1]
+    end
+
+    # return new arrays with points outside boundary removed
+    return yy, zz
+
+end
+
+"""
+
     sunflower_points(n; alpha=0.0)
 
 Generates points in a circle of radius=1 using the sunflower packing algorithm. 
@@ -513,17 +542,15 @@ end
 
 """
 
-    sunflower_points(n; alpha=0.0)
+    grid_points(n)
 
-Generates points in a circle of radius=1 using the sunflower packing algorithm. 
+Generates points in a grid. If n is not a perfect square, then the nearest square root will 
+be used for the side length of the grid.
 
 # Arguments
 - `n::Float`: number of points to generate
-- `radius::Float`: the perecnt of the rotor radius to use in generating initial point grid 
-- `use_perimeter_points`: whether or not to include point exactly on the perimeter of the 
-    rotor swept area 
 """
-function grid_points(n; radius=0.5, use_perimeter_points=false)
+function grid_points(n)
     # this function generates n points within a circle using a grid pattern
     # the code is based on NREL's floris approach
 
@@ -531,28 +558,19 @@ function grid_points(n; radius=0.5, use_perimeter_points=false)
     sidepoints = Int(round(sqrt(n), digits=0))
 
     # generate horizontal points 
-    y = -radius:2*radius/(sidepoints-1):radius
+    y = -1.0:2.0/(sidepoints-1.0):1.0
 
     # generate vertical points 
-    z = -radius:2*radius/(sidepoints-1):radius
+    z = -1.0:2.0/(sidepoints-1.0):1.0
 
     # generate grid
     grid = repeat(y',length(z),1),repeat(z,1,length(y))
 
-    # get x and y values separately and crop to only include point in the swept area
-    if use_perimeter_points
-        yy = grid[1][hypot.(grid[1],grid[2]) .<= 1]
-        zz = grid[2][hypot.(grid[1],grid[2]) .<= 1]
-    else
-        yy = grid[1][hypot.(grid[1],grid[2]) .< 1]
-        zz = grid[2][hypot.(grid[1],grid[2]) .< 1]
-    end
-
     # get new number of points
-    nnew = size(yy)
+    nnew = length(grid[1])
 
     # return 1D arrays for x and y
-    return reshape(yy, nnew), reshape(zz, nnew)
+    return reshape(grid[1],nnew), reshape(grid[2], nnew)
 end
 
 """
@@ -567,15 +585,26 @@ using the sunflower packcing algorithm.
 - `nsamplepoints::Int`: controlls how many sample points to generate
 - `alpha::Float`: Controls smoothness of the sunflower algorithm boundary. alpha=0 is the standard "jagged edge" sunflower algoirthm and
     alpha=1 results in a smooth boundary.
+- `pradius::Float`: the percent of the rotor radius to use in generating initial point grid 
+- `use_perimeter_points`: whether or not to include point exactly on the perimeter of the 
+    rotor swept area 
 """
-function rotor_sample_points(nsamplepoints=1; method="sunflower", alpha=0.0, use_perimeter_points=false, radius=0.5)
+function rotor_sample_points(nsamplepoints=1; method="sunflower", alpha=0.0, use_perimeter_points=true, pradius=1.0)
 
     if nsamplepoints > 1
         if method == "sunflower"
             rotor_sample_points_y, rotor_sample_points_z = ff.sunflower_points(nsamplepoints, alpha=alpha)
         elseif method == "grid"
-            rotor_sample_points_y, rotor_sample_points_z = ff.grid_points(nsamplepoints, radius=radius, use_perimeter_points=use_perimeter_points)
+            rotor_sample_points_y, rotor_sample_points_z = ff.grid_points(nsamplepoints)
         end
+
+        # adjust to desired radius 
+        rotor_sample_points_y .*= pradius
+        rotor_sample_points_z .*= pradius
+
+        # remove any points outside the swept area 
+        rotor_sample_points_y, rotor_sample_points_z = _remove_out_of_bounds_points(rotor_sample_points_y, rotor_sample_points_z, use_perimeter_points)
+
     else
         rotor_sample_points_y = rotor_sample_points_z = [0.0]
     end

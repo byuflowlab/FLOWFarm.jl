@@ -171,26 +171,12 @@ using YAML
 
         @testset "grid_points" begin 
 
-            # test with grid wholly inside rotor-swept area
-            x, y = ff.grid_points(9, radius=0.5, use_perimeter_points=false)
-            xtest = [-0.5, -0.5, -0.5, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5]
-            ytest = [-0.5, 0.0, 0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.5]
-            @test x ≈ xtest atol=1E-6
-            @test y ≈ ytest atol=1E-6
-
-            # test with grid at size of rotor-swept area excluding perimeter
-            x, y = ff.grid_points(9, radius=1, use_perimeter_points=false)
-            xtest = [0]
-            ytest = [0]
-            @test x ≈ xtest atol=1E-6
-            @test y ≈ ytest atol=1E-6
-
             # test with grid at size of rotor-swept area including perimeter
-            x, y = ff.grid_points(9, radius=1, use_perimeter_points=true)
-            xtest = [-1, 0, 0, 0, 1]
-            ytest = [0, -1, 0, 1, 0]
-            @test x ≈ xtest atol=1E-6
+            y, z = ff.grid_points(9)
+            ytest = [-1, -1, -1, 0, 0, 0, 1, 1, 1]
+            ztest = [-1, 0, 1, -1, 0, 1, -1, 0, 1]
             @test y ≈ ytest atol=1E-6
+            @test z ≈ ztest atol=1E-6
 
         end
 
@@ -211,21 +197,21 @@ using YAML
             @test y ≈ ytest atol=1E-6
 
             # test with grid wholly inside rotor-swept area
-            x, y = ff.rotor_sample_points(9, method="grid", radius=0.5, use_perimeter_points=false)
+            x, y = ff.rotor_sample_points(9, method="grid", pradius=0.5, use_perimeter_points=false)
             xtest = [-0.5, -0.5, -0.5, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5]
             ytest = [-0.5, 0.0, 0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.5]
             @test x ≈ xtest atol=1E-6
             @test y ≈ ytest atol=1E-6
 
             # test with grid at size of rotor-swept area excluding perimeter
-            x, y = ff.rotor_sample_points(9, method="grid", radius=1, use_perimeter_points=false)
+            x, y = ff.rotor_sample_points(9, method="grid", pradius=1, use_perimeter_points=false)
             xtest = [0]
             ytest = [0]
             @test x ≈ xtest atol=1E-6
             @test y ≈ ytest atol=1E-6
 
             # test with grid at size of rotor-swept area including perimeter
-            x, y = ff.rotor_sample_points(9, method="grid", radius=1, use_perimeter_points=true)
+            x, y = ff.rotor_sample_points(9, method="grid", pradius=1, use_perimeter_points=true)
             xtest = [-1, 0, 0, 0, 1]
             ytest = [0, -1, 0, 1, 0]
             @test x ≈ xtest atol=1E-6
@@ -233,7 +219,7 @@ using YAML
             
         end
 
-        @testset "number_of_wakes_iec" begin 
+        @testset "wake_count_iec" begin 
             turbinex = [0, 100, 200, 300]
             turbiney = zeros(4)
             diameter = ones(4).*40
