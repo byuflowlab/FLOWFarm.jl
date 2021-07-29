@@ -39,15 +39,15 @@ To test FLOWFarm, run the following from the top directory:
 ```julia
 ]
 activate .
-test FLOWFarm
+test
 ```
 
 ## Documentation
 
 * Begin with the [quick start tutorial](Tutorial.md).
 * More advanced topics are covered in the [guided examples](How_to.md).
-* Doc strings can be found in the [references](Reference.md) page.
 * Theory details, and links, can be found in the [theory](Explanation.md) page.
+* Doc strings can be found in the [references](Reference.md) page.
 
 **Citing:**
 Thomas, McOmber, and Ning "Wake Expansion Continuation: Multi-Modality Reduction in the Wind Farm Layout Optimization Problem" *Wind Energy* (in review), -->
