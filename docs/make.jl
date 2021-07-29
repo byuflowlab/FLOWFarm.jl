@@ -6,10 +6,10 @@ makedocs(;
     modules=[FLOWFarm],
     format=Documenter.HTML(),
     pages=[
-        "Home" => "index.md",
-        "Tutorial" => "Tutorial.md",
-        "How-To" => "How_to.md",
-        "Explanation" => "Explanation.md",
+        "Intro" => "index.md",
+        "Quick Start" => "Tutorial.md",
+        "Guided Examples" => "How_to.md",
+        "Theory" => "Explanation.md",
         "Reference" => "Reference.md"
     ],
     repo="https://github.com/byuflowlab/FLOWFarm.jl/blob/{commit}{path}#L{line}",
@@ -19,5 +19,6 @@ makedocs(;
 )
 
 deploydocs(
-    repo = "github.com/byuflowlab/FLOWFarm.jl.git"
+    repo = "github.com/byuflowlab/FLOWFarm.jl.git",
+    versions = nothing
 )
