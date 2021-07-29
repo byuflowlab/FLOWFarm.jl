@@ -9,7 +9,8 @@ There are three main steps to setting up and running an analysis in FLOWFarm:
 
 Details for setting up an optimization will depend heavily on the
 optimization package you are using, your objective, and your design variables. Optimization
-examples using various packages are provided in the example scripts located in the test directory.
+examples using various packages are provided in the example scripts located in the test 
+directory.
 
 ### (1) Setting up the problem description
 
