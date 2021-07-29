@@ -79,6 +79,7 @@ plt.scatter(s, h)
 plt.title("Wind Shear")
 plt.xlabel("Speed (m/s)")
 plt.ylabel("Height (m)")
+
 ```
 
 ## Other Functions
