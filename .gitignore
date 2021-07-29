@@ -2,7 +2,6 @@
 /Manifest.toml
 /dev/
 /docs/build/
-/docs/site/
 */.ipynb_checkpoints/*
 Untitled.ipynb
 *.out

@@ -54,7 +54,7 @@ ff.adjust_for_wind_shear(locz, reference_velocity, reference_height, ground_heig
 7.2100037008866416
 ```
 
-```@example index
+```@example
 using FLOWFarm; const ff = FLOWFarm
 using DataFrames
 using PyPlot; const plt = PyPlot
