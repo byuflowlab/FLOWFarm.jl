@@ -56,7 +56,6 @@ ff.adjust_for_wind_shear(locz, reference_velocity, reference_height, ground_heig
 
 ```@example
 using FLOWFarm; const ff = FLOWFarm
-using DataFrames
 using PyPlot; const plt = PyPlot
 
 # set input values
@@ -75,11 +74,8 @@ for i in length(h)
     s[i] = ff.adjust_for_wind_shear(h[i], reference_velocity, reference_height, ground_height, wind_shear_model)
 end
 
-df = DataFrame(h=h,s=s)
-
-
 # Scatter plot with some custom settings
-plt.scatter(df.s, df.h)
+plt.scatter(s, h)
 plt.title("Wind Shear")
 plt.xlabel("Speed (m/s)")
 plt.ylabel("Height (m)")
