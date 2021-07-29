@@ -1,37 +1,54 @@
-<!-- # FLOWFarm.jl
+# FLOWFarm.jl
 
-FLOWFarm is a wind farm simulation and optimization tool specifically built for use with 
-gradient-based optimization techniques and to allow simple comparison of various wind 
-farm related models, including ones added by users.
+**Summary:** Wind farm simulation tool for gradient-based optimization.
 
-**Authors:** Jared Thomas, Andrew P.J. Stanley
+**Authors:** Jared J. Thomas, Andrew P.J. Stanley
 
+## Features
+- Swap out models without changing anything else in the simulation setup
+- Smooth/continous model implementations
+- Runs on a single core, across multiple cores (threaded), or on multiple machines (distributed).
+- Designed so that new model implementations can be included by adding a single method
+- Allows for Wake Expansion Continuation (WEC) as described [here](http://flowlab.groups.et.byu.net/preprints/Thomas2021.pdf)
 
-**Installation:**
+## Installation
 
+### Install FLOWFarm
 
+```julia
+(v1.x) pkg> dev https://github.com/byuflowlab/FLOWFarm.jl.git
 ```
-pkg> dev github.com/byuflowlab/FLOWFarm.jl
+
+### Enable NaN Safe Mode in ForwardDiff
+NaN Safe Mode must be enables in ForwardDiff for ForwardDiff to work properly with FLOWFarm.
+
+```julia
+(v1.x) pkg> dev ForwardDiff
+```
+```
+$ cd ~/.julia/dev/ForwardDiff/src/
+```
+In `prelude.jl`, on the first line, set `const NANSAFE_MODE_ENABLED = true` and save the file. 
+For more information see the ForwardDiff documentation at 
+http://www.juliadiff.org/ForwardDiff.jl/latest/user/advanced.html
+
+## Testing
+
+To test FLOWFarm, run the following from the top directory:
+
+```julia
+]
+activate .
+test FLOWFarm
 ```
 
-**Documentation:**
+## Documentation
 
-* For introductory usage help can be found [here](Tutorial.md).
-* Help with using specific functions found in the [how-to guide](How_to.md).
-* Theory and Methodology of FLOWFarm in the [theory](Explanation.md) section.
-* Doc Strings and information on the code structure is contained [here](Reference.md).
+* Begin with the [quick start tutorial](Tutorial.md).
+* More advanced topics are covered in the [guided examples](How_to.md).
+* Doc strings can be found in the [references](Reference.md) page.
+* Theory details, and links, can be found in the [theory](Explanation.md) page.
 
-```@autodocs
-Modules = [FLOWFarm]
-```
 **Citing:**
-1. N.O. Jensen "A Note on Wind Generator Interaction" *Roskilde: Risø National Laboratory* (1983)
-2. I. Katic, k. Hølstrup, N.O. Jensen. "A simple model for cluster efficiency"* European Wind Energy Association Conference and exhibition* (1986) 
-3. Gebraad et al. "Wind plant power optimization through yaw control using a parametric model for wake effects—a CFD simulation study" (2014) 
-4. Jimenez et al. "Application of a LES technique to characterize the wake deflection of a wind turbine in yaw" *Wind Energy* (2010)
-5. Bastankhah "A new analytical model for wind-turbine wakes" *Renewable Energy* (2014)
-6. Bastankhah "Experimental and theoretical study of wind turbine wakes in yawed conditions" *Journal of Fluid Mechanics* (2016)
-7. Niayifar "Analytical modeling of wind farms: A new approach for power prediction" *Energies* (2016)
-8. Thomas "Improving the FLORIS Wind Plant Model for Compatibility with Gradient-Based Optimization" *Wind Engineering* (2017)
-9. Thomas "Comparison of Wind Farm Layout Optimization Results Using a Simple Wake Model and Gradient-Based Optimization to Large-Eddy Simulations" *AIAA Scitech 2019 Forum* (2019)
-10. Thomas, McOmber, and Ning "Wake Expansion Continuation: Multi-Modality Reduction in the Wind Farm Layout Optimization Problem" *Wind Energy* (in review), -->
+Thomas, McOmber, and Ning "Wake Expansion Continuation: Multi-Modality Reduction in the Wind Farm Layout Optimization Problem" *Wind Energy* (in review), -->
+

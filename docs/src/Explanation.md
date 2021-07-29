@@ -1,8 +1,3 @@
-```@setup index
-using Plots; gr()
-Plots.reset_defaults()
-```
-
 # Explanation
 This section will explain the fundamental principles behind the wind models used in Flow Farm.
 
@@ -62,7 +57,7 @@ ff.adjust_for_wind_shear(locz, reference_velocity, reference_height, ground_heig
 ```@example index
 using FLOWFarm; const ff = FLOWFarm
 using DataFrames
-using StatsPlots
+using PyPlot; const plt = PyPlot
 
 # set input values
 shear_exponent = 0.15
@@ -80,18 +75,29 @@ for i in length(h)
     s[i] = ff.adjust_for_wind_shear(h[i], reference_velocity, reference_height, ground_height, wind_shear_model)
 end
 
-df = DataFrame(:h=h,:s=s)
+df = DataFrame(h=h,s=s)
+
+
 # Scatter plot with some custom settings
-@df df plot(
-    :s,
-    :h,
-    title = "Wind Shear",
-    xlabel = "Speed",
-    ylabel = "Height"
-)
+plt.scatter(df.s, df.h)
+plt.title("Wind Shear")
+plt.xlabel("Speed (m/s)")
+plt.ylabel("Height (m)")
 ```
 
 ## Other Functions
 ### Overlap 
 
 ## Optimization
+
+**Citing:**
+1. N.O. Jensen "A Note on Wind Generator Interaction" *Roskilde: Risø National Laboratory* (1983)
+2. I. Katic, k. Hølstrup, N.O. Jensen. "A simple model for cluster efficiency"* European Wind Energy Association Conference and exhibition* (1986) 
+3. Gebraad et al. "Wind plant power optimization through yaw control using a parametric model for wake effects—a CFD simulation study" (2014) 
+4. Jimenez et al. "Application of a LES technique to characterize the wake deflection of a wind turbine in yaw" *Wind Energy* (2010)
+5. Bastankhah "A new analytical model for wind-turbine wakes" *Renewable Energy* (2014)
+6. Bastankhah "Experimental and theoretical study of wind turbine wakes in yawed conditions" *Journal of Fluid Mechanics* (2016)
+7. Niayifar "Analytical modeling of wind farms: A new approach for power prediction" *Energies* (2016)
+8. Thomas "Improving the FLORIS Wind Plant Model for Compatibility with Gradient-Based Optimization" *Wind Engineering* (2017)
+9. Thomas "Comparison of Wind Farm Layout Optimization Results Using a Simple Wake Model and Gradient-Based Optimization to Large-Eddy Simulations" *AIAA Scitech 2019 Forum* (2019)
+10. Thomas, McOmber, and Ning "Wake Expansion Continuation: Multi-Modality Reduction in the Wind Farm Layout Optimization Problem" *Wind Energy* (in review), -->
