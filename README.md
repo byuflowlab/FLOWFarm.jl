@@ -1,5 +1,5 @@
 ![Tests](https://github.com/byuflowlab/FLOWFarm.jl/actions/workflows/test.yml/badge.svg)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://byuflowlab.github.io/FLOWFarm.jl/dev)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://byuflowlab.github.io/FLOWFarm.jl/)
 
 
 # FLOWFarm.jl
