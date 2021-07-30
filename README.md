@@ -9,6 +9,7 @@
 **Authors:** Jared J. Thomas, Andrew P.J. Stanley
 
 ## Features
+- Compatible with ForwardDiff for gradiant-based optimization
 - Swap out models without changing anything else in the simulation setup
 - Smooth/continous model implementations
 - Runs on a single core, across multiple cores (threaded), or on multiple machines (distributed).
