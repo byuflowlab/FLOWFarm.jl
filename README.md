@@ -42,9 +42,10 @@ http://www.juliadiff.org/ForwardDiff.jl/latest/user/advanced.html
 To test FLOWFarm, run the following from the top directory:
 
 ```julia
+julia
 ]
 activate .
-test FLOWFarm
+test
 ```
 
 ## Documentation
