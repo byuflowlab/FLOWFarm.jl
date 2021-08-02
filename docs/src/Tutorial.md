@@ -42,10 +42,10 @@ rated_speed = zeros(nturbines) .+16.            # m/s
 rated_power = zeros(nturbines) .+2.0E6          # W
 generator_efficiency = zeros(nturbines) .+ 0.944
 
-``` Rotor swept area sample points (normalized by rotor radius). These arrays define which
-which points on the rotor swept area should be used to estimate the effective inflow
-wind speed for each wind turbine. Values of 0.0 are at the rotor hub, 1.0 is at the blade
-tip. z is vertical, and y is horizontal. These points track the rotor yaw.```
+# Rotor swept area sample points (normalized by rotor radius). These arrays define which
+# which points on the rotor swept area should be used to estimate the effective inflow
+# wind speed for each wind turbine. Values of 0.0 are at the rotor hub, 1.0 is at the blade
+tip. z is vertical, and y is horizontal. These points track the rotor yaw.
 rotor_points_y = [0.0]
 rotor_points_z = [0.0]
 
@@ -79,53 +79,60 @@ A model set requires a Wake Deficit Model, Wake Deflection Model, Wake Combinati
 
 The model set can be set up as follows:
 
+Initialize power model (this is a simple power model based only on turbine design and is not accurate. For examples on how to use more accurate power models, look at the example optimization scripts)
 ```julia
-``` initialize power model (this is a simple power model based only on turbine design and is 
-not accurate. For examples on how to use more accurate power models, look at the example 
-optimization scripts)```
 power_model = ff.PowerModelPowerCurveCubic()
+```
 
-``` The user can define different power models for different wind turbines, but here we use the
-same power model for every turbine. The initialization of the power_models vector is important
-for optmization using algorithmic differentiation via the ForwardDiff.jl package.```
+The user can define different power models for different wind turbines, but here we use the same power model for every turbine. The initialization of the power_models vector is important for optmization using algorithmic differentiation via the ForwardDiff.jl package.
+```julia
 power_models = Vector{typeof(power_model)}(undef, nturbines)
 for i = 1:nturbines
     power_models[i] = power_model
 end
+```
 
-``` Initialize thrust model. The user can provide a complete thrust curve. See the example 
-scripts for details on initializing them. The initialization of ct_models vector is important
-for optmization using algorithmic differentiation via the ForwardDiff.jl package.```
+Initialize thrust model. The user can provide a complete thrust curve. See the example scripts for details on initializing them. The initialization of ct_models vector is important for optmization using algorithmic differentiation via the ForwardDiff.jl package.
+```julia
 ct_model = ff.ThrustModelConstantCt(0.65)
 ct_models = Vector{typeof(ct_model)}(undef, nturbines)
 for i = 1:nturbines
     ct_models[i] = ct_model
 end
-
-``` set up wake and related models. Here we will use the default values provided in FLOWFarm.
-However, it is important to use the correct model parameters. More information and references
-are provided in the doc strings attached to each model.```
-
-# the wake deficit model predicts the impact of wind turbines wake on the wind speed
-wakedeficitmodel = ff.GaussYaw()
-
-# the wake deflection model predicts the cross-wind location of the center of a wind turbine wake
-wakedeflectionmodel = ff.GaussYawDeflection()
-
-# the wake combination model defines how the predicted deficits in each wake should be combined to predict the total deficit at a point
-wakecombinationmodel = ff.LinearLocalVelocitySuperposition()
-
-# the local turbulence intensity models can be used to estimate the local turbulence intensity at each wind turbine or point to provide
-# more accurate input information to the wake and deflection models if applicable.
-localtimodel = ff.LocalTIModelMaxTI()
-
-# initialize model set. This is just a convenience container for the analysis models.
-model_set = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
-
 ```
+
+Set up wake and related models. Here we will use the default values provided in FLOWFarm.
+However, it is important to use the correct model parameters. More information and references
+are provided in the doc strings attached to each model.
+
+The wake deficit model predicts the impact of wind turbines wake on the wind speed.
+```julia
+wakedeficitmodel = ff.GaussYaw()
+```
+
+The wake deflection model predicts the cross-wind location of the center of a wind turbine wake.
+```julia
+wakedeflectionmodel = ff.GaussYawDeflection()
+```
+
+The wake combination model defines how the predicted deficits in each wake should be combined to predict the total deficit at a point
+```julia
+wakecombinationmodel = ff.LinearLocalVelocitySuperposition()
+```
+
+The local turbulence intensity models can be used to estimate the local turbulence intensity at each wind turbine or point to provide more accurate input information to the wake and deflection models if applicable.
+```julia
+localtimodel = ff.LocalTIModelMaxTI()
+```
+
+Initialize model set. This is just a convenience container for the analysis models.
+```julia
+model_set = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
+```
+
 ### (3) Running the analysis
 
-#### Calculate AEP
+Calculate AEP
 ```julia
 
     AEP = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
