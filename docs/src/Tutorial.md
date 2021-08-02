@@ -12,7 +12,7 @@ optimization package you are using, your objective, and your design variables. O
 examples using various packages are provided in the example scripts located in the test 
 directory.
 
-### (1) Setting up the problem description
+## (1) Setting up the problem description
 
 ```julia
 import FLOWFarm; const ff = FLOWFarm
@@ -69,7 +69,7 @@ measurementheight, air_density, ambient_tis, wind_shear_model)
 
 ```
 
-### (2) Setting up the analysis models
+## (2) Setting up the analysis models
 
 A model set requires a Wake Deficit Model, Wake Deflection Model, Wake Combination Model, and a Local Turbulence Intensity Model
 * Deficit Models: JensenTopHat, JensenCosine, MultiZone, GaussOriginal, GaussYaw, GaussYawVariableSpread, GaussSimple
@@ -130,7 +130,7 @@ Initialize model set. This is just a convenience container for the analysis mode
 model_set = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
 ```
 
-### (3) Running the analysis
+## (3) Running the analysis
 
 Calculate AEP
 ```julia
