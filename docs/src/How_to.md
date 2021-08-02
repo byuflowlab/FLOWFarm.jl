@@ -17,7 +17,7 @@ You may have to add `using Distributed` to your julia script and use the `@every
 in front of any functions you define that all processors will need access to. For an example, 
 see `example_opt_6_38turb_round_distributed.jl`.
 
-**Using Distributed Processing without an HPC Cluster Manager (e.g. on your local system)**
+### Using Distributed Processing without an HPC Cluster Manager (e.g. on your local system)
 
 Distributed parallel processing can be enabled as follows when launching a julia session:
 
@@ -25,7 +25,7 @@ Distributed parallel processing can be enabled as follows when launching a julia
 julia -p <number of processors>
 ```
 
-**Using Distributed Processing with an HPC Cluster Manager (e.g. SLURM)**
+### Using Distributed Processing with an HPC Cluster Manager (e.g. SLURM)
 
 The `-p` option to the julia call is unnecessary when running with a cluster manager. 
 To work with cluster managers, add the following to your julia script (this example is for 
