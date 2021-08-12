@@ -12,6 +12,7 @@ using FLOWMath: linear,trapz,Akima
 using Distributed
 using YAML
 using XLSX
+using CSV
 
 include("io.jl")
 include("utilities.jl")
