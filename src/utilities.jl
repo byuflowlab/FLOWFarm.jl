@@ -835,7 +835,7 @@ function round_farm_concentric_start(rotor_diameter, center, radius; min_spacing
     index += 1
     for circle in 1:Int(nCircles)
         for turb in 1:Int(nTurbines_circles[circle])
-            angle = alphas[circle]*turb
+            angle = alphas[circle]*(turb-1)
             w = radii[circle]*cos(angle)
             h = radii[circle]*sin(angle)
             x = center[1] + w
@@ -857,8 +857,8 @@ function round_farm_random_start(rotor_diameter, center, radius; min_spacing=2.,
     # calculate how many circles can be fit in the wind farm area
     ncircles = floor(radius / min_spacing)
     radii = range((radius/ncircles), radius, length = Int(ncircles))
-    alpha_mins = 2.0 * asin(min_spacing / (2.0 * radii))
-    nturbines_circles = floor(2.0 * pi / alpha_mins)
+    alpha_mins = 2.0 * asin.(min_spacing ./ (2.0 * radii))
+    nturbines_circles = floor.(2.0 * pi ./ alpha_mins)
 
     nturbines = Int(sum(nturbines_circles)) + 1
 
@@ -866,14 +866,14 @@ function round_farm_random_start(rotor_diameter, center, radius; min_spacing=2.,
     turbiney = zeros(nturbines)
 
     # generate random points within the wind farm boundary
-    for i = 1:ntrubines
+    for i = 1:nturbines
 
         good_point = false
 
         while !good_point
 
             # generate random point in containing rectangle
-            turbinex[i], turbiney[i] = rand(1,2)*2.0 - 1.0
+            turbinex[i], turbiney[i] = rand(1,2).*2.0 .- 1.0
 
             turbinex[i] *= radius
             turbiney[i] *= radius
@@ -901,7 +901,9 @@ function round_farm_random_start(rotor_diameter, center, radius; min_spacing=2.,
                 end
             end
         end
+        print(".")
     end
+    print("\n")
 
     return turbinex.*rotor_diameter, turbiney.*rotor_diameter
 end
@@ -925,11 +927,11 @@ function generate_round_layouts(nlayouts, rotor_diameter; farm_center=0., farm_d
     effective_row_length = sqrt(area)
     effective_spacing = effective_row_length / (effective_rows - 1.)
     l = 1
-    
+
     if save_layouts
+        df = DataFrame(turbinex=turbinex./rotor_diameter, turbiney=turbiney./rotor_diameter)
         CSV.write(output_directory*"nTurbs$(nturbines)_spacing$(base_spacing)_layout_$l.txt",
-                [turbinex./rotor_diameter, turbiney./rotor_diameter],
-                header=["turbineX", "turbineY"])
+                 df, header=["turbineX", "turbineY"])
     end
     if show
         fig, ax = subplots(1)
@@ -945,13 +947,13 @@ function generate_round_layouts(nlayouts, rotor_diameter; farm_center=0., farm_d
                                     min_spacing_random=min_spacing)
         
             if save_layouts
-                CSV.write(output_directory*"nTurbs$(nturbines)_spacing$(base_spacing)_layout_$l.txt",
-                           [turbinex./rotor_diameter, turbiney./rotor_diameter],
-                           header=["turbineX", "turbineY"])
+                df = DataFrame(turbinex=turbinex./rotor_diameter, turbiney=turbiney./rotor_diameter)
+                CSV.write(output_directory*"nTurbs$(nturbines)_spacing$(min_spacing)_layout_$l.txt",
+                           df, header=["turbineX", "turbineY"])
             end
             if show
                 fig, ax = subplots(1)
-                plotlayout!(ax, turbinex, turbiney, ones(nturbines).*rotor_diameter, xlim=[-boundary_radius-rotor_diameter, boundary_radius+rotor_diameter])
+                plotlayout!(ax, turbinex, turbiney, ones(nturbines).*rotor_diameter, xlim=[-boundary_radius-rotor_diameter, boundary_radius+rotor_diameter], ylim=[-boundary_radius-rotor_diameter, boundary_radius+rotor_diameter])
                 plt.show()
             end
         end
