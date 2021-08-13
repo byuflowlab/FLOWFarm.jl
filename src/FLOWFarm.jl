@@ -15,8 +15,6 @@ using XLSX
 using DataFrames
 using CSV
 
-using ProgressMeter
-
 include("io.jl")
 include("utilities.jl")
 include("turbines.jl")
