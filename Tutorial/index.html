@@ -1,65 +1,410 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Quick Start · FLOWFarm.jl</title><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.039/juliamono-regular.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">FLOWFarm.jl</a></span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Intro</a></li><li class="is-active"><a class="tocitem" href>Quick Start</a><ul class="internal"><li><a class="tocitem" href="#(1)-Setting-up-the-problem-description"><span>(1) Setting up the problem description</span></a></li><li><a class="tocitem" href="#(2)-Setting-up-the-analysis-models"><span>(2) Setting up the analysis models</span></a></li><li><a class="tocitem" href="#(3)-Running-the-analysis"><span>(3) Running the analysis</span></a></li></ul></li><li><a class="tocitem" href="../How_to/">Guided Examples</a></li><li><a class="tocitem" href="../Explanation/">Theory</a></li><li><a class="tocitem" href="../Reference/">Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Quick Start</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Quick Start</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/byuflowlab/FLOWFarm.jl/blob/master/docs/src/Tutorial.md#L" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Tutorial"><a class="docs-heading-anchor" href="#Tutorial">Tutorial</a><a id="Tutorial-1"></a><a class="docs-heading-anchor-permalink" href="#Tutorial" title="Permalink"></a></h1><p>This tutorial covers the basics of FlowFARM. For more specifics refer to the <a href="../How_to/">How-to guide</a>.</p><p>There are three main steps to setting up and running an analysis in FLOWFarm:</p><ul><li>(1) setting up the problem description</li><li>(2) setting up the analysis model set</li><li>(3) running the analysis</li></ul><p>Details for setting up an optimization will depend heavily on the optimization package you are using, your objective, and your design variables. Optimization examples using various packages are provided in the example scripts located in the test  directory.</p><h2 id="(1)-Setting-up-the-problem-description"><a class="docs-heading-anchor" href="#(1)-Setting-up-the-problem-description">(1) Setting up the problem description</a><a id="(1)-Setting-up-the-problem-description-1"></a><a class="docs-heading-anchor-permalink" href="#(1)-Setting-up-the-problem-description" title="Permalink"></a></h2><pre><code class="language-julia hljs">import FLOWFarm; const ff = FLOWFarm
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Quick Start · FLOWFarm.jl</title><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.039/juliamono-regular.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">FLOWFarm.jl</a></span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Intro</a></li><li class="is-active"><a class="tocitem" href>Quick Start</a><ul class="internal"><li><a class="tocitem" href="#(1)-Setting-up-the-problem-description"><span>(1) Setting up the problem description</span></a></li><li><a class="tocitem" href="#(2)-Setting-up-the-analysis-models"><span>(2) Setting up the analysis models</span></a></li><li><a class="tocitem" href="#(3)-Running-the-analysis"><span>(3) Running the analysis</span></a></li><li><a class="tocitem" href="#(4)-setting-up-and-running-an-optimization"><span>(4) setting up and running an optimization</span></a></li><li><a class="tocitem" href="#(5)-Calculating-and-visualizing-a-flow-field"><span>(5) Calculating and visualizing a flow field</span></a></li></ul></li><li><a class="tocitem" href="../How_to/">How-to Guide</a></li><li><a class="tocitem" href="../Explanation/">Theory</a></li><li><a class="tocitem" href="../Reference/">Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Quick Start</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Quick Start</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/byuflowlab/FLOWFarm.jl/blob/master/docs/src/Tutorial.md#L" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Tutorial"><a class="docs-heading-anchor" href="#Tutorial">Tutorial</a><a id="Tutorial-1"></a><a class="docs-heading-anchor-permalink" href="#Tutorial" title="Permalink"></a></h1><p>This tutorial covers the basics of FlowFARM. For more specifics refer to the <a href="../How_to/">How-to guide</a>.</p><p>This tutorial discusses how to do the following with FLOWFarm:</p><ul><li>(1) setting up a problem description</li><li>(2) setting up an analysis model set</li><li>(3) running analyses</li><li>(4) setting up and running an optimization</li><li>(5) calculating and visualizing a flow field</li></ul><p>Details for setting up an optimization will depend heavily on the optimization package you are using, your objective, and your design variables. Optimization examples using various packages are provided in the example scripts located in the test  directory.</p><h2 id="(1)-Setting-up-the-problem-description"><a class="docs-heading-anchor" href="#(1)-Setting-up-the-problem-description">(1) Setting up the problem description</a><a id="(1)-Setting-up-the-problem-description-1"></a><a class="docs-heading-anchor-permalink" href="#(1)-Setting-up-the-problem-description" title="Permalink"></a></h2><p>The problems description involves the physically description of the wind farm, the turbines,  and the wind resource. While this tutorial uses the same design across all the wind turbines and mostly equal properties across all wind flow states, all turbines and flow states can  be unique.</p><p>For API demonstration purposes, we have directly assigned all values. However, values may  be loaded from .csv and/or .yaml files.</p><h3 id="Set-up-the-running-environment"><a class="docs-heading-anchor" href="#Set-up-the-running-environment">Set up the running environment</a><a id="Set-up-the-running-environment-1"></a><a class="docs-heading-anchor-permalink" href="#Set-up-the-running-environment" title="Permalink"></a></h3><pre><code class="language-julia hljs">using FLOWFarm; const ff = FLOWFarm
+using PyPlot; const plt = PyPlot
+using VectorizedRoutines.Matlab: meshgrid
+using SNOW</code></pre><h3 id="Initialize-the-wind-farm-design"><a class="docs-heading-anchor" href="#Initialize-the-wind-farm-design">Initialize the wind farm design</a><a id="Initialize-the-wind-farm-design-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-the-wind-farm-design" title="Permalink"></a></h3><pre><code class="language-julia hljs"># set initial turbine x and y locations
+turbinex = [-240.0, -240.0]#, -240.0, 0.0, 0.0, 240.0, 240.0, 240.0]
+turbiney = [-240.0, 0.0]#, 240.0, -240.0, 240.0, -240.0, 0.0, 240.0]
 
-# define the rotor diameter
-diameter = 80.0
-
-# set initial turbine x and y locations
-turbine_x = [-3.0, 0.0, 3.0, 0.0, 0.0, -1.5, 0.0, 1.5, 0.0].*diameter
-turbine_y = [0.0, 3.0, 0.0, -3.0, 0.0, 0.0, 1.5, 0.0, -1.5].*diameter
-
-# calculate the number of turbines
-nturbines = length(turbine_x)
+# get the number of turbines
+nturbines = length(turbinex)
 
 # set turbine base heights
-turbine_z = zeros(nturbines)
+turbinez = zeros(nturbines)
 
 # set turbine yaw values
-turbine_yaw = zeros(nturbines)
+turbineyaw = zeros(nturbines)
 
-# set turbine design parameters
-rotor_diameter = zeros(nturbines) .+ diameter   # m
-hub_height = zeros(nturbines) .+ 70.0           # m
-cut_in_speed = zeros(nturbines) .+4.            # m/s
-cut_out_speed = zeros(nturbines) .+25.          # m/s
-rated_speed = zeros(nturbines) .+16.            # m/s
-rated_power = zeros(nturbines) .+2.0E6          # W
-generator_efficiency = zeros(nturbines) .+ 0.944
+# set wind farm boundary parameters in meters (we won&#39;t really need this until we optimize)
+boundarycenter = [0.0,0.0]
+boundaryradius = hypot(300, 300)</code></pre><h3 id="Initialize-wind-turbine-design"><a class="docs-heading-anchor" href="#Initialize-wind-turbine-design">Initialize wind turbine design</a><a id="Initialize-wind-turbine-design-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-wind-turbine-design" title="Permalink"></a></h3><pre><code class="language-julia hljs"># set turbine design parameters (these values correspond to the Vestas V80 turbine)
+rotordiameter = zeros(nturbines) .+ 80.0   # m
+hubheight = zeros(nturbines) .+ 70.0           # m
+cutinspeed = zeros(nturbines) .+ 4.0           # m/s
+cutoutspeed = zeros(nturbines) .+ 25.0         # m/s
+ratedspeed = zeros(nturbines) .+ 16.0          # m/s
+ratedpower = zeros(nturbines) .+ 2.0E6         # W
+generatorefficiency = ones(nturbines)</code></pre><h3 id="Visualize-the-wind-farm-layout"><a class="docs-heading-anchor" href="#Visualize-the-wind-farm-layout">Visualize the wind farm layout</a><a id="Visualize-the-wind-farm-layout-1"></a><a class="docs-heading-anchor-permalink" href="#Visualize-the-wind-farm-layout" title="Permalink"></a></h3><pre><code class="language-julia hljs"># initialize axis
+fig, ax = plt.subplots(1)
 
-# Rotor swept area sample points (normalized by rotor radius). These arrays define which
-# which points on the rotor swept area should be used to estimate the effective inflow
-# wind speed for each wind turbine. Values of 0.0 are at the rotor hub, 1.0 is at the blade
-tip. z is vertical, and y is horizontal. These points track the rotor yaw.
-rotor_points_y = [0.0]
-rotor_points_z = [0.0]
+# plot layout using FLOWFarm
+ff.plotlayout!(ax, turbinex, turbiney, rotordiameter)
 
-# set flow parameters
-wind_speed = 8.0        # m/2
-air_density = 1.1716    # kg/m^3
-ambient_ti = 0.077      # %
+# Label the axes
+ax.set(xlabel=&quot;Easting (m)&quot;, ylabel=&quot;Northing (m)&quot;)
+
+# add farm boundary
+circle = matplotlib.patches.Circle((0.0, 0.0), boundaryradius, fill=false, color=&quot;k&quot;)
+ax.add_patch(circle)
+
+# set plot limits
+ax.set(xlim=[-boundaryradius, boundaryradius].*1.01, ylim=[-boundaryradius, boundaryradius].*1.01)</code></pre><p><img src="../initiallayout.png" alt/></p><h3 id="Determine-how-to-sample-the-flow-field-to-determine-effective-inflow-speeds"><a class="docs-heading-anchor" href="#Determine-how-to-sample-the-flow-field-to-determine-effective-inflow-speeds">Determine how to sample the flow field to determine effective inflow speeds</a><a id="Determine-how-to-sample-the-flow-field-to-determine-effective-inflow-speeds-1"></a><a class="docs-heading-anchor-permalink" href="#Determine-how-to-sample-the-flow-field-to-determine-effective-inflow-speeds" title="Permalink"></a></h3><p>Rotor swept area sample points are normalized by the rotor radius. These arrays define which which points on the rotor swept area should be used to estimate the effective inflow wind speed for each wind turbine. Values of 0.0 are at the rotor hub, 1.0 is at the blade tip, <code>z</code> is vertical, and <code>y</code> is horizontal. These points track the rotor when yawed.  A single sample point will always be placed at the hub. More points can be arranged in  either a grid pattern or a sunflower packing pattern with various options.  See doc strings for more information.</p><pre><code class="language-julia hljs"># get the sample points
+nsamplepoints = 50
+rotorsamplepointsy, rotorsamplepointsz = ff.rotor_sample_points(nsamplepoints, method=&quot;sunflower&quot;)
+
+# visualize the sample points
+fig, ax = plt.subplots(1)
+ff.plotrotorsamplepoints!(ax, rotorsamplepointsy, rotorsamplepointsz)
+ax.set(xlabel=&quot;y/radius&quot;, ylabel=&quot;z/radius&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[-1.05, 1.05][-1.05, 1.05]</code></pre><p><img src="../rotorsamplepoints.png" alt/></p><h3 id="Setting-up-the-wind-resource"><a class="docs-heading-anchor" href="#Setting-up-the-wind-resource">Setting up the wind resource</a><a id="Setting-up-the-wind-resource-1"></a><a class="docs-heading-anchor-permalink" href="#Setting-up-the-wind-resource" title="Permalink"></a></h3><p>The wind resource determines the properties of the flowfield at all wind states. A wind  state is any combination of wind speed, wind direction, turbulence intensity, etc...</p><pre><code class="language-julia hljs"># set flow parameters
+windspeed = 8.0        # m/2
+airdensity = 1.1716    # kg/m^3
+ambientti = 0.1      # %
 shearexponent = 0.15
-winddirections = [275.0*pi/180.0, 0.0, pi]          # radians
-windspeeds = [wind_speed, wind_speed, wind_speed]   # m/s
-windprobabilities = [1.0/3.0,1.0/3.0,1.0/3.0]       # %
-ambient_tis = [ambient_ti, ambient_ti, ambient_ti]  # %
-measurementheight = [hub_height[1], hub_height[1], hub_height[1]]   # m
+ndirections = 5
+winddirections = collect(range(0, 2*pi*(1-1/ndirections), length=ndirections))   # radians
+windspeeds = ones(ndirections).*windspeed   # m/s
+windprobabilities = ones(ndirections).*(1.0/ndirections)       # %
+ambienttis = ones(ndirections).*ambientti  # %
+measurementheight = ones(ndirections).*hubheight[1] # m
 
 # initialize the wind shear model
-wind_shear_model = ff.PowerLawWindShear(shearexponent)
+windshearmodel = ff.PowerLawWindShear(shearexponent)
 
 # initialize the wind resource definition
-windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, 
-measurementheight, air_density, ambient_tis, wind_shear_model)
-</code></pre><h2 id="(2)-Setting-up-the-analysis-models"><a class="docs-heading-anchor" href="#(2)-Setting-up-the-analysis-models">(2) Setting up the analysis models</a><a id="(2)-Setting-up-the-analysis-models-1"></a><a class="docs-heading-anchor-permalink" href="#(2)-Setting-up-the-analysis-models" title="Permalink"></a></h2><p>A model set requires a Wake Deficit Model, Wake Deflection Model, Wake Combination Model, and a Local Turbulence Intensity Model</p><ul><li>Deficit Models: JensenTopHat, JensenCosine, MultiZone, GaussOriginal, GaussYaw, GaussYawVariableSpread, GaussSimple</li><li>Deflection Models: GaussYawDeflection, GaussYawVariableSpreadDeflection, JiminezYawDeflection, MultizoneDeflection</li><li>Combination Models: LinearFreestreamSuperposition, SumOfSquaresFreestreamSuperposition, SumOfSquaresLocalVelocitySuperposition, LinearLocalVelocitySuperposition</li><li>Turbulence Models: LocalTIModelNoLocalTI, LocalTIModelMaxTI</li></ul><p>The model set can be set up as follows:</p><p>Initialize power model (this is a simple power model based only on turbine design and is not accurate. For examples on how to use more accurate power models, look at the example optimization scripts)</p><pre><code class="language-julia hljs">power_model = ff.PowerModelPowerCurveCubic()</code></pre><p>The user can define different power models for different wind turbines, but here we use the same power model for every turbine. The initialization of the power_models vector is important for optmization using algorithmic differentiation via the ForwardDiff.jl package.</p><pre><code class="language-julia hljs">power_models = Vector{typeof(power_model)}(undef, nturbines)
+windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities,
+measurementheight, airdensity, ambienttis, windshearmodel)
+
+# visualize the wind resource
+fig, ax = subplots(1,2, subplot_kw=Dict(&quot;projection&quot;=&gt;&quot;polar&quot;))
+ff.plotwindresource!(ax, windresource)</code></pre><p><img src="../windresource.png" alt/></p><h2 id="(2)-Setting-up-the-analysis-models"><a class="docs-heading-anchor" href="#(2)-Setting-up-the-analysis-models">(2) Setting up the analysis models</a><a id="(2)-Setting-up-the-analysis-models-1"></a><a class="docs-heading-anchor-permalink" href="#(2)-Setting-up-the-analysis-models" title="Permalink"></a></h2><p>A model set requires a Wake Deficit Model, Wake Deflection Model, Wake Combination Model, and a Local Turbulence Intensity Model. There are several options for each model type. To facilitate research studies, any of the models in each type can be used with any of the models in any other type. However, behavior is not guaranteed. It is recommended that common, validated, model combinations be used in most cases.</p><p>Model types and options are:</p><ul><li>Deficit Models: JensenTopHat, JensenCosine, MultiZone, GaussOriginal, GaussYaw, GaussYawVariableSpread, GaussSimple</li><li>Deflection Models: GaussYawDeflection, GaussYawVariableSpreadDeflection, JiminezYawDeflection, MultizoneDeflection</li><li>Combination Models: LinearFreestreamSuperposition, SumOfSquaresFreestreamSuperposition SumOfSquaresLocalVelocitySuperposition, LinearLocalVelocitySuperposition</li><li>Turbulence Models: LocalTIModelNoLocalTI, LocalTIModelMaxTI</li></ul><p>The model set can be set up as follows:</p><p>Initialize power model (this is a simple power model based only on turbine design and is not very accurate. For examples on how to use more accurate power models, look at the example optimization scripts)</p><pre><code class="language-julia hljs">powermodel = ff.PowerModelPowerCurveCubic()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">FLOWFarm.PowerModelPowerCurveCubic{Int64}(2)</code></pre><p>The user can define different power models for different wind turbines, but here we use the same power model for every turbine. The initialization of the power_models vector is important for optmization using algorithmic differentiation via the ForwardDiff.jl package.</p><pre><code class="language-julia hljs">powermodels = Vector{typeof(powermodel)}(undef, nturbines)
 for i = 1:nturbines
-    power_models[i] = power_model
-end</code></pre><p>Initialize thrust model. The user can provide a complete thrust curve. See the example scripts for details on initializing them. The initialization of ct_models vector is important for optmization using algorithmic differentiation via the ForwardDiff.jl package.</p><pre><code class="language-julia hljs">ct_model = ff.ThrustModelConstantCt(0.65)
-ct_models = Vector{typeof(ct_model)}(undef, nturbines)
+    powermodels[i] = powermodel
+end</code></pre><p>Initialize thrust model(s). The user can provide a complete thrust curve. See the example scripts for details on initializing them. The initialization of the ct models vector is important for optmization using algorithmic differentiation via the ForwardDiff.jl package.</p><pre><code class="language-julia hljs">ctmodel = ff.ThrustModelConstantCt(0.65)
+ctmodels = Vector{typeof(ctmodel)}(undef, nturbines)
 for i = 1:nturbines
-    ct_models[i] = ct_model
-end</code></pre><p>Set up wake and related models. Here we will use the default values provided in FLOWFarm. However, it is important to use the correct model parameters. More information and references are provided in the doc strings attached to each model.</p><p>The wake deficit model predicts the impact of wind turbines wake on the wind speed.</p><pre><code class="language-julia hljs">wakedeficitmodel = ff.GaussYaw()</code></pre><p>The wake deflection model predicts the cross-wind location of the center of a wind turbine wake.</p><pre><code class="language-julia hljs">wakedeflectionmodel = ff.GaussYawDeflection()</code></pre><p>The wake combination model defines how the predicted deficits in each wake should be combined to predict the total deficit at a point</p><pre><code class="language-julia hljs">wakecombinationmodel = ff.LinearLocalVelocitySuperposition()</code></pre><p>The local turbulence intensity models can be used to estimate the local turbulence intensity at each wind turbine or point to provide more accurate input information to the wake and deflection models if applicable.</p><pre><code class="language-julia hljs">localtimodel = ff.LocalTIModelMaxTI()</code></pre><p>Initialize model set. This is just a convenience container for the analysis models.</p><pre><code class="language-julia hljs">model_set = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)</code></pre><h2 id="(3)-Running-the-analysis"><a class="docs-heading-anchor" href="#(3)-Running-the-analysis">(3) Running the analysis</a><a id="(3)-Running-the-analysis-1"></a><a class="docs-heading-anchor-permalink" href="#(3)-Running-the-analysis" title="Permalink"></a></h2><p>Calculate AEP</p><pre><code class="language-julia hljs">
-    AEP = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
-        hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
-        cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
-        rotor_sample_points_y=rotor_points_y, rotor_sample_points_z=rotor_points_z)
-</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Intro</a><a class="docs-footer-nextpage" href="../How_to/">Guided Examples »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.5 on <span class="colophon-date" title="Thursday 12 August 2021 17:22">Thursday 12 August 2021</span>. Using Julia version 1.6.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+    ctmodels[i] = ctmodel
+end</code></pre><p>Set up wake and related models. Here we will use the default values provided in FLOWFarm. However, it is important to use the correct model parameters. More information and references are provided in the doc strings attached to each model.</p><p>The wake deficit model predicts the impact of wind turbines wake on the wind speed.</p><pre><code class="language-julia hljs">wakedeficitmodel = ff.GaussYawVariableSpread()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">FLOWFarm.GaussYawVariableSpread{Float64, Vector{Float64}}(2.32, 0.154, 0.3837, 0.003678, [1.0])</code></pre><p>The wake deflection model predicts the cross-wind location of the center of a wind turbine wake.</p><pre><code class="language-julia hljs">wakedeflectionmodel = ff.GaussYawDeflection()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">FLOWFarm.GaussYawDeflection{Float64}(0.022, 0.022, 2.32, 0.154)</code></pre><p>The wake combination model defines how the predicted deficits in each wake should be combined to predict the total deficit at a point</p><pre><code class="language-julia hljs">wakecombinationmodel = ff.LinearLocalVelocitySuperposition()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">FLOWFarm.LinearLocalVelocitySuperposition()</code></pre><p>The local turbulence intensity models can be used to estimate the local turbulence intensity at each wind turbine or point to provide more accurate input information to the wake and deflection models if applicable.</p><pre><code class="language-julia hljs">localtimodel = ff.LocalTIModelMaxTI()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">FLOWFarm.LocalTIModelMaxTI{Float64}(2.32, 0.154, 0.3837, 0.003678)</code></pre><p>Initialize model set. This is just a convenience container for the analysis models.</p><pre><code class="language-julia hljs">modelset = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)</code></pre><h2 id="(3)-Running-the-analysis"><a class="docs-heading-anchor" href="#(3)-Running-the-analysis">(3) Running the analysis</a><a id="(3)-Running-the-analysis-1"></a><a class="docs-heading-anchor-permalink" href="#(3)-Running-the-analysis" title="Permalink"></a></h2><p>Now that the wind farm and analysis models have been defined, we can calculate AEP. The output is in Watt-hours.</p><pre><code class="language-julia hljs">aep = ff.calculate_aep(turbinex, turbiney, turbinez, rotordiameter,
+    hubheight, turbineyaw, ctmodels, generatorefficiency, cutinspeed,
+    cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset,
+    rotor_sample_points_y=rotorsamplepointsy, rotor_sample_points_z=rotorsamplepointsz)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1.1442361200631573e9</code></pre><p>We can also get the AEP in each direction using the following.</p><pre><code class="language-julia hljs">state_aeps = ff.calculate_state_aeps(turbinex, turbiney, turbinez, rotordiameter,
+        hubheight, turbineyaw, ctmodels, generatorefficiency, cutinspeed,
+        cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset,
+        rotor_sample_points_y=rotorsamplepointsy, rotor_sample_points_z=rotorsamplepointsz,
+        hours_per_year=365.25*24.0, weighted=true)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">5-element Vector{Float64}:
+ 1.3971842531890044e8
+ 2.511423813455672e8
+ 2.51113974268121e8
+ 2.511189577855474e8
+ 2.511423813450213e8</code></pre><p>If we instead set <code>weighted=false</code> then we would get the power in each direction in Watts.</p><p>If we want to get the individual turbine powers in each directions, we use the following.</p><pre><code class="language-julia hljs">turbine_powers_by_direction = ff.calculate_state_turbine_powers(turbinex, turbiney, turbinez, rotordiameter,
+    hubheight, turbineyaw, ctmodels, generatorefficiency, cutinspeed,
+    cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset,
+    rotor_sample_points_y=rotorsamplepointsy, rotor_sample_points_z=rotorsamplepointsz)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">5×2 Matrix{Float64}:
+  8069.38  71624.0
+ 71624.0   71624.0
+ 71624.0   71607.8
+ 71624.0   71610.6
+ 71624.0   71624.0</code></pre><p>The output shows each turbine power in an array that is ndirections by nturbines.</p><h2 id="(4)-setting-up-and-running-an-optimization"><a class="docs-heading-anchor" href="#(4)-setting-up-and-running-an-optimization">(4) setting up and running an optimization</a><a id="(4)-setting-up-and-running-an-optimization-1"></a><a class="docs-heading-anchor-permalink" href="#(4)-setting-up-and-running-an-optimization" title="Permalink"></a></h2><p>FLOWFarm is specifically designed for efficient optimization using gradient-based optimization methods. Besides the steps outlined above, we need to define the following before we can run  and optimization:</p><ul><li>(1) Optimization related variables</li><li>(1) A container for non-differentiated parameters</li><li>(2) Objective function </li><li>(3) Constraint function(s) </li><li>(4) Optimization tool specific items</li></ul><p>In this tutorial we demonstrate optimizing using the IPOPT algorithms via SNOW.jl for simplicity.</p><p>First, set up optimization related variables. We will have two constraints, one to keep  turbines from getting too close to each other (spacing), and the other to keep turbines  inside the desired area (boundary). FLOWFarm provides several different ways of handling  boundary constraints, including concave boundaries. However, for this tutorial we will use  a simple circular boundary.</p><pre><code class="language-julia hljs"># scale objective derivatives to be between 0 and 1
+objectivescale = 1E-6
+
+# scale boundary constraint derivatives to be between 0 and 1
+constraintscaleboundary = 1.0E-3
+
+# scale spacing constraint derivatives to be between 0 and 1
+constraintscalespacing = 1.0
+
+# set the minimum spacing between turbines
+minimumspacing = 160.0</code></pre><p>Next, set up a container for non-differentiated parameters</p><pre><code class="language-julia hljs"># set up a struct for use in optimization functions
+mutable struct params_struct{}
+    modelset
+    rotorsamplepointsy
+    rotorsamplepointsz
+    turbinez
+    ambientti
+    rotordiameter
+    boundarycenter
+    boundaryradius
+    objectivescale
+    constraintscaleboundary
+    constraintscalespacing
+    minimumspacing
+    hubheight
+    turbineyaw
+    ctmodels
+    generatorefficiency
+    cutinspeed
+    cutoutspeed
+    ratedspeed
+    ratedpower
+    windresource
+    powermodels
+end
+
+params = params_struct(modelset, rotorsamplepointsy, rotorsamplepointsz, turbinez, ambientti,
+    rotordiameter, boundarycenter, boundaryradius, objectivescale, constraintscaleboundary,
+    constraintscalespacing, minimumspacing, hubheight, turbineyaw,
+    ctmodels, generatorefficiency, cutinspeed, cutoutspeed, ratedspeed, ratedpower,
+    windresource, powermodels)</code></pre><p>Now we are ready to set up wrapper functions for the objective and constraints.</p><pre><code class="language-julia hljs"># set up boundary constraint wrapper function
+function boundary_wrapper(x, params)
+    # include relevant params
+    boundarycenter = params.boundarycenter
+    boundaryradius = params.boundaryradius
+    constraintscaleboundary = params.constraintscaleboundary
+
+    # find the number of turbines
+    nturbines = Int(length(x)/2)
+
+    # extract x and y locations of turbines from design variables vector
+    turbinex = x[1:nturbines]
+    turbiney = x[nturbines+1:end]
+
+    # get and return boundary distances
+    return ff.circle_boundary(boundarycenter, boundaryradius, turbinex, turbiney).*constraintscaleboundary
+end
+
+# set up spacing constraint wrapper function
+function spacing_wrapper(x, params)
+    # include relevant params
+    rotordiameter = params.rotordiameter
+    constraintscalespacing = params.constraintscalespacing
+    minimumspacing = params.minimumspacing
+
+    # get number of turbines
+    nturbines = Int(length(x)/2)
+
+    # extract x and y locations of turbines from design variables vector
+    turbinex = x[1:nturbines]
+    turbiney = x[nturbines+1:end]
+
+    # get and return spacing distances
+    return constraintscalespacing.*(minimumspacing .- ff.turbine_spacing(turbinex,turbiney))
+end
+
+# set up aep wrapper function
+function aep_wrapper(x, params)
+
+    # include relevant params
+    turbinez = params.turbinez
+    rotordiameter = params.rotordiameter
+    hubheight = params.hubheight
+    turbineyaw =params.turbineyaw
+    ctmodels = params.ctmodels
+    generatorefficiency = params.generatorefficiency
+    cutinspeed = params.cutinspeed
+    cutoutspeed = params.cutoutspeed
+    ratedspeed = params.ratedspeed
+    ratedpower = params.ratedpower
+    windresource = params.windresource
+    powermodels = params.powermodels
+    modelset = params.modelset
+    rotorsamplepointsy = params.rotorsamplepointsy
+    rotorsamplepointsz = params.rotorsamplepointsy
+    objectivescale = params.objectivescale
+
+    # get number of turbines
+    nturbines = Int(length(x)/2)
+
+    # extract x and y locations of turbines from design variables vector
+    turbinex = x[1:nturbines]
+    turbiney = x[nturbines+1:end]
+
+    # calculate AEP
+    aep = objectivescale*ff.calculate_aep(turbinex, turbiney, turbinez, rotordiameter,
+                hubheight, turbineyaw, ctmodels, generatorefficiency, cutinspeed,
+                cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset,
+                rotor_sample_points_y=rotorsamplepointsy,rotor_sample_points_z=rotorsamplepointsz)
+
+    # return the AEP
+    return aep
+end
+
+# set up optimization problem wrapper function
+function wind_farm_opt!(g, x, params)
+
+    nturbines = Int(length(x)/2)
+
+    # calculate spacing constraint value and jacobian
+    spacing_con = spacing_wrapper(x, params)
+
+    # calculate boundary constraint and jacobian
+    boundary_con = boundary_wrapper(x, params)
+
+    # combine constaint values and jacobians into overall constaint value and jacobian arrays
+    g[1:(end-nturbines)] = spacing_con[:]
+    g[end-nturbines+1:end] = boundary_con[:]
+
+    # calculate the objective function and jacobian (negative sign in order to maximize AEP)
+    obj = -aep_wrapper(x, params)
+
+    return obj
+end</code></pre><p>Because the optimizer will need to call the objective function without knowing about the params, we need to set up a method that will know the params values by default.</p><pre><code class="language-julia hljs"># generate objective function wrapper
+obj_func!(g, x) = wind_farm_opt!(g, x, params)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">obj_func! (generic function with 1 method)</code></pre><p>Next we set up the optimizer.</p><pre><code class="language-julia hljs"># initialize design variable vector
+x0 = [copy(turbinex);copy(turbiney)]
+
+# set general lower and upper bounds for design variables
+lx = zeros(length(x0)) .- boundaryradius
+ux = zeros(length(x0)) .+ boundaryradius
+
+# set general lower and upper bounds for constraints
+ng = Int(nturbines + (nturbines)*(nturbines - 1)/2)
+lg = [-Inf*ones(Int((nturbines)*(nturbines - 1)/2)); -Inf*ones(nturbines)]
+ug = [zeros(Int((nturbines)*(nturbines - 1)/2)); zeros(nturbines)]
+
+# IPOPT options
+ip_options = Dict(
+    &quot;max_iter&quot; =&gt; 30,
+    &quot;tol&quot; =&gt; 1e-6
+)
+solver = IPOPT(ip_options)
+
+# initialize SNOW options
+options = Options(solver=solver, derivatives=ForwardAD())  # choose AD derivatives</code></pre><p>Now that the optimizer is set up, we are ready to optimize and check the results.</p><pre><code class="language-julia hljs"># optimize
+t1 = time() # start time
+xopt, fopt, info, out = minimize(obj_func!, x0, ng, lx, ux, lg, ug, options)
+t2 = time() # end time
+clk = t2-t1 # approximate run time
+
+# get final aep
+aepfinal = -fopt/objectivescale
+
+# print optimization results
+println(&quot;Finished in : &quot;, clk, &quot; (s)&quot;)
+println(&quot;info: &quot;, info)
+println(&quot;Initial AEP: &quot;, aep)
+println(&quot;Final AEP: &quot;, aepfinal)
+println(&quot;AEP improvement (%) = &quot;, 100*(aepfinal - aep)/aep)
+
+# extract final turbine locations
+turbinexopt = copy(xopt[1:nturbines])
+turbineyopt = copy(xopt[nturbines+1:end])
+
+# initialize figure and axes object
+fig, ax = plt.subplots(1)
+
+# plot layout using FLOWFarm
+ff.plotlayout!(ax, turbinexopt, turbineyopt, rotordiameter)
+
+# label the axes
+ax.set(xlabel=&quot;Easting (m)&quot;, ylabel=&quot;Northing (m)&quot;)
+
+# and the wind farm boundary
+circle = matplotlib.patches.Circle((0.0, 0.0), boundaryradius, fill=false, color=&quot;k&quot;)
+ax.add_patch(circle)
+
+# set limits on the plot region
+ax.set(xlim=[-boundaryradius, boundaryradius].*1.01, ylim=[-boundaryradius, boundaryradius].*1.01)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">
+******************************************************************************
+This program contains Ipopt, a library for large-scale nonlinear optimization.
+ Ipopt is released as open source code under the Eclipse Public License (EPL).
+         For more information visit https://github.com/coin-or/Ipopt
+******************************************************************************
+
+This is Ipopt version 3.13.4, running with linear solver mumps.
+NOTE: Other linear solvers might be more efficient (see Ipopt documentation).
+
+Number of nonzeros in equality constraint Jacobian...:        0
+Number of nonzeros in inequality constraint Jacobian.:       12
+Number of nonzeros in Lagrangian Hessian.............:        0
+
+Total number of variables............................:        4
+                     variables with only lower bounds:        0
+                variables with lower and upper bounds:        4
+                     variables with only upper bounds:        0
+Total number of equality constraints.................:        0
+Total number of inequality constraints...............:        3
+        inequality constraints with only lower bounds:        0
+   inequality constraints with lower and upper bounds:        0
+        inequality constraints with only upper bounds:        3
+
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+   0 -1.1476649e+03 0.00e+00 5.34e-01   0.0 0.00e+00    -  0.00e+00 0.00e+00   0
+   1 -1.1476649e+03 0.00e+00 7.34e-03  -3.5 5.44e-03    -  9.90e-01 1.00e+00f  1
+   2 -1.1476650e+03 0.00e+00 3.72e-03  -5.5 5.62e-03    -  9.90e-01 1.00e+00h  1
+   3 -1.1476650e+03 0.00e+00 3.95e-03  -7.5 5.62e-03    -  9.90e-01 1.00e+00h  1
+   4 -1.1476651e+03 0.00e+00 4.23e-03  -5.6 5.62e-03    -  1.00e+00 1.00e+00h  1
+   5 -1.1476651e+03 0.00e+00 4.53e-03  -7.7 5.61e-03    -  1.00e+00 1.00e+00h  1
+   6 -1.1476652e+03 0.00e+00 4.86e-03  -9.7 5.61e-03    -  1.00e+00 1.00e+00h  1
+   7 -1.1476653e+03 0.00e+00 5.20e-03 -11.0 5.98e-03    -  1.00e+00 1.00e+00h  1
+   8 -1.1476654e+03 0.00e+00 5.58e-03 -11.0 6.40e-03    -  1.00e+00 1.00e+00h  1
+   9 -1.1476655e+03 0.00e+00 5.97e-03 -11.0 6.86e-03    -  1.00e+00 1.00e+00h  1
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+  10 -1.1476657e+03 0.00e+00 6.41e-03 -11.0 7.35e-03    -  1.00e+00 1.00e+00h  1
+  11 -1.1476658e+03 0.00e+00 6.88e-03 -11.0 7.87e-03    -  1.00e+00 1.00e+00h  1
+  12 -1.1476660e+03 0.00e+00 7.38e-03 -11.0 8.44e-03    -  1.00e+00 1.00e+00h  1
+  13 -1.1476662e+03 0.00e+00 7.92e-03 -11.0 9.04e-03    -  1.00e+00 1.00e+00h  1
+  14 -1.1476664e+03 0.00e+00 8.49e-03 -11.0 9.69e-03    -  1.00e+00 1.00e+00h  1
+  15 -1.1476666e+03 0.00e+00 1.11e-02 -11.0 1.04e-02    -  1.00e+00 1.00e+00h  1
+  16 -1.1476669e+03 0.00e+00 1.19e-02 -11.0 1.11e-02    -  1.00e+00 1.00e+00h  1
+  17 -1.1476672e+03 0.00e+00 1.28e-02 -11.0 1.19e-02    -  1.00e+00 1.00e+00h  1
+  18 -1.1476675e+03 0.00e+00 1.37e-02 -11.0 1.28e-02    -  1.00e+00 1.00e+00h  1
+  19 -1.1476679e+03 0.00e+00 1.47e-02 -11.0 1.37e-02    -  1.00e+00 1.00e+00h  1
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+  20 -1.1476684e+03 0.00e+00 1.57e-02 -11.0 1.47e-02    -  1.00e+00 1.00e+00h  1
+  21 -1.1476689e+03 0.00e+00 1.68e-02 -11.0 1.57e-02    -  1.00e+00 1.00e+00h  1
+  22 -1.1476695e+03 0.00e+00 1.80e-02 -11.0 1.68e-02    -  1.00e+00 1.00e+00h  1
+  23 -1.1476702e+03 0.00e+00 1.93e-02 -11.0 1.80e-02    -  1.00e+00 1.00e+00h  1
+  24 -1.1476710e+03 0.00e+00 2.07e-02 -11.0 1.93e-02    -  1.00e+00 1.00e+00h  1
+  25 -1.1476719e+03 0.00e+00 2.22e-02 -11.0 2.07e-02    -  1.00e+00 1.00e+00h  1
+  26 -1.1476729e+03 0.00e+00 2.38e-02 -11.0 2.22e-02    -  1.00e+00 1.00e+00h  1
+  27 -1.1476741e+03 0.00e+00 2.55e-02 -11.0 2.38e-02    -  1.00e+00 1.00e+00h  1
+  28 -1.1476755e+03 0.00e+00 2.73e-02 -11.0 2.55e-02    -  1.00e+00 1.00e+00h  1
+  29 -1.1476770e+03 0.00e+00 2.92e-02 -11.0 2.73e-02    -  1.00e+00 1.00e+00h  1
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+  30 -1.1476788e+03 0.00e+00 3.13e-02 -11.0 2.92e-02    -  1.00e+00 1.00e+00h  1
+
+Number of Iterations....: 30
+
+                                   (scaled)                 (unscaled)
+Objective...............:  -1.1476788246280228e+03   -1.1476788246280228e+03
+Dual infeasibility......:   3.1320678008665455e-02    3.1320678008665455e-02
+Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
+Complementarity.........:   9.9999999998258811e-12    9.9999999998258811e-12
+Overall NLP error.......:   3.1320678008665455e-02    3.1320678008665455e-02
+
+
+Number of objective function evaluations             = 31
+Number of objective gradient evaluations             = 31
+Number of equality constraint evaluations            = 0
+Number of inequality constraint evaluations          = 31
+Number of equality constraint Jacobian evaluations   = 0
+Number of inequality constraint Jacobian evaluations = 31
+Number of Lagrangian Hessian evaluations             = 0
+Total CPU secs in IPOPT (w/o function evaluations)   =      8.052
+Total CPU secs in NLP function evaluations           =      0.029
+
+EXIT: Maximum Number of Iterations Exceeded.
+Finished in : 9.26153016090393 (s)
+info: Maximum_Iterations_Exceeded
+Initial AEP: 1.1442361200631573e9
+Final AEP: 1.147678824628023e9
+AEP improvement (%) = 0.30087361380233</code></pre><p><img src="../optlayout.png" alt/></p><h2 id="(5)-Calculating-and-visualizing-a-flow-field"><a class="docs-heading-anchor" href="#(5)-Calculating-and-visualizing-a-flow-field">(5) Calculating and visualizing a flow field</a><a id="(5)-Calculating-and-visualizing-a-flow-field-1"></a><a class="docs-heading-anchor-permalink" href="#(5)-Calculating-and-visualizing-a-flow-field" title="Permalink"></a></h2><pre><code class="language-julia hljs"># define how many points should be in the flow field
+xres = 1000
+yres = 1000
+zres = 1
+
+# define flow field domain
+maxy = boundaryradius*1.5
+miny = -boundaryradius*1.5
+maxx = boundaryradius*1.5
+minx = -boundaryradius*1.5
+
+# set up point grid for flow field
+xrange = minx:(maxx-minx)/xres:maxx
+yrange = miny:(maxy-miny)/yres:maxy
+zrange = hubheight[1]
+
+# run flowfarm
+ffvelocities = ff.calculate_flow_field(xrange, yrange, zrange,
+    modelset, turbinex, turbiney, turbinez, turbineyaw,
+    rotordiameter, hubheight, ctmodels, rotorsamplepointsy, rotorsamplepointsz,
+    windresource, wind_farm_state_id=5)
+
+# visualize
+
+# initialize figure
+fig, ax = plt.subplots(1)
+
+# generate meshgrid from ranges for passing to pyplots
+xg, yg = meshgrid(collect(xrange), collect(yrange))
+
+# plot as filled contours
+cs = ax.contourf(xg, yg, ffvelocities[1,:,:], cmap=&quot;Blues_r&quot;)
+
+# add colorbar
+cbar = ax.figure.colorbar(cs, ax=ax, label=&quot;Wind Speed (m/s)&quot;, orientation=&quot;vertical&quot;)
+
+# label the axes
+ax.set(xlabel=&quot;Easting (m)&quot;, ylabel=&quot;Northing (m)&quot;)
+
+# add the wind farm boundary
+circle = matplotlib.patches.Circle((0.0, 0.0), boundaryradius, fill=false, color=&quot;k&quot;)
+ax.add_patch(circle)</code></pre><p><img src="../flowfield.png" alt/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Intro</a><a class="docs-footer-nextpage" href="../How_to/">How-to Guide »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.5 on <span class="colophon-date" title="Tuesday 17 August 2021 16:32">Tuesday 17 August 2021</span>. Using Julia version 1.6.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
