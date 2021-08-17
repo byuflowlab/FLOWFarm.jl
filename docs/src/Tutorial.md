@@ -97,7 +97,7 @@ wind speed for each wind turbine. Values of 0.0 are at the rotor hub, 1.0 is at 
 tip, `z` is vertical, and `y` is horizontal. These points track the rotor when yawed. 
 A single sample point will always be placed at the hub. More points can be arranged in 
 either a grid pattern or a sunflower packing pattern with various options. 
-See [rotor_sample_points]@ref for more information.
+See doc strings for more information.
 
 ```@example 1
 # get the sample points
