@@ -448,7 +448,7 @@ end
 
 function calculate_flow_field(xrange, yrange, zrange,
     model_set::AbstractModelSet, turbine_x, turbine_y, turbine_z, turbine_yaw,
-    rotor_diameter, hub_height, sorted_turbine_index, ct_models, rotor_sample_points_y, rotor_sample_points_z,
+    rotor_diameter, hub_height, ct_models, rotor_sample_points_y, rotor_sample_points_z,
     wind_resource; wind_farm_state_id=1, shearfirst=true)
 
     # rotate to direction frame for velocity calculations
@@ -464,6 +464,6 @@ function calculate_flow_field(xrange, yrange, zrange,
     return calculate_flow_field(xrange, yrange, zrange,
         model_set, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
         rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, turbine_velocities,
-        wind_resource, wind_farm_state_id=1, shearfirst=shearfirst)
+        wind_resource, wind_farm_state_id=wind_farm_state_id, shearfirst=shearfirst)
 
 end

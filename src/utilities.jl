@@ -909,7 +909,7 @@ function round_farm_random_start(rotor_diameter, center, radius; min_spacing=2.,
 end
 
 function generate_round_layouts(nlayouts, rotor_diameter; farm_center=0., farm_diameter=4000., base_spacing=5., min_spacing=1.,
-                           output_directory=nothing, show=false, save_layouts=false)
+                           output_directory=nothing, show=false, save_layouts=false, startingindex=1)
 
     if nlayouts > 10 && show == true
         error("do you really want to see $nlayouts plots in serial?")
@@ -930,7 +930,7 @@ function generate_round_layouts(nlayouts, rotor_diameter; farm_center=0., farm_d
 
     if save_layouts
         df = DataFrame(turbinex=turbinex./rotor_diameter, turbiney=turbiney./rotor_diameter)
-        CSV.write(output_directory*"nTurbs$(nturbines)_spacing$(base_spacing)_layout_$l.txt",
+        CSV.write(output_directory*"nTurbs$(nturbines)_spacing$(base_spacing)_layout_$(l+startingindex-1).txt",
                  df, header=["turbineX", "turbineY"])
     end
     if show
@@ -948,7 +948,7 @@ function generate_round_layouts(nlayouts, rotor_diameter; farm_center=0., farm_d
         
             if save_layouts
                 df = DataFrame(turbinex=turbinex./rotor_diameter, turbiney=turbiney./rotor_diameter)
-                CSV.write(output_directory*"nTurbs$(nturbines)_spacing$(min_spacing)_layout_$l.txt",
+                CSV.write(output_directory*"nTurbs$(nturbines)_spacing$(min_spacing)_layout_$(l+startingindex-1).txt",
                            df, header=["turbineX", "turbineY"])
             end
             if show
