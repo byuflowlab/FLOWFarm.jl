@@ -8,7 +8,7 @@ makedocs(;
     pages=[
         "Intro" => "index.md",
         "Quick Start" => "Tutorial.md",
-        "Guided Examples" => "How_to.md",
+        "How-to Guide" => "How_to.md",
         "Theory" => "Explanation.md",
         "Reference" => "Reference.md"
     ],

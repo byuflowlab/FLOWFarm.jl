@@ -45,7 +45,7 @@ test
 ## Documentation
 
 * Begin with the [quick start tutorial](Tutorial.md).
-* More advanced topics are covered in the [guided examples](How_to.md).
+* More advanced topics are covered in the [how-to guide](How_to.md).
 * Theory details, and links, can be found in the [theory](Explanation.md) page.
 * Doc strings can be found in the [references](Reference.md) page.
 

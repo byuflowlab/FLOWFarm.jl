@@ -36,8 +36,8 @@ using SNOW
 ```@example 1
 
 # set initial turbine x and y locations
-turbinex = [-240.0, -240.0, -240.0, 0.0, 0.0, 240.0, 240.0, 240.0]
-turbiney = [-240.0, 0.0, 240.0, -240.0, 240.0, -240.0, 0.0, 240.0]
+turbinex = [-240.0, -240.0]#, -240.0, 0.0, 0.0, 240.0, 240.0, 240.0]
+turbiney = [-240.0, 0.0]#, 240.0, -240.0, 240.0, -240.0, 0.0, 240.0]
 
 # get the number of turbines
 nturbines = length(turbinex)
@@ -122,7 +122,7 @@ state is any combination of wind speed, wind direction, turbulence intensity, et
 # set flow parameters
 windspeed = 8.0        # m/2
 airdensity = 1.1716    # kg/m^3
-ambientti = 0.077      # %
+ambientti = 0.1      # %
 shearexponent = 0.15
 ndirections = 5
 winddirections = collect(range(0, 2*pi*(1-1/ndirections), length=ndirections))   # radians
@@ -148,8 +148,9 @@ plt.savefig("windresource.png") # hide
 
 ## (2) Setting up the analysis models
 
-A model set requires a Wake Deficit Model, Wake Deflection Model, Wake Combination Model, and a Local Turbulence Intensity Model. There are several options for each model types. These options are:
+A model set requires a Wake Deficit Model, Wake Deflection Model, Wake Combination Model, and a Local Turbulence Intensity Model. There are several options for each model type. To facilitate research studies, any of the models in each type can be used with any of the models in any other type. However, behavior is not guaranteed. It is recommended that common, validated, model combinations be used in most cases.
 
+Model types and options are:
 * Deficit Models: JensenTopHat, JensenCosine, MultiZone, GaussOriginal, GaussYaw, GaussYawVariableSpread, GaussSimple
 * Deflection Models: GaussYawDeflection, GaussYawVariableSpreadDeflection, JiminezYawDeflection, MultizoneDeflection
 * Combination Models: LinearFreestreamSuperposition, SumOfSquaresFreestreamSuperposition SumOfSquaresLocalVelocitySuperposition, LinearLocalVelocitySuperposition
@@ -185,7 +186,7 @@ are provided in the doc strings attached to each model.
 
 The wake deficit model predicts the impact of wind turbines wake on the wind speed.
 ```@example 1
-wakedeficitmodel = ff.GaussYaw()
+wakedeficitmodel = ff.GaussYawVariableSpread()
 ```
 
 The wake deflection model predicts the cross-wind location of the center of a wind turbine wake.
@@ -231,8 +232,7 @@ state_aeps = ff.calculate_state_aeps(turbinex, turbiney, turbinez, rotordiameter
         hours_per_year=365.25*24.0, weighted=true)
 ```
 
-If we instead set `weighted=false` then we would get the power production rate in each 
-direction in Watts.
+If we instead set `weighted=false` then we would get the power in each direction in Watts.
 
 If we want to get the individual turbine powers in each directions, we use the following.
 
@@ -438,8 +438,15 @@ ng = Int(nturbines + (nturbines)*(nturbines - 1)/2)
 lg = [-Inf*ones(Int((nturbines)*(nturbines - 1)/2)); -Inf*ones(nturbines)]
 ug = [zeros(Int((nturbines)*(nturbines - 1)/2)); zeros(nturbines)]
 
+# IPOPT options
+ip_options = Dict(
+    "max_iter" => 30,
+    "tol" => 1e-6
+)
+solver = IPOPT(ip_options)
+
 # initialize SNOW options
-options = Options(solver=IPOPT(), derivatives=ForwardAD())  # choosing IPOPT solver and AD derivatives
+options = Options(solver=solver, derivatives=ForwardAD())  # choose AD derivatives
 println("") # hide
 ```
 

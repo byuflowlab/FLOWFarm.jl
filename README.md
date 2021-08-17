@@ -51,9 +51,9 @@ test
 ## Documentation
 
 * Begin with the [quick start tutorial](https://flow.byu.edu/FLOWFarm.jl/Tutorial/).
-* More advanced topics are covered in the [guided examples](https://flow.byu.edu/FLOWFarm.jl/How_to/).
-* Doc strings can be found in the [references](https://flow.byu.edu/FLOWFarm.jl/Reference/) page.
+* More advanced topics are covered in the [how-to guide](https://flow.byu.edu/FLOWFarm.jl/How_to/).
 * Theory details, and links, can be found in the [theory](https://flow.byu.edu/FLOWFarm.jl/Explanation) page.
+* Doc strings can be found in the [references](https://flow.byu.edu/FLOWFarm.jl/Reference/) page.
 
 **Citing:**
 Thomas, McOmber, and Ning "Wake Expansion Continuation: Multi-Modality Reduction in the Wind Farm Layout Optimization Problem" *Wind Energy* (in review), -->
