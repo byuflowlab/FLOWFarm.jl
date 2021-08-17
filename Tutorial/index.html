@@ -3,8 +3,8 @@
 using PyPlot; const plt = PyPlot
 using VectorizedRoutines.Matlab: meshgrid
 using SNOW</code></pre><h3 id="Initialize-the-wind-farm-design"><a class="docs-heading-anchor" href="#Initialize-the-wind-farm-design">Initialize the wind farm design</a><a id="Initialize-the-wind-farm-design-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-the-wind-farm-design" title="Permalink"></a></h3><pre><code class="language-julia hljs"># set initial turbine x and y locations
-turbinex = [-240.0, -240.0]#, -240.0, 0.0, 0.0, 240.0, 240.0, 240.0]
-turbiney = [-240.0, 0.0]#, 240.0, -240.0, 240.0, -240.0, 0.0, 240.0]
+turbinex = [-240.0, -240.0, -240.0, 0.0, 0.0, 0.0, 240.0, 240.0, 240.0]
+turbiney = [-240.0, 0.0, 240.0, -240.0, 0.0, 240.0, -240.0, 0.0, 240.0]
 
 # get the number of turbines
 nturbines = length(turbinex)
@@ -76,24 +76,24 @@ for i = 1:nturbines
 end</code></pre><p>Set up wake and related models. Here we will use the default values provided in FLOWFarm. However, it is important to use the correct model parameters. More information and references are provided in the doc strings attached to each model.</p><p>The wake deficit model predicts the impact of wind turbines wake on the wind speed.</p><pre><code class="language-julia hljs">wakedeficitmodel = ff.GaussYawVariableSpread()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">FLOWFarm.GaussYawVariableSpread{Float64, Vector{Float64}}(2.32, 0.154, 0.3837, 0.003678, [1.0])</code></pre><p>The wake deflection model predicts the cross-wind location of the center of a wind turbine wake.</p><pre><code class="language-julia hljs">wakedeflectionmodel = ff.GaussYawDeflection()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">FLOWFarm.GaussYawDeflection{Float64}(0.022, 0.022, 2.32, 0.154)</code></pre><p>The wake combination model defines how the predicted deficits in each wake should be combined to predict the total deficit at a point</p><pre><code class="language-julia hljs">wakecombinationmodel = ff.LinearLocalVelocitySuperposition()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">FLOWFarm.LinearLocalVelocitySuperposition()</code></pre><p>The local turbulence intensity models can be used to estimate the local turbulence intensity at each wind turbine or point to provide more accurate input information to the wake and deflection models if applicable.</p><pre><code class="language-julia hljs">localtimodel = ff.LocalTIModelMaxTI()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">FLOWFarm.LocalTIModelMaxTI{Float64}(2.32, 0.154, 0.3837, 0.003678)</code></pre><p>Initialize model set. This is just a convenience container for the analysis models.</p><pre><code class="language-julia hljs">modelset = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)</code></pre><h2 id="(3)-Running-the-analysis"><a class="docs-heading-anchor" href="#(3)-Running-the-analysis">(3) Running the analysis</a><a id="(3)-Running-the-analysis-1"></a><a class="docs-heading-anchor-permalink" href="#(3)-Running-the-analysis" title="Permalink"></a></h2><p>Now that the wind farm and analysis models have been defined, we can calculate AEP. The output is in Watt-hours.</p><pre><code class="language-julia hljs">aep = ff.calculate_aep(turbinex, turbiney, turbinez, rotordiameter,
     hubheight, turbineyaw, ctmodels, generatorefficiency, cutinspeed,
     cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset,
-    rotor_sample_points_y=rotorsamplepointsy, rotor_sample_points_z=rotorsamplepointsz)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1.1442361200631573e9</code></pre><p>We can also get the AEP in each direction using the following.</p><pre><code class="language-julia hljs">state_aeps = ff.calculate_state_aeps(turbinex, turbiney, turbinez, rotordiameter,
+    rotor_sample_points_y=rotorsamplepointsy, rotor_sample_points_z=rotorsamplepointsz)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">4.1737095825546174e9</code></pre><p>We can also get the AEP in each direction using the following.</p><pre><code class="language-julia hljs">state_aeps = ff.calculate_state_aeps(turbinex, turbiney, turbinez, rotordiameter,
         hubheight, turbineyaw, ctmodels, generatorefficiency, cutinspeed,
         cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset,
         rotor_sample_points_y=rotorsamplepointsy, rotor_sample_points_z=rotorsamplepointsz,
         hours_per_year=365.25*24.0, weighted=true)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">5-element Vector{Float64}:
- 1.3971842531890044e8
- 2.511423813455672e8
- 2.51113974268121e8
- 2.511189577855474e8
- 2.511423813450213e8</code></pre><p>If we instead set <code>weighted=false</code> then we would get the power in each direction in Watts.</p><p>If we want to get the individual turbine powers in each directions, we use the following.</p><pre><code class="language-julia hljs">turbine_powers_by_direction = ff.calculate_state_turbine_powers(turbinex, turbiney, turbinez, rotordiameter,
+ 4.315899317425135e8
+ 9.716436883103495e8
+ 8.988801032894744e8
+ 8.933558985318581e8
+ 9.782399606804224e8</code></pre><p>If we instead set <code>weighted=false</code> then we would get the power in each direction in Watts.</p><p>If we want to get the individual turbine powers in each directions, we use the following.</p><pre><code class="language-julia hljs">turbine_powers_by_direction = ff.calculate_state_turbine_powers(turbinex, turbiney, turbinez, rotordiameter,
     hubheight, turbineyaw, ctmodels, generatorefficiency, cutinspeed,
     cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset,
-    rotor_sample_points_y=rotorsamplepointsy, rotor_sample_points_z=rotorsamplepointsz)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">5×2 Matrix{Float64}:
-  8069.38  71624.0
- 71624.0   71624.0
- 71624.0   71607.8
- 71624.0   71610.6
- 71624.0   71624.0</code></pre><p>The output shows each turbine power in an array that is ndirections by nturbines.</p><h2 id="(4)-setting-up-and-running-an-optimization"><a class="docs-heading-anchor" href="#(4)-setting-up-and-running-an-optimization">(4) setting up and running an optimization</a><a id="(4)-setting-up-and-running-an-optimization-1"></a><a class="docs-heading-anchor-permalink" href="#(4)-setting-up-and-running-an-optimization" title="Permalink"></a></h2><p>FLOWFarm is specifically designed for efficient optimization using gradient-based optimization methods. Besides the steps outlined above, we need to define the following before we can run  and optimization:</p><ul><li>(1) Optimization related variables</li><li>(1) A container for non-differentiated parameters</li><li>(2) Objective function </li><li>(3) Constraint function(s) </li><li>(4) Optimization tool specific items</li></ul><p>In this tutorial we demonstrate optimizing using the IPOPT algorithms via SNOW.jl for simplicity.</p><p>First, set up optimization related variables. We will have two constraints, one to keep  turbines from getting too close to each other (spacing), and the other to keep turbines  inside the desired area (boundary). FLOWFarm provides several different ways of handling  boundary constraints, including concave boundaries. However, for this tutorial we will use  a simple circular boundary.</p><pre><code class="language-julia hljs"># scale objective derivatives to be between 0 and 1
+    rotor_sample_points_y=rotorsamplepointsy, rotor_sample_points_z=rotorsamplepointsz)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">5×9 Matrix{Float64}:
+  2364.18   8069.38  71624.0   2364.18  …   2364.18   8069.38  71624.0
+ 50098.5   50098.5   59986.3  59718.1      71624.0   71624.0   71624.0
+ 71624.0   41498.5   35759.9  71624.0      71624.0   71607.8   71607.8
+ 71624.0   71610.6   71610.6  71624.0      71624.0   40487.6   35285.2
+ 71624.0   71624.0   71624.0  60530.1      50373.4   50373.4   60762.6</code></pre><p>The output shows each turbine power in an array that is ndirections by nturbines.</p><h2 id="(4)-setting-up-and-running-an-optimization"><a class="docs-heading-anchor" href="#(4)-setting-up-and-running-an-optimization">(4) setting up and running an optimization</a><a id="(4)-setting-up-and-running-an-optimization-1"></a><a class="docs-heading-anchor-permalink" href="#(4)-setting-up-and-running-an-optimization" title="Permalink"></a></h2><p>FLOWFarm is specifically designed for efficient optimization using gradient-based optimization methods. Besides the steps outlined above, we need to define the following before we can run  and optimization:</p><ul><li>(1) Optimization related variables</li><li>(1) A container for non-differentiated parameters</li><li>(2) Objective function </li><li>(3) Constraint function(s) </li><li>(4) Optimization tool specific items</li></ul><p>In this tutorial we demonstrate optimizing using the IPOPT algorithms via SNOW.jl for simplicity.</p><p>First, set up optimization related variables. We will have two constraints, one to keep  turbines from getting too close to each other (spacing), and the other to keep turbines  inside the desired area (boundary). FLOWFarm provides several different ways of handling  boundary constraints, including concave boundaries. However, for this tutorial we will use  a simple circular boundary.</p><pre><code class="language-julia hljs"># scale objective derivatives to be between 0 and 1
 objectivescale = 1E-6
 
 # scale boundary constraint derivatives to be between 0 and 1
@@ -223,7 +223,7 @@ function wind_farm_opt!(g, x, params)
     g[end-nturbines+1:end] = boundary_con[:]
 
     # calculate the objective function and jacobian (negative sign in order to maximize AEP)
-    obj = -aep_wrapper(x, params)
+    obj = -aep_wrapper(x, params)[1]
 
     return obj
 end</code></pre><p>Because the optimizer will need to call the objective function without knowing about the params, we need to set up a method that will know the params values by default.</p><pre><code class="language-julia hljs"># generate objective function wrapper
@@ -241,10 +241,17 @@ ug = [zeros(Int((nturbines)*(nturbines - 1)/2)); zeros(nturbines)]
 
 # IPOPT options
 ip_options = Dict(
-    &quot;max_iter&quot; =&gt; 30,
+    &quot;max_iter&quot; =&gt; 50,
     &quot;tol&quot; =&gt; 1e-6
 )
 solver = IPOPT(ip_options)
+
+# if using SNOPT, you can do the following instead:
+# snopt_opt = Dict(
+#    &quot;Derivative option&quot; =&gt; 1,
+#    &quot;Major optimality tolerance&quot; =&gt; 1e-4,
+# )
+# solver = SNOPT(options=snopt_opt)
 
 # initialize SNOW options
 options = Options(solver=solver, derivatives=ForwardAD())  # choose AD derivatives</code></pre><p>Now that the optimizer is set up, we are ready to optimize and check the results.</p><pre><code class="language-julia hljs"># optimize
@@ -292,81 +299,103 @@ This is Ipopt version 3.13.4, running with linear solver mumps.
 NOTE: Other linear solvers might be more efficient (see Ipopt documentation).
 
 Number of nonzeros in equality constraint Jacobian...:        0
-Number of nonzeros in inequality constraint Jacobian.:       12
+Number of nonzeros in inequality constraint Jacobian.:      810
 Number of nonzeros in Lagrangian Hessian.............:        0
 
-Total number of variables............................:        4
+Total number of variables............................:       18
                      variables with only lower bounds:        0
-                variables with lower and upper bounds:        4
+                variables with lower and upper bounds:       18
                      variables with only upper bounds:        0
 Total number of equality constraints.................:        0
-Total number of inequality constraints...............:        3
+Total number of inequality constraints...............:       45
         inequality constraints with only lower bounds:        0
    inequality constraints with lower and upper bounds:        0
-        inequality constraints with only upper bounds:        3
+        inequality constraints with only upper bounds:       45
 
 iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
-   0 -1.1476649e+03 0.00e+00 5.34e-01   0.0 0.00e+00    -  0.00e+00 0.00e+00   0
-   1 -1.1476649e+03 0.00e+00 7.34e-03  -3.5 5.44e-03    -  9.90e-01 1.00e+00f  1
-   2 -1.1476650e+03 0.00e+00 3.72e-03  -5.5 5.62e-03    -  9.90e-01 1.00e+00h  1
-   3 -1.1476650e+03 0.00e+00 3.95e-03  -7.5 5.62e-03    -  9.90e-01 1.00e+00h  1
-   4 -1.1476651e+03 0.00e+00 4.23e-03  -5.6 5.62e-03    -  1.00e+00 1.00e+00h  1
-   5 -1.1476651e+03 0.00e+00 4.53e-03  -7.7 5.61e-03    -  1.00e+00 1.00e+00h  1
-   6 -1.1476652e+03 0.00e+00 4.86e-03  -9.7 5.61e-03    -  1.00e+00 1.00e+00h  1
-   7 -1.1476653e+03 0.00e+00 5.20e-03 -11.0 5.98e-03    -  1.00e+00 1.00e+00h  1
-   8 -1.1476654e+03 0.00e+00 5.58e-03 -11.0 6.40e-03    -  1.00e+00 1.00e+00h  1
-   9 -1.1476655e+03 0.00e+00 5.97e-03 -11.0 6.86e-03    -  1.00e+00 1.00e+00h  1
+   0 -4.2478309e+03 0.00e+00 1.87e+00   0.0 0.00e+00    -  0.00e+00 0.00e+00   0
+   1 -4.2796244e+03 0.00e+00 2.99e+00   0.8 6.18e+00    -  9.91e-01 1.00e+00f  1
+   2 -4.5824090e+03 0.00e+00 2.88e+00   0.6 1.94e+02    -  7.70e-01 1.00e+00f  1
+   3 -4.4824523e+03 0.00e+00 5.41e+00  -5.3 2.14e+02    -  4.02e-01 7.76e-01h  1
+   4 -4.8167808e+03 1.21e+00 4.04e+00   0.1 7.84e+01    -  1.00e+00 6.32e-01f  1
+   5 -4.9332834e+03 0.00e+00 1.28e+00  -0.2 6.01e+01    -  5.08e-01 1.00e+00f  1
+   6 -4.9603756e+03 0.00e+00 6.47e-01  -1.1 2.15e+01    -  1.00e+00 7.81e-01f  1
+   7 -4.9752693e+03 9.28e-02 4.88e-01  -2.0 3.65e+01    -  9.97e-01 3.42e-01f  1
+   8 -4.9506025e+03 0.00e+00 2.04e+00  -1.3 4.07e+01    -  1.00e+00 1.00e+00H  1
+   9 -4.9857519e+03 7.04e-02 4.87e-01  -2.0 2.13e+01    -  1.00e+00 1.00e+00f  1
 iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
-  10 -1.1476657e+03 0.00e+00 6.41e-03 -11.0 7.35e-03    -  1.00e+00 1.00e+00h  1
-  11 -1.1476658e+03 0.00e+00 6.88e-03 -11.0 7.87e-03    -  1.00e+00 1.00e+00h  1
-  12 -1.1476660e+03 0.00e+00 7.38e-03 -11.0 8.44e-03    -  1.00e+00 1.00e+00h  1
-  13 -1.1476662e+03 0.00e+00 7.92e-03 -11.0 9.04e-03    -  1.00e+00 1.00e+00h  1
-  14 -1.1476664e+03 0.00e+00 8.49e-03 -11.0 9.69e-03    -  1.00e+00 1.00e+00h  1
-  15 -1.1476666e+03 0.00e+00 1.11e-02 -11.0 1.04e-02    -  1.00e+00 1.00e+00h  1
-  16 -1.1476669e+03 0.00e+00 1.19e-02 -11.0 1.11e-02    -  1.00e+00 1.00e+00h  1
-  17 -1.1476672e+03 0.00e+00 1.28e-02 -11.0 1.19e-02    -  1.00e+00 1.00e+00h  1
-  18 -1.1476675e+03 0.00e+00 1.37e-02 -11.0 1.28e-02    -  1.00e+00 1.00e+00h  1
-  19 -1.1476679e+03 0.00e+00 1.47e-02 -11.0 1.37e-02    -  1.00e+00 1.00e+00h  1
+  10 -4.9941548e+03 4.16e-04 9.07e-01  -2.6 7.49e+00    -  1.00e+00 9.97e-01f  1
+  11 -5.0137392e+03 1.12e-02 7.51e-01  -3.4 1.64e+01    -  1.00e+00 1.00e+00f  1
+  12 -5.0194923e+03 1.14e-02 5.24e-01  -3.2 3.61e+02    -  1.00e+00 3.22e-02f  4
+  13 -5.0240071e+03 3.29e-03 4.19e-01  -4.0 7.64e+00    -  1.00e+00 1.00e+00f  1
+  14 -5.0159789e+03 1.20e-04 1.10e+00  -4.5 4.51e+01    -  1.00e+00 1.00e+00H  1
+  15 -5.0324581e+03 7.61e-02 3.17e-01  -5.0 1.67e+01    -  1.00e+00 1.00e+00f  1
+  16 -5.0368648e+03 2.34e-02 4.48e-01  -5.5 5.53e+00    -  1.00e+00 1.00e+00f  1
+  17 -5.0459016e+03 6.57e-02 6.41e-01  -6.7 1.04e+01    -  1.00e+00 1.00e+00f  1
+  18 -5.0648358e+03 1.50e-01 8.91e-01  -7.7 1.59e+01    -  1.00e+00 1.00e+00f  1
+  19 -5.0668897e+03 9.82e-04 8.90e-01  -9.1 9.34e-01    -  1.00e+00 1.00e+00f  1
 iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
-  20 -1.1476684e+03 0.00e+00 1.57e-02 -11.0 1.47e-02    -  1.00e+00 1.00e+00h  1
-  21 -1.1476689e+03 0.00e+00 1.68e-02 -11.0 1.57e-02    -  1.00e+00 1.00e+00h  1
-  22 -1.1476695e+03 0.00e+00 1.80e-02 -11.0 1.68e-02    -  1.00e+00 1.00e+00h  1
-  23 -1.1476702e+03 0.00e+00 1.93e-02 -11.0 1.80e-02    -  1.00e+00 1.00e+00h  1
-  24 -1.1476710e+03 0.00e+00 2.07e-02 -11.0 1.93e-02    -  1.00e+00 1.00e+00h  1
-  25 -1.1476719e+03 0.00e+00 2.22e-02 -11.0 2.07e-02    -  1.00e+00 1.00e+00h  1
-  26 -1.1476729e+03 0.00e+00 2.38e-02 -11.0 2.22e-02    -  1.00e+00 1.00e+00h  1
-  27 -1.1476741e+03 0.00e+00 2.55e-02 -11.0 2.38e-02    -  1.00e+00 1.00e+00h  1
-  28 -1.1476755e+03 0.00e+00 2.73e-02 -11.0 2.55e-02    -  1.00e+00 1.00e+00h  1
-  29 -1.1476770e+03 0.00e+00 2.92e-02 -11.0 2.73e-02    -  1.00e+00 1.00e+00h  1
+  20 -5.0690388e+03 1.02e-03 8.07e-01 -10.8 9.74e-01    -  1.00e+00 1.00e+00f  1
+  21 -5.0712590e+03 1.07e-03 8.29e-01 -11.0 1.01e+00    -  1.00e+00 1.00e+00f  1
+  22 -5.0735628e+03 1.13e-03 8.52e-01 -11.0 1.05e+00    -  1.00e+00 1.00e+00f  1
+  23 -5.0759592e+03 1.19e-03 8.73e-01 -11.0 1.08e+00    -  1.00e+00 1.00e+00f  1
+  24 -5.0784545e+03 1.25e-03 8.94e-01 -11.0 1.11e+00    -  1.00e+00 1.00e+00f  1
+  25 -5.0810509e+03 1.30e-03 9.13e-01 -11.0 1.15e+00    -  1.00e+00 1.00e+00f  1
+  26 -5.0837464e+03 1.35e-03 9.30e-01  -9.0 1.18e+00    -  7.51e-01 1.00e+00f  1
+  27 -5.0865339e+03 9.69e-04 9.44e-01  -7.1 1.21e+00    -  6.15e-03 1.00e+00f  1
+  28 -5.0894034e+03 5.44e-05 9.80e-01  -7.2 1.21e+00    -  1.00e+00 1.00e+00f  1
+  29 -5.0923367e+03 5.73e-05 9.96e-01  -6.9 1.24e+00    -  1.00e+00 1.00e+00f  1
 iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
-  30 -1.1476788e+03 0.00e+00 3.13e-02 -11.0 2.92e-02    -  1.00e+00 1.00e+00h  1
+  30 -5.0953093e+03 6.05e-05 1.00e+00  -8.3 1.27e+00    -  1.00e+00 1.00e+00f  1
+  31 -5.0982912e+03 6.37e-05 1.01e+00  -9.0 1.28e+00    -  1.00e+00 1.00e+00f  1
+  32 -5.1314853e+03 4.33e-02 7.51e-01  -7.0 2.59e+04    -  9.35e-05 1.16e-03f  3
+  33 -5.1383377e+03 1.23e-01 4.32e-01  -7.0 6.63e+00    -  1.00e+00 7.95e-01f  1
+  34 -5.1391967e+03 1.32e-01 3.99e-01  -5.1 4.95e+00    -  1.00e+00 1.79e-01f  1
+  35 -5.1498651e+03 3.65e-01 9.06e-01  -4.0 3.35e+01    -  1.00e+00 1.00e+00f  1
+  36 -5.0664485e+03 9.28e-04 3.04e+00  -4.2 7.04e+01    -  1.00e+00 1.00e+00H  1
+  37 -5.1553317e+03 2.13e-01 3.86e-01  -4.3 6.37e+01    -  1.00e+00 1.00e+00f  1
+  38 -5.1542439e+03 2.87e-02 5.77e-01  -5.0 1.16e+01    -  1.00e+00 1.00e+00h  1
+  39 -5.1585987e+03 6.05e-03 1.17e-01  -5.3 8.54e+00    -  1.00e+00 1.00e+00f  1
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+  40 -5.1590671e+03 1.66e-03 6.67e-02  -6.8 3.44e+00    -  1.00e+00 1.00e+00f  1
+  41 -5.1588545e+03 3.20e-05 2.78e-01  -8.1 8.90e+00    -  1.00e+00 1.00e+00H  1
+  42 -5.1597535e+03 3.16e-02 2.57e-01  -9.1 8.66e+00    -  1.00e+00 1.00e+00f  1
+  43 -5.1602374e+03 4.73e-03 2.13e-01  -9.5 4.74e+00    -  1.00e+00 1.00e+00f  1
+  44 -5.1603067e+03 4.59e-04 1.60e-01 -11.0 2.59e+00    -  1.00e+00 1.00e+00f  1
+  45 -5.1604677e+03 1.28e-03 2.31e-02 -10.7 1.79e+00    -  1.00e+00 1.00e+00f  1
+  46 -5.1605030e+03 1.10e-03 1.72e-02 -11.0 1.94e+00    -  1.00e+00 1.00e+00h  1
+  47 -5.1594432e+03 7.15e-06 2.98e-01 -11.0 1.11e+01    -  1.00e+00 1.00e+00H  1
+  48 -5.1605570e+03 1.88e-02 3.85e-02 -11.0 8.20e+00    -  1.00e+00 1.00e+00f  1
+  49 -5.1602832e+03 2.67e-04 1.80e-01 -11.0 2.72e+00    -  1.00e+00 1.00e+00h  1
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+  50 -5.1605438e+03 3.34e-04 8.12e-03 -11.0 2.37e+00    -  1.00e+00 1.00e+00f  1
 
-Number of Iterations....: 30
+Number of Iterations....: 50
 
                                    (scaled)                 (unscaled)
-Objective...............:  -1.1476788246280228e+03   -1.1476788246280228e+03
-Dual infeasibility......:   3.1320678008665455e-02    3.1320678008665455e-02
-Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
-Complementarity.........:   9.9999999998258811e-12    9.9999999998258811e-12
-Overall NLP error.......:   3.1320678008665455e-02    3.1320678008665455e-02
+Objective...............:  -5.1605437647520457e+03   -5.1605437647520457e+03
+Dual infeasibility......:   8.1174812515785628e-03    8.1174812515785628e-03
+Constraint violation....:   3.3426281037438662e-04    3.3426281037438662e-04
+Complementarity.........:   1.0000230935650966e-11    1.0000230935650966e-11
+Overall NLP error.......:   8.1174812515785628e-03    8.1174812515785628e-03
 
 
-Number of objective function evaluations             = 31
-Number of objective gradient evaluations             = 31
+Number of objective function evaluations             = 64
+Number of objective gradient evaluations             = 51
 Number of equality constraint evaluations            = 0
-Number of inequality constraint evaluations          = 31
+Number of inequality constraint evaluations          = 64
 Number of equality constraint Jacobian evaluations   = 0
-Number of inequality constraint Jacobian evaluations = 31
+Number of inequality constraint Jacobian evaluations = 51
 Number of Lagrangian Hessian evaluations             = 0
-Total CPU secs in IPOPT (w/o function evaluations)   =      8.052
-Total CPU secs in NLP function evaluations           =      0.029
+Total CPU secs in IPOPT (w/o function evaluations)   =      7.564
+Total CPU secs in NLP function evaluations           =      0.719
 
 EXIT: Maximum Number of Iterations Exceeded.
-Finished in : 9.26153016090393 (s)
+Finished in : 9.380524158477783 (s)
 info: Maximum_Iterations_Exceeded
-Initial AEP: 1.1442361200631573e9
-Final AEP: 1.147678824628023e9
-AEP improvement (%) = 0.30087361380233</code></pre><p><img src="../optlayout.png" alt/></p><h2 id="(5)-Calculating-and-visualizing-a-flow-field"><a class="docs-heading-anchor" href="#(5)-Calculating-and-visualizing-a-flow-field">(5) Calculating and visualizing a flow field</a><a id="(5)-Calculating-and-visualizing-a-flow-field-1"></a><a class="docs-heading-anchor-permalink" href="#(5)-Calculating-and-visualizing-a-flow-field" title="Permalink"></a></h2><pre><code class="language-julia hljs"># define how many points should be in the flow field
+Initial AEP: 4.1737095825546174e9
+Final AEP: 5.160543764752046e9
+AEP improvement (%) = 23.644054831275852</code></pre><p><img src="../optlayout.png" alt/></p><h2 id="(5)-Calculating-and-visualizing-a-flow-field"><a class="docs-heading-anchor" href="#(5)-Calculating-and-visualizing-a-flow-field">(5) Calculating and visualizing a flow field</a><a id="(5)-Calculating-and-visualizing-a-flow-field-1"></a><a class="docs-heading-anchor-permalink" href="#(5)-Calculating-and-visualizing-a-flow-field" title="Permalink"></a></h2><p>It is helpful to visualize the whole flow-field, not just the turbine powers. Here we will  visualize the flow field for a 2D horizontal cross-section at the hub height. FLOWFarm is  capable of generating flow fields in 1D, 2D, and 3D.</p><pre><code class="language-julia hljs"># define how many points should be in the flow field
 xres = 1000
 yres = 1000
 zres = 1
@@ -384,7 +413,7 @@ zrange = hubheight[1]
 
 # run flowfarm
 ffvelocities = ff.calculate_flow_field(xrange, yrange, zrange,
-    modelset, turbinex, turbiney, turbinez, turbineyaw,
+    modelset, turbinexopt, turbineyopt, turbinez, turbineyaw,
     rotordiameter, hubheight, ctmodels, rotorsamplepointsy, rotorsamplepointsz,
     windresource, wind_farm_state_id=5)
 
@@ -407,4 +436,4 @@ ax.set(xlabel=&quot;Easting (m)&quot;, ylabel=&quot;Northing (m)&quot;)
 
 # add the wind farm boundary
 circle = matplotlib.patches.Circle((0.0, 0.0), boundaryradius, fill=false, color=&quot;k&quot;)
-ax.add_patch(circle)</code></pre><p><img src="../flowfield.png" alt/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Intro</a><a class="docs-footer-nextpage" href="../How_to/">How-to Guide »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.5 on <span class="colophon-date" title="Tuesday 17 August 2021 16:32">Tuesday 17 August 2021</span>. Using Julia version 1.6.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+ax.add_patch(circle)</code></pre><p><img src="../flowfield.png" alt/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Intro</a><a class="docs-footer-nextpage" href="../How_to/">How-to Guide »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.5 on <span class="colophon-date" title="Tuesday 17 August 2021 19:01">Tuesday 17 August 2021</span>. Using Julia version 1.6.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
