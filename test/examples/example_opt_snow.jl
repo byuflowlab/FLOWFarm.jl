@@ -176,12 +176,12 @@ snopt_opt = Dict(
     "Summary file" => "snopt_summary1.out",
     "Print file" => "snopt_print1.out"
 )
-solver = SNOPT(options=snopt_opt)
-# ip_options = Dict(
-#     "max_iter" => 3,
-#     "tol" => 1e-6
-# )
-# solver = IPOPT(ip_options)
+# solver = SNOPT(options=snopt_opt)
+ip_options = Dict(
+    "max_iter" => 30,
+    "tol" => 1e-6
+)
+solver = IPOPT(ip_options)
 options = Options(;solver, derivatives=ForwardAD())
 
 # set general lower and upper bounds for design variables

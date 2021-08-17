@@ -36,8 +36,8 @@ using SNOW
 ```@example 1
 
 # set initial turbine x and y locations
-turbinex = [-240.0, -240.0, -240.0, 0.0, 0.0, 240.0, 240.0, 240.0]
-turbiney = [-240.0, 0.0, 240.0, -240.0, 240.0, -240.0, 0.0, 240.0]
+turbinex = [-240.0, -240.0, -240.0, 0.0, 0.0, 0.0, 240.0, 240.0, 240.0]
+turbiney = [-240.0, 0.0, 240.0, -240.0, 0.0, 240.0, -240.0, 0.0, 240.0]
 
 # get the number of turbines
 nturbines = length(turbinex)
@@ -408,7 +408,7 @@ function wind_farm_opt!(g, x, params)
     g[end-nturbines+1:end] = boundary_con[:]
     
     # calculate the objective function and jacobian (negative sign in order to maximize AEP)
-    obj = -aep_wrapper(x, params)
+    obj = -aep_wrapper(x, params)[1]
     
     return obj
 end
@@ -440,10 +440,17 @@ ug = [zeros(Int((nturbines)*(nturbines - 1)/2)); zeros(nturbines)]
 
 # IPOPT options
 ip_options = Dict(
-    "max_iter" => 30,
+    "max_iter" => 50,
     "tol" => 1e-6
 )
 solver = IPOPT(ip_options)
+
+# if using SNOPT, you can do the following instead:
+# snopt_opt = Dict(
+#    "Derivative option" => 1,
+#    "Major optimality tolerance" => 1e-4,
+# )
+# solver = SNOPT(options=snopt_opt)
 
 # initialize SNOW options
 options = Options(solver=solver, derivatives=ForwardAD())  # choose AD derivatives
@@ -496,6 +503,10 @@ plt.savefig("optlayout.png") # hide
 
 ## (5) Calculating and visualizing a flow field
 
+It is helpful to visualize the whole flow-field, not just the turbine powers. Here we will 
+visualize the flow field for a 2D horizontal cross-section at the hub height. FLOWFarm is 
+capable of generating flow fields in 1D, 2D, and 3D.
+
 ```@example 1
 # define how many points should be in the flow field
 xres = 1000
@@ -515,7 +526,7 @@ zrange = hubheight[1]
 
 # run flowfarm 
 ffvelocities = ff.calculate_flow_field(xrange, yrange, zrange,
-    modelset, turbinex, turbiney, turbinez, turbineyaw,
+    modelset, turbinexopt, turbineyopt, turbinez, turbineyaw,
     rotordiameter, hubheight, ctmodels, rotorsamplepointsy, rotorsamplepointsz,
     windresource, wind_farm_state_id=5)
 
