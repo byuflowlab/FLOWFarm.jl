@@ -36,8 +36,8 @@ using SNOW
 ```@example 1
 
 # set initial turbine x and y locations
-turbinex = [-240.0, -240.0]#, -240.0, 0.0, 0.0, 240.0, 240.0, 240.0]
-turbiney = [-240.0, 0.0]#, 240.0, -240.0, 240.0, -240.0, 0.0, 240.0]
+turbinex = [-240.0, -240.0, -240.0, 0.0, 0.0, 240.0, 240.0, 240.0]
+turbiney = [-240.0, 0.0, 240.0, -240.0, 240.0, -240.0, 0.0, 240.0]
 
 # get the number of turbines
 nturbines = length(turbinex)
