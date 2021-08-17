@@ -496,8 +496,6 @@ uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 [[SNOW]]
 deps = ["DiffResults", "FiniteDiff", "ForwardDiff", "Ipopt", "Requires", "ReverseDiff", "SparseArrays", "SparseDiffTools", "Zygote"]
 git-tree-sha1 = "e299ceee0c1c96ad62a8bba3044c152861493f66"
-repo-rev = "master"
-repo-url = "https://github.com/byuflowlab/SNOW.jl"
 uuid = "105f6ee8-0889-46b1-9d4b-65e03cbc8f13"
 version = "0.2.0"
 
