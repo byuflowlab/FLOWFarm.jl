@@ -927,13 +927,13 @@ function round_farm_random_start(rotor_diameter, center, radius; nturbines=nothi
         # puting random number of turbines on the boundary, distribute the rest using sunflower 
 
         # set minimum number of turbines for the boundary 
-        min_boundary_turbines = floor(0.2*nturbines)
+        min_boundary_turbines = floor(0.3*nturbines)
 
         # get max number of turbines that will fit on the boundary 
         alpha_min = 2.0 * asin.(min_spacing_random / (2.0 * radius))
         max_boundary_turbines = floor.(2.0 * pi / alpha_min)
-        if max_boundary_turbines > nturbines
-            max_boundary_turbines = nturbines
+        if max_boundary_turbines > floor(0.7*nturbines)
+            max_boundary_turbines = 0.7*nturbines
         end
 
         # get number of turbines to put on the boundary 
@@ -956,8 +956,10 @@ function round_farm_random_start(rotor_diameter, center, radius; nturbines=nothi
 
         # place interior turbines 
         xi, yi = rotor_sample_points(niturbines, alpha=1).*(radius - min_spacing_random)
-        turbinex[nbturbines+1:end] = xi 
-        turbiney[nbturbines+1:end] = yi 
+        if niturbines > 0
+            turbinex[nbturbines+1:end] = xi 
+            turbiney[nbturbines+1:end] = yi 
+        end
 
         # check spacing 
         for i = 1:nturbines
