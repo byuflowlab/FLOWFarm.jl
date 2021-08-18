@@ -602,7 +602,7 @@ limiting the minimum distance between turbines.
         around a singlar closed boundary
 - `start_dist::Float64`: the distance (positive or negative) along the boundary
         from the first boundary point where the turbines will begin to be placed
-- `turb_spacing::Float64`: the fixed distance along the boundary's edge between
+- `turb_min_spacing::Float64`: the fixed distance along the boundary's edge between
         adjacent turbines
 - 'num_turbs::Float64`: the number of turbines to be placed around the boundary.
         Note that this function assumes VR_bounary_startup() has already been

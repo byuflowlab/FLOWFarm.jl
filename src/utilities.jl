@@ -849,59 +849,167 @@ function round_farm_concentric_start(rotor_diameter, center, radius; min_spacing
     return turbineX*rotor_diameter, turbineY*rotor_diameter
 end
 
-function round_farm_random_start(rotor_diameter, center, radius; min_spacing=2., min_spacing_random=3.)
+"""
+    round_farm_random_start(rotor_diameter, center, radius; min_spacing=2., min_spacing_random=3., method="individual")
+    
+Generates starting locations for multi-start optimization approaches when the farm boundary is round.
+
+# Arguments
+- `rotor_diameter::Number`: wind turbine diameter 
+- `center::Number`: wind farm center
+- `radius::Number`: wind farm radius
+- `diameter::Array{T,1}`: diameters of all wind turbines
+"""
+function round_farm_random_start(rotor_diameter, center, radius; nturbines=nothing, min_spacing=2., min_spacing_random=3., method="individual", alpha=0.0)
     # normalize inputs
     radius /= rotor_diameter
     center /= rotor_diameter
 
-    # calculate how many circles can be fit in the wind farm area
-    ncircles = floor(radius / min_spacing)
-    radii = range((radius/ncircles), radius, length = Int(ncircles))
-    alpha_mins = 2.0 * asin.(min_spacing ./ (2.0 * radii))
-    nturbines_circles = floor.(2.0 * pi ./ alpha_mins)
+    if nturbines === nothing
+        # calculate how many circles can be fit in the wind farm area
+        ncircles = floor(radius / min_spacing)
+        radii = range((radius/ncircles), radius, length = Int(ncircles))
+        alpha_mins = 2.0 * asin.(min_spacing ./ (2.0 * radii))
+        nturbines_circles = floor.(2.0 * pi ./ alpha_mins)
 
-    nturbines = Int(sum(nturbines_circles)) + 1
+        nturbines = Int(sum(nturbines_circles)) + 1
+    end
 
     turbinex = zeros(nturbines)
     turbiney = zeros(nturbines)
 
-    # generate random points within the wind farm boundary
-    for i = 1:nturbines
+    if method == "individual"
+        # generate random points within the wind farm boundary
+        for i = 1:nturbines
 
-        good_point = false
+            good_point = false
 
-        while !good_point
+            while !good_point
 
-            # generate random point in containing rectangle
-            turbinex[i], turbiney[i] = rand(1,2).*2.0 .- 1.0
+                # generate random point in containing rectangle
+                turbinex[i], turbiney[i] = rand(1,2).*2.0 .- 1.0
 
-            turbinex[i] *= radius
-            turbiney[i] *= radius
+                turbinex[i] *= radius
+                turbiney[i] *= radius
 
-            turbinex[i] += center[1]
-            turbiney[i] += center[2]
+                turbinex[i] += center[1]
+                turbiney[i] += center[2]
 
-            # calculate signed distance from the point to each boundary facet
-            distance = radius - sqrt((turbinex[i] - center[1])^2 + (turbiney[i] - center[2])^2)
+                # calculate signed distance from the point to each boundary facet
+                distance = radius - sqrt((turbinex[i] - center[1])^2 + (turbiney[i] - center[2])^2)
 
-            # determine if the point is inside the wind farm boundary
-            if distance > 0.0
-                n_bad_spacings = 0
-                for turb = 1:nturbines
-                    if turb >= i
-                        continue
+                # determine if the point is inside the wind farm boundary
+                if distance > 0.0
+                    n_bad_spacings = 0
+                    for turb = 1:nturbines
+                        if turb >= i
+                            continue
+                        end
+                        spacing = sqrt((turbinex[turb] - turbinex[i])^2 + (turbiney[turb] - turbiney[i])^2)
+                        if spacing < min_spacing_random
+                            n_bad_spacings += 1
+                        end
                     end
-                    spacing = sqrt((turbinex[turb] - turbinex[i])^2 + (turbiney[turb] - turbiney[i])^2)
-                    if spacing < min_spacing_random
-                        n_bad_spacings += 1
+                    if n_bad_spacings == 0
+                        good_point = true
                     end
                 end
-                if n_bad_spacings == 0
-                    good_point = true
+            end
+            print(".")
+        end
+
+    elseif method == "concentric"
+        # 
+    
+    elseif method == "grid"
+
+    elseif method == "vrsunflower"
+        # puting random number of turbines on the boundary, distribute the rest using sunflower 
+
+        # set minimum number of turbines for the boundary 
+        min_boundary_turbines = floor(0.2*nturbines)
+
+        # get max number of turbines that will fit on the boundary 
+        alpha_min = 2.0 * asin.(min_spacing_random / (2.0 * radius))
+        max_boundary_turbines = floor.(2.0 * pi / alpha_min)
+        if max_boundary_turbines > nturbines
+            max_boundary_turbines = nturbines
+        end
+
+        # get number of turbines to put on the boundary 
+        nbturbines = Int(rand(min_boundary_turbines:max_boundary_turbines))
+
+        # get angle for chosen number of boundary turbines 
+        alpha_b = 2*pi/nbturbines
+
+        # place boundary turbines 
+        for turb in 1:nbturbines
+            angle = alpha_b*(turb-1)
+            w = radius*cos(angle)
+            h = radius*sin(angle)
+            turbinex[Int(turb)] = w
+            turbiney[Int(turb)] = h
+        end
+
+        # get number of interior turbines 
+        niturbines = nturbines - nbturbines 
+
+        # place interior turbines 
+        xi, yi = rotor_sample_points(niturbines, alpha=1).*(radius - min_spacing_random)
+        turbinex[nbturbines+1:end] = xi 
+        turbiney[nbturbines+1:end] = yi 
+
+        # check spacing 
+        for i = 1:nturbines
+            for j = i+1:nturbines
+                dist = hypot(turbinex[i]-turbinex[j], turbiney[i]-turbiney[j])
+                
+                if dist < min_spacing_random
+                    println(dist)
+                    throw(ErrorException("too many turbines to use $method in given space"))
                 end
             end
         end
-        print(".")
+
+        # get rotation angle 
+        step = 0.001
+        rotationangle = rand(0:step:(2*pi-step)) # in radians
+        
+        # rotate
+        turbinex[:], turbiney[:] = rotate_to_wind_direction(turbinex, turbiney, rotationangle)
+
+        # translate 
+        turbinex .+= center[1] 
+        turbiney .+= center[2] 
+
+    elseif method == "sunflower"        
+        # get locations 
+        x, y = rotor_sample_points(38, alpha=1.0).*radius
+
+        # check spacing 
+        for i = 1:nturbines
+            for j = i+1:nturbines
+                dist = hypot(x[i]-x[j], y[i]-y[j])
+                
+                if dist < min_spacing_random
+                    println(dist)
+                    throw(ErrorException("too many turbines to use sunflower in given space"))
+                end
+            end
+        end
+
+        # translate 
+        x .+= center[1] 
+        y .+= center[2] 
+
+        # get rotation angle 
+        step = 0.001
+        rotationangle = rand(0:step:(2*pi-step)) # in radians
+        
+        # rotate
+        turbinex[:], turbiney[:] = rotate_to_wind_direction(x, y, rotationangle)
+    else
+        throw(ErrorException("invalid layout generation method: $method"))
     end
     print("\n")
 
@@ -909,7 +1017,7 @@ function round_farm_random_start(rotor_diameter, center, radius; min_spacing=2.,
 end
 
 function generate_round_layouts(nlayouts, rotor_diameter; farm_center=0., farm_diameter=4000., base_spacing=5., min_spacing=1.,
-                           output_directory=nothing, show=false, save_layouts=false, startingindex=1)
+                           output_directory=nothing, show=false, save_layouts=false, startingindex=1, method="individual")
 
     if nlayouts > 10 && show == true
         error("do you really want to see $nlayouts plots in serial?")
@@ -942,9 +1050,10 @@ function generate_round_layouts(nlayouts, rotor_diameter; farm_center=0., farm_d
     if nlayouts > 1
         for l in 2:nlayouts
             println("Generating Layout $l")
+
             turbinex, turbiney = round_farm_random_start(copy(rotor_diameter), copy(farm_center), 
                                     copy(boundary_radius), min_spacing=copy(base_spacing), 
-                                    min_spacing_random=min_spacing)
+                                    min_spacing_random=min_spacing, method=method, nturbines=nturbines)
         
             if save_layouts
                 df = DataFrame(turbinex=turbinex./rotor_diameter, turbiney=turbiney./rotor_diameter)
@@ -952,8 +1061,10 @@ function generate_round_layouts(nlayouts, rotor_diameter; farm_center=0., farm_d
                            df, header=["turbineX", "turbineY"])
             end
             if show
-                fig, ax = subplots(1)
+                fig, ax = plt.subplots(1)
                 plotlayout!(ax, turbinex, turbiney, ones(nturbines).*rotor_diameter, xlim=[-boundary_radius-rotor_diameter, boundary_radius+rotor_diameter], ylim=[-boundary_radius-rotor_diameter, boundary_radius+rotor_diameter])
+                circle = matplotlib.patches.Circle(farm_center, boundary_radius, fill=false, color="r")
+                ax.add_patch(circle)
                 plt.show()
             end
         end
