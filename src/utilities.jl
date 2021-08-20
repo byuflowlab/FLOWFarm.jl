@@ -917,9 +917,94 @@ function round_farm_random_start(rotor_diameter, center, radius; nturbines=nothi
             end
             print(".")
         end
+    elseif method == "angle"
+        turbinex, turbiney = round_farm_concentric_start(copy(rotor_diameter), copy(center*rotor_diameter), copy(radius*rotor_diameter), min_spacing=min_spacing_random)
+        
+        turbinex /= rotor_diameter
+        turbiney /= rotor_diameter
+
+        turbinex .-= center[1]
+        turbiney .-= center[2]
+
+        # get rotation angle 
+        step = 0.001
+        rotationangle = rand(0:step:(2*pi-step)) # in radians
+
+        # rotate
+        turbinex[:], turbiney[:] = rotate_to_wind_direction(turbinex, turbiney, rotationangle)
+
+        # translate 
+        turbinex .+= center[1] 
+        turbiney .+= center[2] 
 
     elseif method == "concentric"
-        # 
+        # calculate how many circles can be fit in the wind farm area
+        maxcircles = floor(radius / min_spacing_random)
+
+        # get max number of turbines that will fit on the boundary 
+        alpha_min = 2.0 * asin.(min_spacing_random / (2.0 * radius))
+        max_boundary_turbines = floor.(2.0 * pi / alpha_min)
+
+        if max_boundary_turbines >= nturbines - 1
+            mincircles = 1
+        else
+            mincircles = 2
+        end
+        mincircles = 3 
+
+        # choose how many circles (random)
+        ncircles = Int(rand(mincircles:maxcircles))
+
+        # initialize circles
+        radii = range((radius/ncircles), radius, length = Int(ncircles))
+        
+        remaining_turbines = nturbines - 1
+        circle_turbines = zeros(ncircles)
+        for i = 1:length(radii)-1
+            # get max number of turbines that will fit on the circle 
+            alpha_min = 2.0 * asin.(min_spacing_random / (2.0 * radii[i]))
+            max_circle_turbines = minimum([floor.(2.0 * pi / alpha_min), remaining_turbines*0.5])
+
+            min_circle_turbines = 4*i
+
+            # select how many turbines should be placed on the circle
+            circle_turbines[i] = rand(min_circle_turbines:max_circle_turbines)
+
+            # update remaining turbines 
+            remaining_turbines -= circle_turbines[i]
+        end
+
+        # set n boundary turbines
+        circle_turbines[end] = remaining_turbines
+
+        alphas = 2.0*pi./circle_turbines
+
+        turbinex = zeros(nturbines)
+        turbiney = zeros(nturbines)
+
+        index = 1 # start at first turbine
+        index += 1 # leave the first turbine at the (0,0)
+        for circle in 1:Int(ncircles)
+            for turb in 1:Int(circle_turbines[circle])
+                angle = alphas[circle]*(turb-1)
+                w = radii[circle]*cos(angle)
+                h = radii[circle]*sin(angle)
+                turbinex[index] = w
+                turbiney[index] = h
+                index += 1
+            end
+        end
+
+        # get rotation angle 
+        step = 0.001
+        rotationangle = rand(0:step:(2*pi-step)) # in radians
+        
+        # rotate
+        turbinex[:], turbiney[:] = rotate_to_wind_direction(turbinex, turbiney, rotationangle)
+
+        # translate 
+        turbinex .+= center[1] 
+        turbiney .+= center[2] 
     
     elseif method == "grid"
 
@@ -932,8 +1017,8 @@ function round_farm_random_start(rotor_diameter, center, radius; nturbines=nothi
         # get max number of turbines that will fit on the boundary 
         alpha_min = 2.0 * asin.(min_spacing_random / (2.0 * radius))
         max_boundary_turbines = floor.(2.0 * pi / alpha_min)
-        if max_boundary_turbines > floor(0.7*nturbines)
-            max_boundary_turbines = 0.7*nturbines
+        if max_boundary_turbines > floor(0.6*nturbines)
+            max_boundary_turbines = 0.6*nturbines
         end
 
         # get number of turbines to put on the boundary 
