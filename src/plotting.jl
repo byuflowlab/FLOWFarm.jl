@@ -194,26 +194,77 @@ function plotwindrose!(ax, d, f; roundingdigit=1, color="C0",alpha=0.5,fontsize=
     
 end
 
-function add_turbine!(ax; view="side", hubdiameter=0.1, hubheight=0.9, radius=0.5, chord=0.1, nacellewidth=0.3, nacelleheight=0.1, towerbottomdiam=0.1, towertopdiam=0.05, overhang=0.05, s=5)
+"""
+    add_turbine!(ax; view="side", hubdiameter=0.1, hubheight=0.9, radius=0.5, chord=0.1, 
+        nacellewidth=0.3, nacelleheight=0.1, towerbottomdiam=0.1, towertopdiam=0.05, 
+        overhang=0.05, s=5)
 
-    blade1 = plt.matplotlib.patches.Ellipse((0,hubheight+radius/2),chord, 0.5, color="k")
-    blade2 = plt.matplotlib.patches.Ellipse((0,hubheight-radius/2),chord, 0.5, color="k")
-    hub = plt.matplotlib.patches.Ellipse((0,hubheight),3*hubdiameter, hubdiameter, color="k")
-    nacelle = plt.matplotlib.patches.Rectangle((0,hubheight-hubdiameter/2),nacellewidth, nacelleheight, color="k")
-    
-    towerbottomdiam *= s 
-    towertopdiam *= s
-    overhang *= s
-    ddiff = abs(towertopdiam-towerbottomdiam)
-    p1x = overhang
-    p2x = overhang+ddiff/2
-    p3x = p2x + towertopdiam
-    p4x = p1x + towerbottomdiam
-    tower = plt.matplotlib.patches.Polygon([[p1x, 0.0],[p2x, hubheight],[p3x, hubheight],[p4x, 0.0]], closed=true, color="k")
-    
-    ax.add_patch(blade1)
-    ax.add_patch(blade2)
-    ax.add_patch(hub)
-    ax.add_patch(nacelle)
-    ax.add_patch(tower)
+    Convenience function for adding wind turbines to plots.
+
+# Arguments
+- `ax::PyCall.PyObject`: pre-initialized axis from pyplot
+- `view::Number`: determines which turbine view to use "top" or "side" (default)
+- `hubdiameter::Number`: hub diameter in axis coordinate frame
+- `hubheight::Number`: hub height in axis coordinate frame
+- `radius::Number`: full rotor radius in axis coordinate frame
+- `chord::Number`: maximum chord in axis coordinate frame
+- `nacellewidth::Number`: nacelle width in axis coordinate frame
+- `nacelleheight::Number`: nacelle height in axis coordinate frame
+- `towerbottomdiam::Number`: tower bottom diameter in axis coordinate frame
+- `towertopdiam::Number`: tower top diameter in axis coordinate frame
+- `overhang::Number`: overhang (distance from blade attachment to tower bottom in x axis) in axis coordinate frame
+- `s::Number`: scales overhang and tower location in x direction to work with condensed x axis as in long contour plots
+"""
+function add_turbine!(ax; view="side", hubdiameter=0.1, hubheight=0.9, radius=0.5, chord=0.1, nacellewidth=0.3, nacelleheight=0.1, towerbottomdiam=0.1, towertopdiam=0.05, overhang=0.05, s=5, color="k")
+
+    if view == "side"
+
+        # create blade patches
+        blade1 = plt.matplotlib.patches.Ellipse((0,hubheight+radius/2),chord, 0.5, color=color)
+        blade2 = plt.matplotlib.patches.Ellipse((0,hubheight-radius/2),chord, 0.5, color=color)
+        
+        # create hub and nacelle patches
+        hub = plt.matplotlib.patches.Ellipse((0,hubheight),3*hubdiameter, hubdiameter, color=color)
+        nacelle = plt.matplotlib.patches.Rectangle((0,hubheight-hubdiameter/2),nacellewidth, nacelleheight, color=color)
+        
+        # scale if desired
+        towerbottomdiam *= s 
+        towertopdiam *= s
+        overhang *= s
+
+        # get difference between top and bottom tower diameters
+        ddiff = abs(towertopdiam-towerbottomdiam)
+
+        # calculate polygon x points for tower
+        p1x = overhang
+        p2x = overhang+ddiff/2
+        p3x = p2x + towertopdiam
+        p4x = p1x + towerbottomdiam
+
+        # create tower patch
+        tower = plt.matplotlib.patches.Polygon([[p1x, 0.0],[p2x, hubheight],[p3x, hubheight],[p4x, 0.0]], closed=true, color=color)
+        
+        # add patches to axis
+        ax.add_patch(blade1)
+        ax.add_patch(blade2)
+        ax.add_patch(hub)
+        ax.add_patch(nacelle)
+        ax.add_patch(tower)
+
+    elseif view == "top"
+
+        # create blade patches
+        blade1 = plt.matplotlib.patches.Ellipse((0,radius/2),chord, 0.5, color=color)
+        blade2 = plt.matplotlib.patches.Ellipse((0,radius/2),chord, 0.5, color=color)
+
+        # create hub and nacelle patches
+        hub = plt.matplotlib.patches.Ellipse((0.0,0.0),3*hubdiameter, hubdiameter, color=color)
+        nacelle = plt.matplotlib.patches.Rectangle((0,-hubdiameter/2),nacellewidth, nacelleheight, color=color)
+
+        # add patches to axis
+        ax.add_patch(blade1)
+        ax.add_patch(blade2)
+        ax.add_patch(hub)
+        ax.add_patch(nacelle)
+    end
 end
