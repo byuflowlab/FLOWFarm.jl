@@ -193,3 +193,27 @@ function plotwindrose!(ax, d, f; roundingdigit=1, color="C0",alpha=0.5,fontsize=
     ax.set_title(title, y=-0.25,fontsize=fontsize)
     
 end
+
+function add_turbine!(ax; view="side", hubdiameter=0.1, hubheight=0.9, radius=0.5, chord=0.1, nacellewidth=0.3, nacelleheight=0.1, towerbottomdiam=0.1, towertopdiam=0.05, overhang=0.05, s=5)
+
+    blade1 = plt.matplotlib.patches.Ellipse((0,hubheight+radius/2),chord, 0.5, color="k")
+    blade2 = plt.matplotlib.patches.Ellipse((0,hubheight-radius/2),chord, 0.5, color="k")
+    hub = plt.matplotlib.patches.Ellipse((0,hubheight),3*hubdiameter, hubdiameter, color="k")
+    nacelle = plt.matplotlib.patches.Rectangle((0,hubheight-hubdiameter/2),nacellewidth, nacelleheight, color="k")
+    
+    towerbottomdiam *= s 
+    towertopdiam *= s
+    overhang *= s
+    ddiff = abs(towertopdiam-towerbottomdiam)
+    p1x = overhang
+    p2x = overhang+ddiff/2
+    p3x = p2x + towertopdiam
+    p4x = p1x + towerbottomdiam
+    tower = plt.matplotlib.patches.Polygon([[p1x, 0.0],[p2x, hubheight],[p3x, hubheight],[p4x, 0.0]], closed=true, color="k")
+    
+    ax.add_patch(blade1)
+    ax.add_patch(blade2)
+    ax.add_patch(hub)
+    ax.add_patch(nacelle)
+    ax.add_patch(tower)
+end

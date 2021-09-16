@@ -221,9 +221,14 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
             # calculate wake spread rate for current upstream turbine
             kstar_ust = _k_star_func(ti_ust,ti_model.k1,ti_model.k2)
 
-            # calculate horizontal and vertical spread standard deviations
-            # println("sigma inputs: ", x, " ", x0, " ", kstar_ust, " ", d_ust, " ", yaw_ust)
-            sigmay = sigmaz = _gauss_yaw_spread_interpolated(d_ust, kstar_ust, x, x0, yaw_ust)
+            # calculate the discontinuity point of the gauss yaw model 
+            xd = _gauss_yaw_discontinuity(d_ust, x0, kstar_ust, kstar_ust, yaw_ust, ct_ust)
+            
+            # calculate horizontal wake spread
+            sigmay = _gauss_yaw_spread_interpolated(d_ust, kstar_ust, x, x0, yaw_ust, xd)
+            
+            # calculate vertical wake spread
+            sigmaz = _gauss_yaw_spread_interpolated(d_ust, kstar_ust, x, x0, 0.0, xd)
 
             # determine the initial wake angle at the onset of far wake
             theta0 = _bpa_theta_0(yaw_ust, ct_ust)

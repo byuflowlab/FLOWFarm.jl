@@ -656,7 +656,7 @@ function print_layout_in_cartesian_frame_excel(turbinex, turbiney, rotordiameter
                 plt.title("$(winddirections[i]*180.0/pi)")
                 plt.show()
 
-                sleep(5)
+                # sleep(1)
 
             end
 
@@ -818,11 +818,11 @@ function round_farm_concentric_start(rotor_diameter, center, radius; min_spacing
     radii = range((radius/nCircles), radius, length = Int(nCircles))
     alpha_mins = 2.0*asin.(min_spacing./(2.0.*radii))
     nTurbines_circles = floor.(2.0 * pi ./ alpha_mins)
-    println(radius)
-    println(radii)
+    # println(radius)
+    # println(radii)
     nTurbines = Int(sum(nTurbines_circles))+1
-    println(nCircles)
-    println(nTurbines_circles)
+    # println(nCircles)
+    # println(nTurbines_circles)
 
     alphas = 2.0*pi./nTurbines_circles
 
@@ -937,6 +937,29 @@ function round_farm_random_start(rotor_diameter, center, radius; nturbines=nothi
         turbinex .+= center[1] 
         turbiney .+= center[2] 
 
+    elseif method == "angle-each-circle"
+
+        turbinex, turbiney = round_farm_concentric_start(copy(rotor_diameter), copy(center*rotor_diameter), copy(radius*rotor_diameter), min_spacing=min_spacing_random)
+        
+        turbinex /= rotor_diameter
+        turbiney /= rotor_diameter
+
+        turbinex .-= center[1]
+        turbiney .-= center[2]
+
+        # get rotation angle 
+        step = 0.001
+        circleidx = [2:7, 8:19, 20:38]
+        for i in 1:3
+            rotationangle = rand(0:step:(2*pi-step)) # in radians
+
+            # rotate circle i
+            turbinex[circleidx[i]], turbiney[circleidx[i]] = rotate_to_wind_direction(turbinex[circleidx[i]], turbiney[circleidx[i]], rotationangle)
+        end
+        # translate 
+        turbinex .+= center[1] 
+        turbiney .+= center[2] 
+
     elseif method == "concentric"
         # calculate how many circles can be fit in the wind farm area
         maxcircles = floor(radius / min_spacing_random)
@@ -1005,7 +1028,7 @@ function round_farm_random_start(rotor_diameter, center, radius; nturbines=nothi
         # translate 
         turbinex .+= center[1] 
         turbiney .+= center[2] 
-    
+
     elseif method == "grid"
 
     elseif method == "vrsunflower"
@@ -1111,13 +1134,13 @@ function generate_round_layouts(nlayouts, rotor_diameter; farm_center=0., farm_d
     end
 
     boundary_radius = 0.5*(farm_diameter - rotor_diameter)
-    println(boundary_radius)
+    # println(boundary_radius)
     area = pi * boundary_radius^2
 
     turbinex, turbiney = round_farm_concentric_start(copy(rotor_diameter), copy(farm_center), copy(boundary_radius), min_spacing=copy(base_spacing))
 
     nturbines = size(turbinex)[1]
-    println("nturbines: $nturbines")
+    # println("nturbines: $nturbines")
     effective_rows = sqrt(nturbines)
     effective_row_length = sqrt(area)
     effective_spacing = effective_row_length / (effective_rows - 1.)

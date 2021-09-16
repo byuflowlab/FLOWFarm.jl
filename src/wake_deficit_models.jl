@@ -504,16 +504,28 @@ Helper function for wake_deficit_model when using the GaussYaw model. Computes t
 with an interpolation on the near wake. 
 
 """
-function _gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw)
+function _gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd)
     # calculate wake spread
-    if dx > x0 # far wake 
+    if dx > xd # far wake 
         sigma = _gauss_yaw_spread(dt, k, dx, x0, yaw)
 
     else # linear interpolation in the near wakes
-        sigma = _gauss_yaw_spread(dt, k, x0, x0, yaw)
+        sigma = _gauss_yaw_spread(dt, k, xd, x0, yaw)
     end
 
     return sigma
+end
+
+function _gauss_yaw_discontinuity(dt, x0, ky, kz, yaw, ct)
+    # for clarity, break out the terms in the equation
+    a = ky + kz*cos(yaw)
+    b = 4.0 * ky * kz * cos(yaw)*(ct - 1.0)
+    c = 2.0 * sqrt(8.0) * ky * kz
+
+    # distance from rotor to the last point where the wake model is undefined
+    discontinuity_point = x0 + dt * (a - sqrt(a^2 - b))/c
+
+    return discontinuity_point
 end
 
 function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, wf)
@@ -523,17 +535,19 @@ function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, w
         # println("x0 inputs:", diam, " ", yaw, " ", ct, " ", as, " ", ti, " ", bs)
         # calculate the length of the potential core (paper eq: 7.3)
         x0 = _gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
+
+        # calculate the discontinuity point of the gauss yaw model 
+        xd = _gauss_yaw_discontinuity(dt, x0, ky, kz, yaw, ct)
         
         # calculate horizontal wake spread (paper eq: 7.2)
-        sigma_y = _gauss_yaw_spread_interpolated(dt, ky, dx, x0, yaw)
+        sigma_y = _gauss_yaw_spread_interpolated(dt, ky, dx, x0, yaw, xd)
         
         # calculate vertical wake spread (paper eq: 7.2)
-        sigma_z = _gauss_yaw_spread_interpolated(dt, kz, dx, x0, 0.0)
+        sigma_z = _gauss_yaw_spread_interpolated(dt, kz, dx, x0, 0.0, xd)
 
         # calculate velocity deficit #check - infty when large input ~= 500
         ey = exp(-0.5*(dy/(wf*sigma_y))^2)
         ez = exp(-0.5*(dz/(wf*sigma_z))^2)
-
 
         sqrtterm = 1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2))
         if sqrtterm >= 1e-8 #check - could try increasing tolerance

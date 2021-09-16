@@ -1498,6 +1498,7 @@ using YAML
 
         @testset "Gauss Yaw Model Variable Spread" begin
             rtol = 0.1
+            atol = 0.3
             # [1] Bastankhah and Porte-Agel 2016
             # [2] Niayifar and Porte-Agel 2016
 
@@ -1573,7 +1574,7 @@ using YAML
             @test ff.wake_deficit_model(-1E-12, 0.0, hub_height[1], turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, ambient_ti, turbine_ct, turbine_yaw, model) == 0.0
 
             # test loss at x1 with no yaw
-            @test ff.wake_deficit_model(x1_0, 0.0, hub_height[1], turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, ambient_ti, turbine_ct, turbine_yaw, model) ≈ loss1_0 rtol=rtol
+            @test ff.wake_deficit_model(x1_0, 0.0, hub_height[1], turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, ambient_ti, turbine_ct, turbine_yaw, model) ≈ loss1_0 atol=atol
 
             deflection = [0.0, 0.0]
             # test loss at x2 with no yaw
