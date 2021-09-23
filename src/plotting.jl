@@ -30,14 +30,15 @@
 - `markeralpha::Int`: determines tranparancy of turbine markers
 - `itle::String`: optional title to include on the plot
 """
-function plotwindfarm!(ax, boundary_vertices, turbinex, turbiney, rotordiameter; 
+function plotwindfarm!(ax, turbinex, turbiney, rotordiameter; boundary_vertices=[], 
     aspect="equal", xlim=[], ylim=[], fill=false, turbinecolor="k", boundarycolor="k", 
     boundarylinestyle="-", turbinelinestyle="-", markeralpha=1, title="")
 
     plotlayout!(ax, turbinex, turbiney, rotordiameter; aspect=aspect, xlim=xlim, ylim=ylim, fill=fill, color=turbinecolor, markeralpha=markeralpha, title=title, linestyle=turbinelinestyle)
     
-    plotboundary!(ax, boundary_vertices; color=boundarycolor, linestyle=boundarylinestyle)
-
+    if boundary_vertices != []
+        plotboundary!(ax, boundary_vertices; color=boundarycolor, linestyle=boundarylinestyle)
+    end
 end
 
 """
@@ -82,7 +83,7 @@ end
 
 # Arguments
 - `ax
-- `boundary_vertices::Array{Float,1}(nvertices)`: an nx2 array of boundary vertices
+- `boundary_vertices::Array{Float,1}(nvertices)`: an nx2 array of boundary vertices for polygon or [[center_x, center_y], radius]
 - `aspect::String`: set plot aspect ratio, default="equal"
 - `xlim::Array`: limits in x coordinate. "[]" results in limits being automatically defined
 - `ylim::Array`: limits in y coordinate. "[]" results in limits being automatically defined
@@ -92,12 +93,21 @@ end
 - `itle::String`: optional title to include on the plot
 """
 function plotboundary!(ax, boundary_vertices; color="k", linestyle="-")
-    
+    println(boundary_vertices)
+    nvertices = length(boundary_vertices[:,1])
     # add boundary
-    x = push!(boundary_vertices[:,1], boundary_vertices[1,1])
-    y = push!(boundary_vertices[:,2], boundary_vertices[1,2])
-    println(x, y)
-    ax.plot(x, y, color=color, linestyle=linestyle)
+    if nvertices < 3
+        # circle boundary
+        farm_center = boundary_vertices[1]
+        farm_radius = boundary_vertices[2]
+        circle = matplotlib.patches.Circle((farm_center[1], farm_center[2]), farm_radius, color=color, linestyle=linestyle, fill=false)
+        ax.add_patch(circle)
+    else
+        # polygon boundary
+        x = push!(boundary_vertices[:,1], boundary_vertices[1,1])
+        y = push!(boundary_vertices[:,2], boundary_vertices[1,2])
+        ax.plot(x, y, color=color, linestyle=linestyle)
+    end
     
 end
 
