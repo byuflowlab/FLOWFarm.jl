@@ -12,6 +12,35 @@
 #     display(p)
 # end
 """
+    plotwindfarm!(ax, boundary_vertices, turbinex, turbiney, rotordiameter; aspect="equal", xlim=[], ylim=[], fill=false, color="k", markeralpha=1, title="")
+
+    Convenience function for plotting wind farms
+
+# Arguments
+- `ax
+- `boundary_vertices::Array{Float,1}(nvertices)`: an nx2 array of boundary vertices
+- `turbinex::Array{Float,1}(nturbines)`: an array x coordinates of wind turbine locations
+- `turbiney::Array{Float,1}(nturbines)`: an array y coordinates of wind turbine locations
+- `rotordiameter::Array{Float,1}(nturbines)`: an array rotor diameters of wind turbines
+- `aspect::String`: set plot aspect ratio, default="equal"
+- `xlim::Array`: limits in x coordinate. "[]" results in limits being automatically defined
+- `ylim::Array`: limits in y coordinate. "[]" results in limits being automatically defined
+- `fill::Bool`: determines whether turbine circle markers are filled or not
+- `color::=String`: sets color for turbine markers
+- `markeralpha::Int`: determines tranparancy of turbine markers
+- `itle::String`: optional title to include on the plot
+"""
+function plotwindfarm!(ax, boundary_vertices, turbinex, turbiney, rotordiameter; 
+    aspect="equal", xlim=[], ylim=[], fill=false, turbinecolor="k", boundarycolor="k", 
+    boundarylinestyle="-", turbinelinestyle="-", markeralpha=1, title="")
+
+    plotlayout!(ax, turbinex, turbiney, rotordiameter; aspect=aspect, xlim=xlim, ylim=ylim, fill=fill, color=turbinecolor, markeralpha=markeralpha, title=title, linestyle=turbinelinestyle)
+    
+    plotboundary!(ax, boundary_vertices; color=boundarycolor, linestyle=boundarylinestyle)
+
+end
+
+"""
     plotlayout!(ax, turbinex, turbiney, rotordiameter; aspect="equal", xlim=[], ylim=[], fill=false, color="k", markeralpha=1, title="")
 
     Convenience function for plotting wind farm layouts
@@ -29,7 +58,7 @@
 - `markeralpha::Int`: determines tranparancy of turbine markers
 - `itle::String`: optional title to include on the plot
 """
-function plotlayout!(ax, turbinex, turbiney, rotordiameter; aspect="equal", xlim=[], ylim=[], fill=false, color="k", markeralpha=1, title="")
+function plotlayout!(ax, turbinex, turbiney, rotordiameter; aspect="equal", xlim=[], ylim=[], fill=false, color="k", markeralpha=1, title="", linestyle="-")
     nturbines = length(turbinex)
     if xlim == []
         xlim = [minimum(turbinex)-sum(rotordiameter)/nturbines, maximum(turbinex)+sum(rotordiameter)/nturbines]
@@ -39,11 +68,37 @@ function plotlayout!(ax, turbinex, turbiney, rotordiameter; aspect="equal", xlim
     end
     # add turbines
     for i in 1:nturbines
-        circle = matplotlib.patches.Circle((turbinex[i], turbiney[i]), rotordiameter[i]/2.0, fill=fill, color=color)
+        circle = matplotlib.patches.Circle((turbinex[i], turbiney[i]), rotordiameter[i]/2.0, fill=fill, color=color, linestyle=linestyle)
         ax.add_patch(circle)
     end
     ax.set(xlim=xlim, ylim=ylim, aspect=aspect)
 
+end
+
+"""
+    plotboundary!(ax, boundary_vertices; aspect="equal", xlim=[], ylim=[], fill=false, color="k", markeralpha=1, title="")
+
+    Convenience function for plotting wind farm boundaries
+
+# Arguments
+- `ax
+- `boundary_vertices::Array{Float,1}(nvertices)`: an nx2 array of boundary vertices
+- `aspect::String`: set plot aspect ratio, default="equal"
+- `xlim::Array`: limits in x coordinate. "[]" results in limits being automatically defined
+- `ylim::Array`: limits in y coordinate. "[]" results in limits being automatically defined
+- `fill::Bool`: determines whether turbine circle markers are filled or not
+- `color::=String`: sets color for turbine markers
+- `markeralpha::Int`: determines tranparancy of turbine markers
+- `itle::String`: optional title to include on the plot
+"""
+function plotboundary!(ax, boundary_vertices; color="k", linestyle="-")
+    
+    # add boundary
+    x = push!(boundary_vertices[:,1], boundary_vertices[1,1])
+    y = push!(boundary_vertices[:,2], boundary_vertices[1,2])
+    println(x, y)
+    ax.plot(x, y, color=color, linestyle=linestyle)
+    
 end
 
 """
@@ -266,5 +321,6 @@ function add_turbine!(ax; view="side", hubdiameter=0.1, hubheight=0.9, radius=0.
         ax.add_patch(blade2)
         ax.add_patch(hub)
         ax.add_patch(nacelle)
+        
     end
 end
