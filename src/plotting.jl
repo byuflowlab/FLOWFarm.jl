@@ -83,7 +83,7 @@ end
 
 # Arguments
 - `ax
-- `boundary_vertices::Array{Float,1}(nvertices)`: an nx2 array of boundary vertices for polygon or [[center_x, center_y], radius]
+- `boundary_vertices::Array{Float,1}(nvertices)`: an nx2 array of boundary vertices for polygon or [[center_x, center_y], radius] for circle boundary
 - `aspect::String`: set plot aspect ratio, default="equal"
 - `xlim::Array`: limits in x coordinate. "[]" results in limits being automatically defined
 - `ylim::Array`: limits in y coordinate. "[]" results in limits being automatically defined
