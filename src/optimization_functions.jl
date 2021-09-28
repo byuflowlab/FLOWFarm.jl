@@ -374,7 +374,7 @@ function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, tu
                 boundary_vector = boundary_vertices[j+1, :] - boundary_vertices[j, :]
                 
                 # check if perpendicular distance is the shortest
-                if sum(boundary_vector .* -turbine_to_first_facepoint) > 0 && sum(boundary_vector .* turbine_to_second_facepoint) > 0
+                if sum(boundary_vector .* -turbine_to_first_facepoint) >= 0 && sum(boundary_vector .* turbine_to_second_facepoint) >= 0
                     
                     # perpendicular distance from turbine to face
                     turbine_to_face_distance[j] = abs(sum(turbine_to_first_facepoint .* boundary_normals[j,:]))
@@ -399,7 +399,8 @@ function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, tu
             end
 
             # magnitude of the constraint value
-            c[i] = -ff.smooth_max(-turbine_to_face_distance, s=s)
+            # c[i] = -ff.smooth_max(-turbine_to_face_distance, s=s)
+            c[i] = -ksmax(-turbine_to_face_distance, s)
 
             # sign of the constraint value (- is inside, + is outside)
             if mod(intersection_counter, 2) == 1
@@ -482,7 +483,7 @@ function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, tu
                         boundary_vector = boundary_vertices_closed[j+1, :] - boundary_vertices_closed[j, :]
                         
                         # check if perpendicular distance is the shortest
-                        if sum(boundary_vector .* -turbine_to_first_facepoint) > 0 && sum(boundary_vector .* turbine_to_second_facepoint) > 0
+                        if sum(boundary_vector .* -turbine_to_first_facepoint) >= 0 && sum(boundary_vector .* turbine_to_second_facepoint) >= 0
                                 
                             # perpendicular distance from turbine to face
                             turbine_to_face_distance[j] = abs(sum(turbine_to_first_facepoint .* boundary_normals[k][j,:]))
@@ -507,7 +508,8 @@ function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, tu
                     end
 
                     # magnitude of the constraint value
-                    c[i] = ff.smooth_max(-turbine_to_face_distance, s=100.0)
+                    # c[i] = ff.smooth_max(-turbine_to_face_distance, s=100.0)
+                    c[i] = -ksmax(-turbine_to_face_distance, 100.0)
                     status[i] = 1
 
                 end
@@ -569,7 +571,8 @@ function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, tu
                 end
 
                 # magnitude of the constraint value
-                c[i] = -ff.smooth_max(-turbine_to_face_distance, s=s)
+                # c[i] = -ff.smooth_max(-turbine_to_face_distance, s=s)
+                c[i] = -ksmax(-turbine_to_face_distance, s)
                 status[i] = 1
 
             end

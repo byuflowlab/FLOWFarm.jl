@@ -34,11 +34,34 @@ function plotwindfarm!(ax, turbinex, turbiney, rotordiameter; boundary_vertices=
     aspect="equal", xlim=[], ylim=[], fill=false, turbinecolor="k", boundarycolor="k", 
     boundarylinestyle="-", turbinelinestyle="-", markeralpha=1, title="")
 
-    plotlayout!(ax, turbinex, turbiney, rotordiameter; aspect=aspect, xlim=xlim, ylim=ylim, fill=fill, color=turbinecolor, markeralpha=markeralpha, title=title, linestyle=turbinelinestyle)
+    nturbines = length(turbinex)
+
+    plotlayout!(ax, turbinex, turbiney, rotordiameter; aspect=aspect, fill=fill, color=turbinecolor, markeralpha=markeralpha, title=title, linestyle=turbinelinestyle)
     
     if boundary_vertices != []
         plotboundary!(ax, boundary_vertices; color=boundarycolor, linestyle=boundarylinestyle)
     end
+
+    if xlim !== nothing 
+        if xlim == [] && boundary_vertices != []
+            xlim = [minimum(boundary_vertices[:,1]) - rotordiameter[1], maximum(boundary_vertices[:,1]) + rotordiameter[1]]
+            ylim = [minimum(boundary_vertices[:,2]) - rotordiameter[1], maximum(boundary_vertices[:,2]) + rotordiameter[1]]
+        elseif boundary_vertices == []
+                xlim = [minimum(turbinex)-sum(rotordiameter)/nturbines, maximum(turbinex)+sum(rotordiameter)/nturbines]
+        end
+        ax.set(xlim=xlim)
+    end
+
+    if ylim !== nothing
+        if ylim == [] && boundary_vertices != []
+            ylim = [minimum(boundary_vertices[:,2]) - rotordiameter[1], maximum(boundary_vertices[:,2]) + rotordiameter[1]]
+        elseif boundary_vertices == []
+            ylim = [minimum(turbiney)-sum(rotordiameter)/nturbines, maximum(turbiney)+sum(rotordiameter)/nturbines]
+        end
+        ax.set(ylim=ylim)
+    end
+    
+    ax.set(aspect=aspect)
 end
 
 """
@@ -59,20 +82,14 @@ end
 - `markeralpha::Int`: determines tranparancy of turbine markers
 - `itle::String`: optional title to include on the plot
 """
-function plotlayout!(ax, turbinex, turbiney, rotordiameter; aspect="equal", xlim=[], ylim=[], fill=false, color="k", markeralpha=1, title="", linestyle="-")
+function plotlayout!(ax, turbinex, turbiney, rotordiameter; aspect="equal", fill=false, color="k", markeralpha=1, title="", linestyle="-")
     nturbines = length(turbinex)
-    if xlim == []
-        xlim = [minimum(turbinex)-sum(rotordiameter)/nturbines, maximum(turbinex)+sum(rotordiameter)/nturbines]
-    end
-    if ylim == []
-        ylim = [minimum(turbiney)-sum(rotordiameter)/nturbines, maximum(turbiney)+sum(rotordiameter)/nturbines]
-    end
+    
     # add turbines
     for i in 1:nturbines
         circle = matplotlib.patches.Circle((turbinex[i], turbiney[i]), rotordiameter[i]/2.0, fill=fill, color=color, linestyle=linestyle)
         ax.add_patch(circle)
     end
-    ax.set(xlim=xlim, ylim=ylim, aspect=aspect)
 
 end
 

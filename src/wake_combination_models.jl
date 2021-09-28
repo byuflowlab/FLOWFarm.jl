@@ -55,8 +55,10 @@ end
 function wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model::SumOfSquaresLocalVelocitySuperposition)
     # Voutsinas 1990
 
+    # square root of the sum of the squares
     new_deficit_sum = norm([old_deficit_sum, turb_inflow*deltav])
     
+    # enforce non-negative wind speed
     check_negative_deficits!(new_deficit_sum, wind_speed)
 
     return new_deficit_sum
