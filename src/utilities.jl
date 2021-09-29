@@ -1180,3 +1180,158 @@ function generate_round_layouts(nlayouts, rotor_diameter; farm_center=0., farm_d
         end
     end
 end
+
+"""
+    pointonline(p, v1, v2; tol=1E-6)
+
+Given a line determined two points (v1 and v2) determine if the point (p) lies on the line
+between those points. 
+
+Returns true if the point lies on the line (within the given tolerance), false otherwise.
+
+# Arguments
+- `p::Vector{Number}(2)`: point of interest
+- `v1::Vector{Number}(2)`: first vertex of the line
+- `v2::Vector{Number}(2)`: second vertex of the line
+- `tol::Number`: how close the cumulative distance from v1 to p to v2 must be to the distance from v1 to v2 to count as being co-linear
+"""
+function pointonline(p, v1, v2; tol=1E-6)
+    # based on https://stackoverflow.com/a/11912171/5128616
+    d1 = norm(v1 - p) + norm(p - v2)
+    d2 = norm(v1 - v2)
+    if isapprox(d1, d2, atol=tol/2.0)
+        return true
+    else
+        return false
+    end
+end
+
+"""
+    pointinpolygon(point, vertices, normals=nothing; s=700, method="raycasting", shift=1E-10)
+
+Given a polygon determined by a set of vertices, determine the signed distance from the point 
+to the polygon. 
+
+Returns the negative (-) distance if the point is inside the polygon, positive (+) otherwise.
+
+# Arguments
+- `p::Vector{Number}(2)`: point of interest
+- `v1::Vector{Number}(2)`: first vertex of the line
+- `v2::Vector{Number}(2)`: second vertex of the line
+- `tol::Number`: how close the cumulative distance from v1 to p to v2 must be to the distance from v1 to v2 to count as being co-linear
+"""
+function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycasting", shift=1E-10)
+
+    if normals === nothing 
+        normals = boundary_normals_calculator(vertices)
+    end
+
+    # number of turbines and boundary vertices
+    nvertices = size(vertices)[1]
+
+    # initialize intersection counter
+    intersection_counter = 0
+
+    # initialize array to hold distances from each turbine to closest boundary face
+    turbine_to_face_distance = zeros(typeof(point[1]), nvertices)
+                
+    # get vector from turbine to the first vertex in first face
+    turbine_to_first_facepoint = vertices[1, :] - point
+
+    # add the first boundary vertex again to the end of the boundary vertices vector (to form a closed loop)
+    vertices = [vertices; vertices[1,1] vertices[1,2]]
+
+    # make sure that the point is not exactly on a vertex or face
+    for i = 1:nvertices
+        if isapprox(point, vertices[i,:], atol=shift/2.0)
+            onvertex = true
+        else
+            onvertex = false
+            onface = pointonline(point, vertices[i,:], vertices[i+1,:], tol=shift/2.0)
+        end
+
+        if onvertex || onface
+            # if the point is approximately on a vertex or face, move the point slightly
+            # this introduces some slight error, but should be well within the error
+            # for actual turbine placement. 
+            
+            # The direction moved is perpendicular to line between the previous and 
+            # following vertices to avoid moving along an adjacent face
+            if i == 1
+                pre_direction_vector = vertices[i+1,:] - vertices[nvertices, :]
+            elseif i == nvertices
+                pre_direction_vector = vertices[1,:] - vertices[i-1, :]
+            else
+                pre_direction_vector = vertices[i+1,:] - vertices[i-1, :]
+            end
+            
+            # get a vector perpendicular to the pre_direction_vector
+            perpendicular_direction = [pre_direction_vector[2], -pre_direction_vector[1]]
+
+            # normalize perpendicular vector to make it a unit vector
+            perpendicular_direction ./= norm(perpendicular_direction)
+            
+            # move the point by shift in the direction of the perpendicular vector
+            point .+= shift*perpendicular_direction
+        end
+    end
+
+    # iterate through each boundary
+    for j = 1:nvertices
+    
+        # check if x-coordinate of turbine is between the x-coordinates of the two boundary vertices
+        if vertices[j, 1] < point[1] < vertices[j+1, 1] || vertices[j, 1] > point[1] > vertices[j+1, 1]
+    
+            # check to see if the turbine is below the boundary
+            y = (vertices[j+1, 2] - vertices[j, 2]) / (vertices[j+1, 1] - vertices[j, 1]) * (point[1] - vertices[j, 1]) + vertices[j, 2]
+            if point[2] < (vertices[j+1, 2] - vertices[j, 2]) / (vertices[j+1, 1] - vertices[j, 1]) * (point[1] - vertices[j, 1]) + vertices[j, 2]
+
+                # the vertical ray intersects the boundary
+                intersection_counter += 1
+
+            end
+    
+        end
+    
+        # define the vector from the turbine to the second point of the face
+        turbine_to_second_facepoint = vertices[j+1, :] - point
+    
+        # find perpendicular distance from turbine to current face (vector projection)
+        boundary_vector = vertices[j+1, :] - vertices[j, :]
+        
+        # check if perpendicular distance is the shortest
+        if sum(boundary_vector .* -turbine_to_first_facepoint) > 0 && sum(boundary_vector .* turbine_to_second_facepoint) > 0
+            
+            # perpendicular distance from turbine to face
+            turbine_to_face_distance[j] = abs(sum(turbine_to_first_facepoint .* normals[j,:]))
+        
+        # check if distance to first facepoint is shortest
+        elseif sum(boundary_vector .* -turbine_to_first_facepoint) < 0
+    
+            # distance from turbine to first facepoint
+            turbine_to_face_distance[j] = norm(turbine_to_first_facepoint)
+    
+        # distance to second facepoint is shortest
+        else
+    
+            # distance from turbine to second facepoint
+            turbine_to_face_distance[j] = norm(turbine_to_second_facepoint)
+    
+        end
+        
+        # reset for next face iteration
+        turbine_to_first_facepoint = turbine_to_second_facepoint        # (for efficiency, so we don't have to recalculate for the same vertex twice)
+            
+    end
+    
+    # magnitude of the constraint value
+    # c[i] = -ff.smooth_max(-turbine_to_face_distance, s=s)
+    c = -ksmax(-turbine_to_face_distance, s)
+    
+    # sign of the constraint value (- is inside, + is outside)
+    if mod(intersection_counter, 2) == 1 #|| onvertex || onface
+        c = -c
+    end
+    
+    return c
+end

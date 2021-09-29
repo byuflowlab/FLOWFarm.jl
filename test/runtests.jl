@@ -7,6 +7,8 @@ using LinearAlgebra
 using FLOWMath: linear
 using Distributed
 using YAML
+using ForwardDiff
+using FiniteDiff
 
 @testset ExtendedTestSet "all tests" begin
     @testset "cost_models" begin
@@ -567,7 +569,101 @@ using YAML
             end
         end
 
-        @testset "raytrace boundary" begin
+        @testset "ray casting boundary distances" begin
+
+            # set up turbine location for testing 
+            turbinex = [0.0]
+            turbiney = [0.0]
+
+            # set up simple square boundary for testing 
+            boundaryvertices = [-1.0 -1.0; -1.0 1.0; 1.0 1.0; 1.0 -1.0]
+            boundarynormals = ff.boundary_normals_calculator(boundaryvertices)
+
+            # test correct sign (negative) for inside 
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney)
+            @test sign(boundarydistance[1]) == -1
+
+            # test correct sign (positive) for outside 
+            turbinex = [-2.0]
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney)
+            @test sign(boundarydistance[1]) == 1
+
+            # test correct distance inside 
+            turbinex = [0.0]
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney)
+            @test boundarydistance[1] ≈ -1 atol = 1E-2
+
+            # test correct distance outside 
+            turbinex = [2.0]
+            turbiney = [0.0]
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney)
+            @test boundarydistance[1] ≈ 1 atol = 1E-2
+
+            # test correct distance on vertex 
+            turbinex = [1.0]
+            turbiney = [1.0]
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney)
+            @test boundarydistance[1] ≈ 0 atol = 1E-3
+
+            # test correct distance on face 
+            turbinex = [1.0]
+            turbiney = [0.0]
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney)
+            @test boundarydistance[1] ≈ 0 atol = 1E-2
+
+        end
+
+        @testset "ray casting boundary derivatives" begin
+
+            # set up turbine location for testing 
+            turbinex = [0.0]
+            turbiney = [0.0]
+
+            # set up simple square boundary for testing 
+            boundaryvertices = [-1.0 -1.0; -1.0 1.0; 1.0 1.0; 1.0 -1.0]
+            boundarynormals = ff.boundary_normals_calculator(boundaryvertices)
+
+            # up function for getting AD derivatives
+            ray_casting_boundary_diff(x) = ff.ray_casting_boundary(boundaryvertices, boundarynormals, x[1], x[2])
+
+            # test correct derivative inside equi-distant to all vertices
+            turbinex = [0.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd atol = 1E-6
+
+            # test correct derivative inside to face
+            turbinex = [0.1]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd rtol = 1E-6
+
+            # test correct derivative inside to two faces
+            turbiney = [0.1]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd rtol = 1E-6
+
+            # test correct derivative outside
+            turbinex = [2.0]
+            turbiney = [0.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd rtol = 1E-6
+
+            # test correct derivative on vertex 
+            turbinex = [1.0]
+            turbiney = [1.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central}, relstep=1E-10)
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd rtol = 1E-4
+
+            # test correct derivative on face 
+            turbinex = [1.0]
+            turbiney = [0.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central}, relstep=1E-10)
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd rtol = 1E-3
 
         end
 
