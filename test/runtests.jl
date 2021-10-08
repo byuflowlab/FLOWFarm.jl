@@ -34,7 +34,6 @@ using FiniteDiff
             @test y ≈ [0.0, 57865.048037721775] atol=1E-6
         end
 
-
         @testset "hermite spline" begin
 
             x = 0.5
@@ -263,6 +262,24 @@ using FiniteDiff
             upstream_turbines = ff.find_upstream_turbines(turbinex, turbiney, winddirection, diameter, inverse=false)
             @test upstream_turbines == [[1, 2],[1]]
         end
+
+        @testset "nansafesqrt" begin 
+            
+            a1 = 9.0
+            a2 = 0.0
+            a3 = 1E-12
+
+            # test for sqrt region
+            @test ff.nansafesqrt(a1) == 3.0
+
+            # test zero
+            @test ff.nansafesqrt(a2) == 0.0
+
+            # test linearly approximated region
+            @test isapprox(ff.nansafesqrt(a3), 1E-7)
+
+        end
+
 
     end
 
@@ -739,7 +756,7 @@ using FiniteDiff
                 cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
                 rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z, hours_per_year=365.0*24.0)
             
-            @test aep ≈ 938573.62950*1E6 rtol=1E-10
+            @test aep/1E6 ≈ 938573.62950 rtol=1E-6
 
         end
 
@@ -761,10 +778,10 @@ using FiniteDiff
                 end
             end
 
-            @test dir_aep ≈ [ 20238.63584, 15709.41125, 13286.56833, 13881.04112, 19232.89054,
+            @test dir_aep./1E6 ≈ [ 20238.63584, 15709.41125, 13286.56833, 13881.04112, 19232.89054,
             32035.08418, 52531.37389, 47035.14700, 46848.21422, 45107.13416,
             53877.69698, 68105.50430, 69587.76656, 73542.89319, 69615.74101,
-            66752.31531, 73027.78883, 60187.14103, 59847.98304, 38123.29869]*1E6 rtol=1E-10
+            66752.31531, 73027.78883, 60187.14103, 59847.98304, 38123.29869] rtol=1E-6
             
 
         end
@@ -778,7 +795,7 @@ using FiniteDiff
                             cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set;
                             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.0*24.0)
             
-            @test aep ≈ 42.54982024375254*1E9 rtol=1E-10
+            @test aep/1E9 ≈ 42.54982024375254 rtol=1E-6
 
         end
         @testset "calculate_power_from_cp" begin
@@ -1052,7 +1069,40 @@ using FiniteDiff
         @testset "Sum of Squares Freestream Superposition" begin
             model = ff.SumOfSquaresFreestreamSuperposition()
             result = sqrt(old_deficit_sum^2 + (wind_speed*deltav)^2)
-            @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
+
+            deriv_function1(x) = ff.wake_combination_model(x, wind_speed, turb_inflow, old_deficit_sum, model)
+
+            # test correct output
+            new_deficit_sum = ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model)
+            @test new_deficit_sum ≈ result atol=1E-6
+
+            # test correct derivative 
+            derivfd = FiniteDiff.finite_difference_derivative(deriv_function1, deltav, Val{:central})
+            derivfad = ForwardDiff.derivative(deriv_function1, deltav)
+            # derivrad = ReverseDiff.gradient(deriv_function, [deltav])
+            @test derivfad ≈ derivfd atol = 1E-6
+            # @test derivrad[1] ≈ derivfd atol = 1E-6
+
+            # test correct derivatives at known discontinuity 
+            deltav = 4.823068257348535e-185
+            wind_speed = 0.9
+            turb_inflow = 0.9
+            old_deficit_sum = 0.0 
+            deriv_function2(x) = ff.wake_combination_model(x, wind_speed, turb_inflow, old_deficit_sum, model)
+
+            derivfd = FiniteDiff.finite_difference_derivative(deriv_function2, deltav, Val{:central})
+            derivfad = ForwardDiff.derivative(deriv_function2, deltav)
+            @test derivfad ≈ derivfd atol = 1E-6
+
+            deltav = ForwardDiff.Dual(4.823068257348535e-185, ForwardDiff.Partials((-3.199071099983192e-185,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0)))
+            wind_speed = 0.9
+            turb_inflow = ForwardDiff.Dual(0.9, ForwardDiff.Partials((0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0)))
+            old_deficit_sum = 0.0
+            fd_deriv_function(x) = ff.wake_combination_model(x, wind_speed, turb_inflow.value, old_deficit_sum, model)
+            derivfd = FiniteDiff.finite_difference_derivative(fd_deriv_function, deltav.value, Val{:central})
+            derivfad = ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model)
+            # derivfad = ForwardDiff.derivative(deriv_function, deltav)
+            @test derivfad ≈ derivfd atol = 1E-6
         end
 
         @testset "Sum of Squares Local Velocity Superposition" begin
@@ -1062,12 +1112,12 @@ using FiniteDiff
         end
 
         @testset "Linear Local Velocity Superposition" begin
-        model = ff.LinearLocalVelocitySuperposition()
-        result = old_deficit_sum + turb_inflow*deltav
-        @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
+            model = ff.LinearLocalVelocitySuperposition()
+            result = old_deficit_sum + turb_inflow*deltav
+            @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
         end
 
-    end
+    end    
 
     @testset "Wake Deflection Models" begin
 

@@ -105,7 +105,9 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
     ground_height = wind_shear_model.ground_height    # TODO: allow topology to be given
 
     # adjust wind speed for wind shear
-    if shearfirst
+    if shearfirst === nothing 
+        wind_speed_internal = wind_speed
+    elseif shearfirst
         wind_speed_internal = adjust_for_wind_shear(locz, wind_speed, reference_height, ground_height, wind_shear_model)
     else
         wind_speed_internal = wind_speed
@@ -154,7 +156,9 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
     # find velocity at point without shear
     point_velocity = wind_speed_internal - deficit_sum
 
-    if shearfirst
+    if shearfirst === nothing 
+        point_velocity_out = point_velocity
+    elseif shearfirst
         point_velocity_out = point_velocity
     else
         point_velocity_out = adjust_for_wind_shear(locz, point_velocity, reference_height, ground_height, wind_shear_model)        
