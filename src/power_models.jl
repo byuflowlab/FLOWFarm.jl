@@ -466,7 +466,8 @@ Calculate AEP for each requested state respectively
 function calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
             hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
             cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set::AbstractModelSet;
-            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0, weighted=true)
+            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0, weighted=true,
+            shearfirst=true)
 
     wind_probabilities = wind_resource.wind_probabilities
 
@@ -484,7 +485,7 @@ function calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
 
         turbine_velocities = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
                             sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                            model_set, wind_farm_state_id=i, velocity_only=true)
+                            model_set, wind_farm_state_id=i, velocity_only=true, shearfirst=shearfirst)
 
         wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                             rated_power, rotor_diameter, turbine_velocities, turbine_yaw, wind_resource.air_density, power_models)
@@ -505,7 +506,7 @@ end
 function calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, 
     turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
     rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-    model_set; wind_farm_state_id=1, hours_per_year=365.25*24.0, velocity_only=true, weighted=true)
+    model_set; wind_farm_state_id=1, hours_per_year=365.25*24.0, velocity_only=true, weighted=true, shearfirst=true)
 
     rot_x, rot_y = rotate_to_wind_direction(turbine_x, turbine_y, wind_resource.wind_directions[wind_farm_state_id])
 
@@ -513,7 +514,7 @@ function calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hu
 
     turbine_velocities = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
                         sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                        model_set, wind_farm_state_id=wind_farm_state_id, velocity_only=true)
+                        model_set, wind_farm_state_id=wind_farm_state_id, velocity_only=true, shearfirst=shearfirst)
 
     wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                         rated_power, rotor_diameter, turbine_velocities, turbine_yaw, wind_resource.air_density, power_models)
@@ -570,7 +571,8 @@ Calculate wind farm AEP
 function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
             cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set::AbstractModelSet;
-            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0, distributed=false)
+            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0, distributed=false,
+            shearfirst=true)
 
     # find how many wind states are being calculated
     nstates = length(wind_resource.wind_probabilities)
@@ -587,7 +589,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             state_aep[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, 
                 turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                 rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                model_set; wind_farm_state_id=i, hours_per_year=hours_per_year, velocity_only=true)
+                model_set; wind_farm_state_id=i, hours_per_year=hours_per_year, velocity_only=true, shearfirst=shearfirst)
            
         end
 
@@ -599,7 +601,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             state_aep = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, 
                 turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                 rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                model_set; wind_farm_state_id=i, hours_per_year=hours_per_year, velocity_only=true)
+                model_set; wind_farm_state_id=i, hours_per_year=hours_per_year, velocity_only=true, shearfirst=shearfirst)
         end
     end
 
