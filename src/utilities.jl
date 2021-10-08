@@ -1337,14 +1337,13 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
 end
 
 """
-    nansafesqrt(a; tol=1E-10)
+    nansafesqrt(a)
 
 Calculate the square root of a number, but if the number is less than the given tolerance 
-then use the line y = a(sqrt(tol)/tol) so that the derivative is well defined.
+then use the line y = a(sqrt(eps())/eps()) so that the derivative is well defined.
 
 # Arguments
-- `a::Number`: takes the square root of this value, or approximates it with a line for a < tol
-- `tol::Number`: lower limit on where to use the actual square root. Use a linear approximation for a<tol
+- `a::Number`: takes the square root of this value, or approximates it with a line for a < eps()
 """
 function nansafesqrt(a::Number)
     tol = eps()
