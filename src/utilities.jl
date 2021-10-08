@@ -1346,8 +1346,8 @@ then use the line y = a(sqrt(tol)/tol) so that the derivative is well defined.
 - `a::Number`: takes the square root of this value, or approximates it with a line for a < tol
 - `tol::Number`: lower limit on where to use the actual square root. Use a linear approximation for a<tol
 """
-function nansafesqrt(a; tol=1E-10)
-
+function nansafesqrt(a::Number)
+    tol = eps()
     if a < tol
         return a*sqrt(tol)/tol
     else

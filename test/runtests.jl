@@ -267,7 +267,7 @@ using FiniteDiff
             
             a1 = 9.0
             a2 = 0.0
-            a3 = 1E-12
+            a3 = eps()*1E-10
 
             # test for sqrt region
             @test ff.nansafesqrt(a1) == 3.0
@@ -275,8 +275,8 @@ using FiniteDiff
             # test zero
             @test ff.nansafesqrt(a2) == 0.0
 
-            # test linearly approximated region
-            @test isapprox(ff.nansafesqrt(a3), 1E-7)
+            # test linearly approximated region a*sqrt(tol)/tol
+            @test isapprox(ff.nansafesqrt(a3), a3*sqrt(eps())/eps())
 
         end
 
