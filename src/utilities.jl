@@ -432,16 +432,17 @@ end
 
 """
 
-    boundary_normals_calculator(boundary_vertices)
+    single_boundary_normals_calculator(boundary_vertices)
 
-Outputs the unit vectors perpendicular to each boundary of a shape, given the Cartesian coordinates for the shape's vertices.
+Outputs the unit vectors perpendicular to each edge of a polygon, given the Cartesian 
+coordinates for the polygon's vertices.
 
 # Arguments
-- `boundary_vertices::Array{Float,1}` : n-by-2 array containing all the boundary vertices, counterclockwise
+- `boundary_vertices::Array{Float,1}` : m-by-2 array containing all the boundary vertices, counterclockwise
 
 """
 
-function boundary_normals_calculator(boundary_vertices)
+function single_boundary_normals_calculator(boundary_vertices)
 
     # get number of vertices in shape
     nvertices = length(boundary_vertices[:, 1])
@@ -465,6 +466,30 @@ function boundary_normals_calculator(boundary_vertices)
 
     return boundary_normals
 
+end
+
+"""
+
+    boundary_normals_calculator(boundary_vertices; nboundaries=1)
+
+Outputs the unit vectors perpendicular to each edge of each polygon in a set of polygons, 
+given the Cartesian coordinates for each polygon's vertices.
+
+# Arguments
+- `boundary_vertices::Array{Float,1}` : ragged array of arrays containing all the boundary vertices of each polygon, counterclockwise
+- `nboundaries::Int` : the number of boundaries in the set
+"""
+function boundary_normals_calculator(boundary_vertices; nboundaries=1)
+    
+    if nboundaries == 1
+        boundary_normals = single_boundary_normals_calculator(boundary_vertices)
+    else
+        boundary_normals = deepcopy(boundary_vertices)
+        for i = 1:nboundaries
+            boundary_normals[i] = single_boundary_normals_calculator(boundary_vertices[i])
+        end
+    end
+    return boundary_normals
 end
 
 """

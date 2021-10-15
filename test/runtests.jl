@@ -126,13 +126,17 @@ using FiniteDiff
 
         @testset "boundary normals" begin
 
-            boundary_file_name = string("./inputfiles/iea37-boundary-cs3.yaml")
-            
-            boundary_vertices = ff.get_boundary_yaml(boundary_file_name)
+            # test simple polygon boundary
+            boundary_vertices1 = [0 0; 0 1; 1 1; 1 0]
+            boundary_normals1 = ff.boundary_normals_calculator(boundary_vertices1)
+            correct_normals1 = [-1 0; 0 1; 1 0; 0 -1]
+            @test boundary_normals1 ≈ correct_normals1 atol=1E-6
 
-            boundary_normals = ff.boundary_normals_calculator(boundary_vertices)
-        
-            correct_normals = [0.9829601758936983 -0.1838186405319916; 
+            # test complext polygon boundary
+            boundary_file_name = string("./inputfiles/iea37-boundary-cs3.yaml")
+            boundary_vertices2 = ff.get_boundary_yaml(boundary_file_name)
+            boundary_normals2 = ff.boundary_normals_calculator(boundary_vertices2)
+            correct_normals2 = [0.9829601758936983 -0.1838186405319916; 
                                 0.9934614633172962 -0.11416795042154541; 
                                 0.9987121579438882 -0.050734855622757584; 
                                 0.9998686751666075 -0.01620593781838486; 
@@ -150,13 +154,13 @@ using FiniteDiff
                                 -0.7996740386176392 0.6004343694034798; 
                                 -0.8578802011411015 0.5138497450520954; 
                                 0.42552559023380465 0.9049463918134445]
+            @test boundary_normals2 ≈ correct_normals2 atol=1E-6
 
-            @test boundary_normals ≈ correct_normals atol=1E-6
-
-            boundary_vertices = [0 0; 0 1; 1 1; 1 0]
-            boundary_normals = ff.boundary_normals_calculator(boundary_vertices)
-            correct_normals = [-1 0; 0 1; 1 0; 0 -1]
-            @test boundary_normals ≈ correct_normals atol=1E-6
+            # test multi-region boundary
+            boundary_vertices3 = [boundary_vertices1, boundary_vertices2]
+            boundary_normals3 = ff.boundary_normals_calculator(boundary_vertices3, nboundaries=2)
+            correct_normals3 = [correct_normals1, correct_normals2]
+            @test boundary_normals3 ≈ correct_normals3 atol=1E-6
 
         end
 
