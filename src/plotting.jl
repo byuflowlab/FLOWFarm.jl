@@ -12,7 +12,7 @@
 #     display(p)
 # end
 """
-    plotwindfarm!(ax, boundary_vertices, turbinex, turbiney, rotordiameter; aspect="equal", xlim=[], ylim=[], fill=false, color="k", markeralpha=1, title="")
+    plotwindfarm!(ax, boundary_vertices, turbinex, turbiney, rotordiameter; nboundaries=1, aspect="equal", xlim=[], ylim=[], fill=false, color="k", markeralpha=1, title="")
 
     Convenience function for plotting wind farms
 
@@ -22,45 +22,73 @@
 - `turbinex::Array{Float,1}(nturbines)`: an array x coordinates of wind turbine locations
 - `turbiney::Array{Float,1}(nturbines)`: an array y coordinates of wind turbine locations
 - `rotordiameter::Array{Float,1}(nturbines)`: an array rotor diameters of wind turbines
+- `nboundaries::Int`: number of discrete boundary regions
 - `aspect::String`: set plot aspect ratio, default="equal"
 - `xlim::Array`: limits in x coordinate. "[]" results in limits being automatically defined
 - `ylim::Array`: limits in y coordinate. "[]" results in limits being automatically defined
 - `fill::Bool`: determines whether turbine circle markers are filled or not
 - `color::=String`: sets color for turbine markers
 - `markeralpha::Int`: determines tranparancy of turbine markers
-- `itle::String`: optional title to include on the plot
+- `title::String`: optional title to include on the plot
 """
-function plotwindfarm!(ax, turbinex, turbiney, rotordiameter; boundary_vertices=[], 
-    aspect="equal", xlim=[], ylim=[], fill=false, turbinecolor="k", boundarycolor="k", 
-    boundarylinestyle="-", turbinelinestyle="-", markeralpha=1, title="")
+function plotwindfarm!(ax, turbinex, turbiney, rotordiameter; nboundaries=1, 
+    boundary_vertices=[], aspect="equal", xlim=[], ylim=[], fill=false, turbinecolor="k", 
+    boundarycolor="k", boundarylinestyle="-", turbinelinestyle="-", markeralpha=1, title="")
 
+    # determine how many turbines are in the farm
     nturbines = length(turbinex)
 
+    # add the wind turbines
     plotlayout!(ax, turbinex, turbiney, rotordiameter; aspect=aspect, fill=fill, color=turbinecolor, markeralpha=markeralpha, title=title, linestyle=turbinelinestyle)
     
+    # add the bounary/ies
     if boundary_vertices != []
-        plotboundary!(ax, boundary_vertices; color=boundarycolor, linestyle=boundarylinestyle)
+        plotboundary!(ax, boundary_vertices, nboundaries=nboundaries, color=boundarycolor, linestyle=boundarylinestyle)
     end
 
+    # adjust plot x limits if not set
     if xlim !== nothing 
         if xlim == [] && boundary_vertices != []
-            xlim = [minimum(boundary_vertices[:,1]) - rotordiameter[1], maximum(boundary_vertices[:,1]) + rotordiameter[1]]
-            ylim = [minimum(boundary_vertices[:,2]) - rotordiameter[1], maximum(boundary_vertices[:,2]) + rotordiameter[1]]
+            if nboundaries == 1
+                xlim = [minimum(boundary_vertices[:,1]) - rotordiameter[1], maximum(boundary_vertices[:,1]) + rotordiameter[1]]
+            else
+                for i = 1:nboundaries
+                    xlim_tmp = [minimum(boundary_vertices[i][:,1]) - rotordiameter[1], maximum(boundary_vertices[i][:,1]) + rotordiameter[1]]
+                    if i == 1
+                        xlim = deepcopy(xlim_tmp)
+                    end
+                    xlim[1] = minimum([xlim[1], xlim_tmp[1]])
+                    xlim[2] = maximum([xlim[2], xlim_tmp[2]])
+                end
+            end
         elseif boundary_vertices == []
                 xlim = [minimum(turbinex)-sum(rotordiameter)/nturbines, maximum(turbinex)+sum(rotordiameter)/nturbines]
         end
         ax.set(xlim=xlim)
     end
 
+    # adjust plot y limits if not set
     if ylim !== nothing
         if ylim == [] && boundary_vertices != []
-            ylim = [minimum(boundary_vertices[:,2]) - rotordiameter[1], maximum(boundary_vertices[:,2]) + rotordiameter[1]]
+            if nboundaries == 1
+                ylim = [minimum(boundary_vertices[:,2]) - rotordiameter[1], maximum(boundary_vertices[:,2]) + rotordiameter[1]]
+            else
+                for i = 1:nboundaries
+                    ylim_tmp = [minimum(boundary_vertices[i][:,2]) - rotordiameter[1], maximum(boundary_vertices[i][:,2]) + rotordiameter[1]]
+                    if i == 1
+                        ylim = deepcopy(ylim_tmp)
+                    end
+                    ylim[1] = minimum([ylim[1], ylim_tmp[1]])
+                    ylim[2] = maximum([ylim[2], ylim_tmp[2]])
+                end
+            end
         elseif boundary_vertices == []
             ylim = [minimum(turbiney)-sum(rotordiameter)/nturbines, maximum(turbiney)+sum(rotordiameter)/nturbines]
         end
         ax.set(ylim=ylim)
     end
     
+    # adjust aspect ratio
     ax.set(aspect=aspect)
 end
 
@@ -94,24 +122,21 @@ function plotlayout!(ax, turbinex, turbiney, rotordiameter; aspect="equal", fill
 end
 
 """
-    plotboundary!(ax, boundary_vertices; aspect="equal", xlim=[], ylim=[], fill=false, color="k", markeralpha=1, title="")
+    plotsingleboundary!(ax, boundary_vertices; color="k", linestyle="-')
 
     Convenience function for plotting wind farm boundaries
 
 # Arguments
 - `ax
 - `boundary_vertices::Array{Float,1}(nvertices)`: an nx2 array of boundary vertices for polygon or [[center_x, center_y], radius] for circle boundary
-- `aspect::String`: set plot aspect ratio, default="equal"
-- `xlim::Array`: limits in x coordinate. "[]" results in limits being automatically defined
-- `ylim::Array`: limits in y coordinate. "[]" results in limits being automatically defined
-- `fill::Bool`: determines whether turbine circle markers are filled or not
 - `color::=String`: sets color for turbine markers
-- `markeralpha::Int`: determines tranparancy of turbine markers
-- `itle::String`: optional title to include on the plot
+- `linestyle::String`: sets the line style for the boundary
 """
-function plotboundary!(ax, boundary_vertices; color="k", linestyle="-")
-    println(boundary_vertices)
+function plotsingleboundary!(ax, boundary_vertices; color="k", linestyle="-")
+
+    # get the number of vertices defining the boundary
     nvertices = length(boundary_vertices[:,1])
+
     # add boundary
     if nvertices < 3
         # circle boundary
@@ -124,6 +149,30 @@ function plotboundary!(ax, boundary_vertices; color="k", linestyle="-")
         x = push!(boundary_vertices[:,1], boundary_vertices[1,1])
         y = push!(boundary_vertices[:,2], boundary_vertices[1,2])
         ax.plot(x, y, color=color, linestyle=linestyle)
+    end
+    
+end
+
+"""
+    plotboundary!(ax, boundary_vertices; color="k", linestyle="-", nboundaries=1)
+
+    Convenience function for plotting wind farm boundaries
+
+# Arguments
+- `ax
+- `boundary_vertices::Array{Float,1}(nvertices)`: an nx2 array of boundary vertices for polygon or [[center_x, center_y], radius] for circle boundary
+- `color::=String`: sets color for turbine markers
+- `linestyle::String`: sets the line style for the boundary
+- `nboundaries::Int`: number of discrete boundary regions
+"""
+function plotboundary!(ax, boundary_vertices; color="k", linestyle="-", nboundaries=1)
+
+    if nboundaries == 1
+        plotsingleboundary!(ax, boundary_vertices, color=color, linestyle=linestyle)
+    else
+        for i = 1:nboundaries
+            plotsingleboundary!(ax, boundary_vertices[i], color=color, linestyle=linestyle)
+        end
     end
     
 end

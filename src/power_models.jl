@@ -598,6 +598,9 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
     # calculate AEP in serial or in parallel using distributed processing
     else
         AEP = @sync @distributed (+) for i = 1:nstates
+            # if i % 100 == 0
+            #     println("running state $i of $nstates")
+            # end
             state_aep = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, 
                 turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                 rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
