@@ -302,6 +302,8 @@ using FiniteDiff
             c = ff.pointinpolygon([0.0, 0.0], vertices, return_distance=false)
             @test c == -1
 
+            # check that exception occurs if point is given in ints and distance is desired 
+            @test_throws ArgumentError ff.pointinpolygon([-5, 5], vertices, return_distance=true)
 
         end
 

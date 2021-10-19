@@ -1252,6 +1252,10 @@ and 1 otherwise.
 """
 function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycasting", shift=1E-10, return_distance=true)
 
+    if return_distance && typeof(point[1]) <: Int
+        throw(ArgumentError("point coordinates may not be given as Ints, must use Floats of some kind. point used $(typeof(point[1]))"))
+    end
+
     if normals === nothing 
         normals = boundary_normals_calculator(vertices)
     end
