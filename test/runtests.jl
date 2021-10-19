@@ -267,6 +267,44 @@ using FiniteDiff
             @test upstream_turbines == [[1, 2],[1]]
         end
 
+        @testset "point in polygon" begin
+            vertices = [0.0 0.0; 0.0 10.0; 10.0 10.0; 10.0 0.0]
+
+            # check that point is found inside polygon
+            c = ff.pointinpolygon([5.0, 5.0], vertices, return_distance=false)
+            @test c == -1
+
+            # check that point is found to be 5 inside edge of polygon
+            c = ff.pointinpolygon([5.0, 5.0], vertices, return_distance=true)
+            @test isapprox(c, -5.0, rtol=1E-3)
+
+            # check that point is found outside polygon
+            c = ff.pointinpolygon([-5.0, 5.0], vertices, return_distance=false)
+            @test c == 1
+
+            # check that point is found to be 5 outside edge of polygon
+            c = ff.pointinpolygon([-5.0, 5.0], vertices, return_distance=true)
+            @test isapprox(c, 5.0, rtol=1E-6)
+
+            # check that point is found to be zero distance to polygon when on edge of polygon
+            c = ff.pointinpolygon([0.0, 5.0], vertices, return_distance=true)
+            @test isapprox(c, 0.0, atol=1E-6)
+
+            # check that point is found to be in polygon when on edge of polygon
+            c = ff.pointinpolygon([0.0, 5.0], vertices, return_distance=false)
+            @test c == -1
+
+            # check that point is found to be zero distance to polygon when on vertex of polygon
+            c = ff.pointinpolygon([0.0, 0.0], vertices, return_distance=true)
+            @test isapprox(c, 0.0, atol=1E-6)
+
+            # check that point is found to be zero distance to polygon when on vertex of polygon
+            c = ff.pointinpolygon([0.0, 0.0], vertices, return_distance=false)
+            @test c == -1
+
+
+        end
+
         @testset "nansafesqrt" begin 
             
             a1 = 9.0

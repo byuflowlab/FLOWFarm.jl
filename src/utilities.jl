@@ -1232,20 +1232,25 @@ function pointonline(p, v1, v2; tol=1E-6)
 end
 
 """
-    pointinpolygon(point, vertices, normals=nothing; s=700, method="raycasting", shift=1E-10)
+    pointinpolygon(point, vertices, normals=nothing; s=700, method="raycasting", shift=1E-10, return_distance=true)
 
 Given a polygon determined by a set of vertices, determine the signed distance from the point 
 to the polygon. 
 
 Returns the negative (-) distance if the point is inside the polygon, positive (+) otherwise.
+If return_distance is set to false, then returns -1 if in polygon, 0 if on the boundary, 
+and 1 otherwise.
 
 # Arguments
-- `p::Vector{Number}(2)`: point of interest
-- `v1::Vector{Number}(2)`: first vertex of the line
-- `v2::Vector{Number}(2)`: second vertex of the line
-- `tol::Number`: how close the cumulative distance from v1 to p to v2 must be to the distance from v1 to v2 to count as being co-linear
+- `point::Vector{Number}(2)`: point of interest
+- `vertices::Vector{Matrix{Number}(2)`: vertices of polygon
+- `normals::Vector{Matrix{Number}(2)`: if not provided, they will be calculated
+- `s::Number`: smoothing factor for ksmax function (smoothmax)
+- `method::String`: currently only raycasting is available
+- `shift::Float`: how far to shift point if it lies on an edge or vertex
+- `return_distance::Bool`: if true, return distance. if false, return -1 if in polygon or on the boundary, and 1 otherwise.
 """
-function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycasting", shift=1E-10)
+function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycasting", shift=1E-10, return_distance=true)
 
     if normals === nothing 
         normals = boundary_normals_calculator(vertices)
@@ -1309,7 +1314,7 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
     
             # check to see if the turbine is below the boundary
             y = (vertices[j+1, 2] - vertices[j, 2]) / (vertices[j+1, 1] - vertices[j, 1]) * (point[1] - vertices[j, 1]) + vertices[j, 2]
-            if point[2] < (vertices[j+1, 2] - vertices[j, 2]) / (vertices[j+1, 1] - vertices[j, 1]) * (point[1] - vertices[j, 1]) + vertices[j, 2]
+            if point[2] < y #(vertices[j+1, 2] - vertices[j, 2]) / (vertices[j+1, 1] - vertices[j, 1]) * (point[1] - vertices[j, 1]) + vertices[j, 2]
 
                 # the vertical ray intersects the boundary
                 intersection_counter += 1
@@ -1318,46 +1323,56 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
     
         end
     
-        # define the vector from the turbine to the second point of the face
-        turbine_to_second_facepoint = vertices[j+1, :] - point
-    
-        # find perpendicular distance from turbine to current face (vector projection)
-        boundary_vector = vertices[j+1, :] - vertices[j, :]
+        if return_distance
+            # define the vector from the turbine to the second point of the face
+            turbine_to_second_facepoint = vertices[j+1, :] - point
         
-        # check if perpendicular distance is the shortest
-        if sum(boundary_vector .* -turbine_to_first_facepoint) > 0 && sum(boundary_vector .* turbine_to_second_facepoint) > 0
+            # find perpendicular distance from turbine to current face (vector projection)
+            boundary_vector = vertices[j+1, :] - vertices[j, :]
             
-            # perpendicular distance from turbine to face
-            turbine_to_face_distance[j] = abs(sum(turbine_to_first_facepoint .* normals[j,:]))
+            # check if perpendicular distance is the shortest
+            if sum(boundary_vector .* -turbine_to_first_facepoint) > 0 && sum(boundary_vector .* turbine_to_second_facepoint) > 0
+            # if boundary_vector <= turbine_to_first_facepoint && boundary_vector <= turbine_to_second_facepoint
+              
+                # perpendicular distance from turbine to face
+                turbine_to_face_distance[j] = abs(sum(turbine_to_first_facepoint .* normals[j,:]))
+            
+            # check if distance to first facepoint is shortest
+            elseif sum(boundary_vector .* -turbine_to_first_facepoint) < 0
         
-        # check if distance to first facepoint is shortest
-        elseif sum(boundary_vector .* -turbine_to_first_facepoint) < 0
-    
-            # distance from turbine to first facepoint
-            turbine_to_face_distance[j] = norm(turbine_to_first_facepoint)
-    
-        # distance to second facepoint is shortest
-        else
-    
-            # distance from turbine to second facepoint
-            turbine_to_face_distance[j] = norm(turbine_to_second_facepoint)
-    
+                # distance from turbine to first facepoint
+                turbine_to_face_distance[j] = norm(turbine_to_first_facepoint)
+        
+            # distance to second facepoint is shortest
+            else
+        
+                # distance from turbine to second facepoint
+                turbine_to_face_distance[j] = norm(turbine_to_second_facepoint)
+        
+            end
+            
+            # reset for next face iteration
+            turbine_to_first_facepoint = turbine_to_second_facepoint        # (for efficiency, so we don't have to recalculate for the same vertex twice)
         end
+    end
+    
+    if return_distance
+        # magnitude of the constraint value
+        # c[i] = -ff.smooth_max(-turbine_to_face_distance, s=s)
+        c = -ksmax(-turbine_to_face_distance, s)
         
-        # reset for next face iteration
-        turbine_to_first_facepoint = turbine_to_second_facepoint        # (for efficiency, so we don't have to recalculate for the same vertex twice)
-            
+        # sign of the constraint value (- is inside, + is outside)
+        if mod(intersection_counter, 2) == 1 #|| onvertex || onface
+            c = -c
+        end
+    else
+        if mod(intersection_counter, 2) == 1
+            c = -1
+        else
+            c = 1
+        end
     end
-    
-    # magnitude of the constraint value
-    # c[i] = -ff.smooth_max(-turbine_to_face_distance, s=s)
-    c = -ksmax(-turbine_to_face_distance, s)
-    
-    # sign of the constraint value (- is inside, + is outside)
-    if mod(intersection_counter, 2) == 1 #|| onvertex || onface
-        c = -c
-    end
-    
+
     return c
 end
 
