@@ -302,7 +302,7 @@ using FiniteDiff
             c = ff.pointinpolygon([0.0, 0.0], vertices, return_distance=false)
             @test c == -1
 
-            # check that exception occurs if point is given in ints and distance is desired 
+            # check that ArgumentError occurs if point is given in ints and distance is desired 
             @test_throws ArgumentError ff.pointinpolygon([-5, 5], vertices, return_distance=true)
 
         end
@@ -630,7 +630,7 @@ using FiniteDiff
             end
         end
 
-        @testset "ray casting boundary distances" begin
+        @testset "ray casting boundary distances - single region" begin
 
             # set up turbine location for testing 
             turbinex = [0.0]
@@ -670,6 +670,84 @@ using FiniteDiff
             turbinex = [1.0]
             turbiney = [0.0]
             boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney)
+            @test boundarydistance[1] ≈ 0 atol = 1E-2
+
+        end
+
+        @testset "ray casting boundary distances - multi region" begin
+
+            # set up turbine location for testing 
+            turbinex = [0.0]
+            turbiney = [0.0]
+
+            # set up simple square boundary for testing 
+            boundaryvertices1 = [-1.0 -1.0; -1.0 1.0; 1.0 1.0; 1.0 -1.0]
+            boundaryvertices2 = [3.0 -1.0; 3.0 1.0; 5.0 1.0; 5.0 -1.0]
+            boundaryvertices = [boundaryvertices1, boundaryvertices2]
+            boundarynormals = ff.boundary_normals_calculator(boundaryvertices, nboundaries=2)
+
+            # test correct sign (negative) for inside region 1
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true)
+            @test sign(boundarydistance[1]) == -1
+
+            # test correct sign (negative) for inside region 2
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, 4.0, 0.0, discrete=true)
+            @test sign(boundarydistance[1]) == -1
+
+            # test correct sign (positive) for outside region 1
+            turbinex = [-2.0]
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true)
+            @test sign(boundarydistance[1]) == 1
+
+            # test correct sign (positive) for outside region 2
+            turbinex = [6.0]
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true)
+            @test sign(boundarydistance[1]) == 1
+
+            # test correct distance inside region 1
+            turbinex = [0.0]
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true)
+            @test boundarydistance[1] ≈ -1 atol = 1E-2
+
+            # test correct distance inside region 2
+            turbinex = [4.0]
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true)
+            @test boundarydistance[1] ≈ -1 atol = 1E-2
+
+            # test correct distance between regions
+            turbinex = [2.0]
+            turbiney = [0.0]
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true)
+            @test boundarydistance[1] ≈ 1 atol = 1E-2
+
+            # test correct distance outside region 2
+            turbinex = [2.5]
+            turbiney = [0.0]
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true)
+            @test boundarydistance[1] ≈ 0.5 atol = 1E-2
+
+            # test correct distance on vertex of region 1
+            turbinex = [1.0]
+            turbiney = [1.0]
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true)
+            @test boundarydistance[1] ≈ 0 atol = 1E-3
+
+            # test correct distance on vertex of region 2
+            turbinex = [3.0]
+            turbiney = [1.0]
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true)
+            @test boundarydistance[1] ≈ 0 atol = 1E-3
+
+            # test correct distance on face of region 1
+            turbinex = [1.0]
+            turbiney = [0.0]
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true)
+            @test boundarydistance[1] ≈ 0 atol = 1E-2
+
+            # test correct distance on face of region 2
+            turbinex = [3.0]
+            turbiney = [0.0]
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true)
             @test boundarydistance[1] ≈ 0 atol = 1E-2
 
         end
