@@ -7,7 +7,7 @@ using LinearAlgebra
 
 # using CCBlade
 using PyPlot; const plt = PyPlot
-using FLOWMath: linear,trapz,Akima,ksmax
+using FLOWMath: linear,trapz,Akima,ksmax,abs_smooth
 # using Statistics
 using Distributed
 using YAML

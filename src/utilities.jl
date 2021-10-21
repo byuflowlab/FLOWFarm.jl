@@ -136,7 +136,7 @@ function overlap_area_func(turbine_y, turbine_z, rotor_diameter, wake_center_y,
     OVRR = wake_diameter/2.0
 
     # make sure the distance from wake center to turbine hub is positive
-    OVdYd = abs(OVdYd)
+    OVdYd = abs_smooth(OVdYd, eps())
 
     # determine if there is overlap
     if (OVdYd < (OVr+OVRR)) # if the rotor overlaps the wake zone
@@ -1340,7 +1340,7 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
             # if boundary_vector <= turbine_to_first_facepoint && boundary_vector <= turbine_to_second_facepoint
               
                 # perpendicular distance from turbine to face
-                turbine_to_face_distance[j] = dot(turbine_to_first_facepoint, normals[j,:])
+                turbine_to_face_distance[j] = abs_smooth(dot(turbine_to_first_facepoint, normals[j,:]), eps())
             
             # check if distance to first facepoint is shortest
             elseif real(sum(boundary_vector .* -turbine_to_first_facepoint)) < 0
