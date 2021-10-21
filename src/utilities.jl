@@ -228,7 +228,7 @@ function smooth_max(x; s=10.0)
     # non-overflowing version of Smooth Max function (see ref 2 and 3 above)
     
     # get the maximum value and the index of maximum value
-    max_val, max_ind = findmax(x)
+    max_val, max_ind = findmax(real(x))
 
     # get the indices of x
     indices = collect(1:length(x))
@@ -1237,9 +1237,9 @@ end
 Given a polygon determined by a set of vertices, determine the signed distance from the point 
 to the polygon. 
 
-Returns the negative (-) distance if the point is inside the polygon, positive (+) otherwise.
-If return_distance is set to false, then returns -1 if in polygon, 0 if on the boundary, 
-and 1 otherwise.
+Returns the negative (-) distance if the point is inside or on the polygon, positive (+) 
+otherwise. If return_distance is set to false, then returns -1 if in polygon or on the 
+boundary, and 1 otherwise.
 
 # Arguments
 - `point::Vector{Number}(2)`: point of interest
@@ -1251,7 +1251,7 @@ and 1 otherwise.
 - `return_distance::Bool`: if true, return distance. if false, return -1 if in polygon or on the boundary, and 1 otherwise.
 """
 function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycasting", shift=1E-10, return_distance=true)
-
+    # println(point)
     if return_distance && typeof(point[1]) <: Int
         throw(ArgumentError("point coordinates may not be given as Ints, must use Floats of some kind. point used $(typeof(point[1]))"))
     end
@@ -1270,7 +1270,7 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
     turbine_to_face_distance = zeros(typeof(point[1]), nvertices)
                 
     # get vector from turbine to the first vertex in first face
-    turbine_to_first_facepoint = vertices[1, :] - point
+    turbine_to_first_facepoint = vertices[1, :] - point # dy/dp = -1
 
     # add the first boundary vertex again to the end of the boundary vertices vector (to form a closed loop)
     vertices = [vertices; vertices[1,1] vertices[1,2]]
@@ -1303,7 +1303,8 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
             perpendicular_direction = [pre_direction_vector[2], -pre_direction_vector[1]]
 
             # normalize perpendicular vector to make it a unit vector
-            perpendicular_direction ./= norm(perpendicular_direction)
+            # perpendicular_direction ./= norm(perpendicular_direction)
+            perpendicular_direction ./= nansafesqrt(sum(perpendicular_direction.^2))
             
             # move the point by shift in the direction of the perpendicular vector
             point .+= shift*perpendicular_direction
@@ -1314,11 +1315,11 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
     for j = 1:nvertices
     
         # check if x-coordinate of turbine is between the x-coordinates of the two boundary vertices
-        if vertices[j, 1] < point[1] < vertices[j+1, 1] || vertices[j, 1] > point[1] > vertices[j+1, 1]
+        if real(vertices[j, 1]) < real(point[1]) < real(vertices[j+1, 1]) || real(vertices[j, 1]) > real(point[1]) > real(vertices[j+1, 1])
     
             # check to see if the turbine is below the boundary
             y = (vertices[j+1, 2] - vertices[j, 2]) / (vertices[j+1, 1] - vertices[j, 1]) * (point[1] - vertices[j, 1]) + vertices[j, 2]
-            if point[2] < y #(vertices[j+1, 2] - vertices[j, 2]) / (vertices[j+1, 1] - vertices[j, 1]) * (point[1] - vertices[j, 1]) + vertices[j, 2]
+            if real(point[2]) < real(y) #(vertices[j+1, 2] - vertices[j, 2]) / (vertices[j+1, 1] - vertices[j, 1]) * (point[1] - vertices[j, 1]) + vertices[j, 2]
 
                 # the vertical ray intersects the boundary
                 intersection_counter += 1
@@ -1329,41 +1330,43 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
     
         if return_distance
             # define the vector from the turbine to the second point of the face
-            turbine_to_second_facepoint = vertices[j+1, :] - point
+            turbine_to_second_facepoint = vertices[j+1, :] - point # dy/dp = -1
         
             # find perpendicular distance from turbine to current face (vector projection)
             boundary_vector = vertices[j+1, :] - vertices[j, :]
             
             # check if perpendicular distance is the shortest
-            if sum(boundary_vector .* -turbine_to_first_facepoint) > 0 && sum(boundary_vector .* turbine_to_second_facepoint) > 0
+            if real(sum(boundary_vector .* -turbine_to_first_facepoint)) > 0 && real(sum(boundary_vector .* turbine_to_second_facepoint)) > 0
             # if boundary_vector <= turbine_to_first_facepoint && boundary_vector <= turbine_to_second_facepoint
               
                 # perpendicular distance from turbine to face
-                turbine_to_face_distance[j] = abs(sum(turbine_to_first_facepoint .* normals[j,:]))
+                turbine_to_face_distance[j] = dot(turbine_to_first_facepoint, normals[j,:])
             
             # check if distance to first facepoint is shortest
-            elseif sum(boundary_vector .* -turbine_to_first_facepoint) < 0
+            elseif real(sum(boundary_vector .* -turbine_to_first_facepoint)) < 0
         
                 # distance from turbine to first facepoint
-                turbine_to_face_distance[j] = norm(turbine_to_first_facepoint)
+                # turbine_to_face_distance[j] = norm(turbine_to_first_facepoint)
+                turbine_to_face_distance[j] = nansafesqrt(sum(turbine_to_first_facepoint.^2))
         
             # distance to second facepoint is shortest
             else
         
                 # distance from turbine to second facepoint
-                turbine_to_face_distance[j] = norm(turbine_to_second_facepoint)
+                # turbine_to_face_distance[j] = norm(turbine_to_second_facepoint)
+                turbine_to_face_distance[j] = sqrt(sum(turbine_to_second_facepoint.^2))
         
             end
             
             # reset for next face iteration
-            turbine_to_first_facepoint = turbine_to_second_facepoint        # (for efficiency, so we don't have to recalculate for the same vertex twice)
+            turbine_to_first_facepoint = turbine_to_second_facepoint # dy/dx = 1       # (for efficiency, so we don't have to recalculate for the same vertex twice)
         end
     end
     
     if return_distance
         # magnitude of the constraint value
-        # c[i] = -ff.smooth_max(-turbine_to_face_distance, s=s)
-        c = -ksmax(-turbine_to_face_distance, s)
+        c = -ff.smooth_max(-turbine_to_face_distance, s=s)
+        # c = -ksmax(-turbine_to_face_distance, s)
         
         # sign of the constraint value (- is inside, + is outside)
         if mod(intersection_counter, 2) == 1 #|| onvertex || onface
@@ -1391,7 +1394,7 @@ then use the line y = a(sqrt(eps())/eps()) so that the derivative is well define
 """
 function nansafesqrt(a::Number)
     tol = eps()
-    if a < tol
+    if real(a) < tol
         return a*sqrt(tol)/tol
     else
         return sqrt(a)

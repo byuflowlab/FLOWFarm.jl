@@ -307,6 +307,102 @@ using FiniteDiff
 
         end
 
+        @testset "point in polygon derivatives" begin
+
+            # set up turbine location for testing 
+            point = [0.0, 0.0]
+
+            # set up simple square boundary for testing 
+            boundaryvertices = [-1.0 -1.0; -1.0 1.0; 1.0 1.0; 1.0 -1.0]
+            boundarynormals = ff.boundary_normals_calculator(boundaryvertices)
+
+            # set up function for getting AD derivatives
+            pointinpolygon_diff(x) = ff.pointinpolygon(x, boundaryvertices, boundarynormals, return_distance=true)
+
+            # test correct derivative inside equi-distant to all vertices
+            derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:central})
+            derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
+            @test derivad ≈ derivfd atol = 1E-6
+
+            # test correct derivative inside to face 
+            point[1] = 0.1
+            derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:central})
+            derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
+            @test derivad ≈ derivfd rtol = 1E-6
+
+            # test correct derivative inside to two faces
+            point[2] = 0.1
+            derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:central})
+            derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
+            @test derivad ≈ derivfd rtol = 1E-6
+
+            # test correct derivative outside polygon to left face
+            point[1] = -2.0
+            point[2] = 0.0
+            derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:central})
+            derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
+            @test derivad ≈ derivfd atol = 1E-6
+
+            # test correct derivative on vertex 1 - fails with FD and complex step
+            point[1] = boundaryvertices[1, 1]
+            point[2] = boundaryvertices[1, 2]
+            derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:central}, absstep=1E-100)
+            derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:complex})
+            derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
+
+            @test derivad ≈ derivfd rtol = 1E-4
+
+            # AD manually
+            point = [ForwardDiff.Dual(-1.0, 1.0, 0.0), ForwardDiff.Dual(-1.0, 0.0, 1.0)]
+            derivmanad = pointinpolygon_diff(point)
+
+            # test correct derivative on vertex 2 - failing
+            point[1] = boundaryvertices[2, 1]
+            point[2] = boundaryvertices[2, 2]
+            derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:complex})
+            derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
+            @test derivad ≈ derivfd rtol = 1E-4
+
+            # test correct derivative on vertex 3 - failing
+            point[1] = boundaryvertices[3, 1]
+            point[2] = boundaryvertices[3, 2]
+            derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:complex})
+            derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
+            @test derivad ≈ derivfd rtol = 1E-4
+
+            # test correct derivative on vertex 4 - failing
+            point[1] = boundaryvertices[4, 1]
+            point[2] = boundaryvertices[4, 2]
+            derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:complex})
+            derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
+            @test derivad ≈ derivfd rtol = 1E-4
+
+            # test correct derivative on top face - passing
+            point[1] = 0.0
+            point[2] = 1.0
+            derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
+            @test derivad ≈ [0.0, 1.0] rtol = 1E-4
+
+            # test correct derivative on left face - passing
+            point[1] = -1.0
+            point[2] = 0.0
+            derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
+            @test derivad ≈ [-1.0, 0.0] rtol = 1E-4
+
+            # test correct derivative on right face - passing
+            point[1] = 1.0
+            point[2] = 0.0
+            derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
+            @test derivad ≈ [1.0, 0.0] rtol = 1E-4
+
+            # test correct derivative on bottom face - passing
+            point[1] = 0.0
+            point[2] = -1.0
+            derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
+            @test derivad ≈ [0.0, -1.0] rtol = 1E-4
+
+        end
+
         @testset "nansafesqrt" begin 
             
             a1 = 9.0
@@ -752,7 +848,7 @@ using FiniteDiff
 
         end
 
-        @testset "ray casting boundary derivatives" begin
+        @testset "ray casting boundary derivatives - single region" begin
 
             # set up turbine location for testing 
             turbinex = [0.0]
@@ -803,6 +899,101 @@ using FiniteDiff
             derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central}, relstep=1E-10)
             derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
             @test derivad ≈ derivfd rtol = 1E-3
+
+        end
+
+        @testset "ray casting boundary derivatives - multiple regions" begin
+
+            # set up turbine location for testing 
+            turbinex = [0.0]
+            turbiney = [0.0]
+
+            # set up simple square boundary for testing 
+            boundaryvertices1 = [-1.0 -1.0; -1.0 1.0; 1.0 1.0; 1.0 -1.0]
+            boundaryvertices2 = [3.0 -1.0; 3.0 1.0; 5.0 1.0; 5.0 -1.0]
+            boundaryvertices = [boundaryvertices1, boundaryvertices2]
+            boundarynormals = ff.boundary_normals_calculator(boundaryvertices, nboundaries=2)
+
+            # set up function for getting AD derivatives
+            ray_casting_boundary_diff(x) = ff.ray_casting_boundary(boundaryvertices, boundarynormals, x[1], x[2], discrete=true)
+
+            # test correct derivative inside region 1 equi-distant to all vertices
+            turbinex = [0.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd atol = 1E-6
+
+            # test correct derivative inside region 2 equi-distant to all vertices
+            turbinex = [4.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd atol = 1E-6
+
+            # test correct derivative inside to face region 1
+            turbinex = [0.1]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd rtol = 1E-6
+
+            # test correct derivative inside to face region 2
+            turbinex = [4.1]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd rtol = 1E-6
+
+            # test correct derivative inside to two faces in region 1
+            turbiney = [0.1]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd rtol = 1E-6
+
+            # test correct derivative inside to two faces in region 2
+            turbiney = [4.1]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd rtol = 1E-6
+
+            # test correct derivative between regions nearer to 1
+            turbinex = [2.0-1E-10]
+            turbiney = [0.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd atol = 1E-6
+
+            # test correct derivative between regions nearer to 2
+            turbinex = [2.0+1E-10]
+            turbiney = [0.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd atol = 1E-6
+
+            # test correct derivative on vertex region 1
+            turbinex = [1.0]
+            turbiney = [1.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central}, relstep=1E-10)
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd rtol = 1E-4
+
+            # test correct derivative on vertex region 2
+            turbinex = [3.0]
+            turbiney = [1.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central}, relstep=1E-10)
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd rtol = 1E-4
+
+            # test correct derivative on face region 1 - failing
+            turbinex = [-1.0]
+            turbiney = [0.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central}, relstep=1E-10)
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd rtol = 1E-3
+
+            # test correct derivative on face region 2 - failing
+            turbinex = [3.0]
+            turbiney = [0.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central}, relstep=1E-10)
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd atol = 1E-3
 
         end
 
