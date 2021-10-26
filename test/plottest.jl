@@ -46,11 +46,11 @@ function plot_velocity_row_deficit()
 end
 
 function test_point_in_polygon()
-    vertices = [0.0 0.0; 0.0 10.0; 10.0 10.0; 10.0 0.0] # square 
+    # vertices = [0.0 0.0; 0.0 10.0; 10.0 10.0; 10.0 0.0] # square 
     # vertices = [0.0 0.0; 0.0 10.0; 10.0 10.0; 10.0 6.0; 5.0 6.0; 5.0 4.0; 10.0 4.0; 10.0 0.0] # square with cut out
     # vertices = [0.0 0.0; 0.0 10.0; 4.0 4.0; 10.0 2.0] # almost a triangle 
-    # vertices = []
-
+    vertices = ff.star_boundary(5, 5.0, 10.0) .+ 5.0
+    # println(vertices)
     normals = ff.boundary_normals_calculator(vertices)
     step = 5E-2
     pointx = -5:step:15.0

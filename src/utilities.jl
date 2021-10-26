@@ -1498,3 +1498,67 @@ function nansafenorm(v::Vector)
     return nansafesqrt(sum(v.^2))
 
 end
+
+"""
+    star_boundary(n)
+
+Generate the points for a star with n points 
+
+# Arguments
+- `n::Int`: The number of points the star should have
+- `ri::Float`: inner radius
+- `ro::Float`: outer radius
+- `rotation::Float`: rotation angle in radians
+"""
+
+function star_boundary(n, ri, ro, rotation=0.0)
+
+    # outer angles 
+    ao = collect(range(2.0*pi/n, 2.0*pi, length=n) .+ rotation)
+    # ao .- 2.0*pi/n
+
+    # inner angles 
+    ai = ao .+ (ao[2] - ao[1])/2.0
+
+    # enforce angles to be between 0 and 2pi
+    for i = 1:n
+        if ao[i] > 2.0*pi
+            ao[i] -= 2.0*pi
+        end 
+        if ai[i] > 2.0*pi
+            ai[i] -= 2.0*pi
+        end
+    end
+
+    # outer x values 
+    xo = ro.*cos.(ao)
+
+    # outer y values 
+    yo = ro.*sin.(ao)
+
+    # inner x values 
+    xi = ri.*cos.(ai)
+
+    # inner y values
+    yi = ri.*sin.(ai)
+
+    # generate point set
+    vertices = Matrix{Float64}(undef, n*2,2)
+    k = 1
+    for i = 1:n
+        for j = 1:2
+            if j == 1
+                point = [xo[i] yo[i]]
+            else
+                point = [xi[i] yi[i]]
+            end
+            vertices[k,:] = point
+            k += 1
+        end
+    end       
+
+    # return
+    return round.(vertices, digits=6)
+end
+
+
