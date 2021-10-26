@@ -1100,7 +1100,7 @@ function round_farm_random_start(rotor_diameter, center, radius; nturbines=nothi
                 dist = hypot(turbinex[i]-turbinex[j], turbiney[i]-turbiney[j])
                 
                 if dist < min_spacing_random
-                    println(dist)
+                    # println(dist)
                     throw(ErrorException("too many turbines to use $method in given space"))
                 end
             end
@@ -1127,7 +1127,7 @@ function round_farm_random_start(rotor_diameter, center, radius; nturbines=nothi
                 dist = hypot(x[i]-x[j], y[i]-y[j])
                 
                 if dist < min_spacing_random
-                    println(dist)
+                    # println(dist)
                     throw(ErrorException("too many turbines to use sunflower in given space"))
                 end
             end
@@ -1275,86 +1275,163 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
     # add the first boundary vertex again to the end of the boundary vertices vector (to form a closed loop)
     vertices = [vertices; vertices[1,1] vertices[1,2]]
 
-    # make sure that the point is not exactly on a vertex or face
+    # flag for if in polygon
+    inpolygon = false
+
+    # flag for if on vertex
+    onvertex = false
+    onedge = false
+
+    # initial distance value 
+    c = 0.0
+
+    # make sure that the point is not exactly on a vertex
+    # this check needs to be separate from the edge check because vertex check trumps edge
+    # check and the edge check shifts the point slightly.
+
     for i = 1:nvertices
+        # println(point, vertices[i,:])
         if isapprox(point, vertices[i,:], atol=shift/2.0)
+            # println("ON VERTEX")
             onvertex = true
-        else
-            onvertex = false
-            onface = pointonline(point, vertices[i,:], vertices[i+1,:], tol=shift/2.0)
-        end
-
-        if onvertex || onface
-            # if the point is approximately on a vertex or face, move the point slightly
-            # this introduces some slight error, but should be well within the error
-            # for actual turbine placement. 
-            
-            # The direction moved is perpendicular to line between the previous and 
-            # following vertices to avoid moving along an adjacent face
-            if i == 1
-                pre_direction_vector = vertices[i+1,:] - vertices[nvertices, :]
-            elseif i == nvertices
-                pre_direction_vector = vertices[1,:] - vertices[i-1, :]
+        
+            if return_distance
+                return 0.0
             else
-                pre_direction_vector = vertices[i+1,:] - vertices[i-1, :]
+                return -1
             end
-            
-            # get a vector perpendicular to the pre_direction_vector
-            perpendicular_direction = [pre_direction_vector[2], -pre_direction_vector[1]]
 
-            # normalize perpendicular vector to make it a unit vector
-            # perpendicular_direction ./= norm(perpendicular_direction)
-            perpendicular_direction ./= nansafesqrt(sum(perpendicular_direction.^2))
-            
-            # move the point by shift in the direction of the perpendicular vector
-            point .+= shift*perpendicular_direction
         end
+    end
+
+    # check and handle if vertex is on an edge
+    for i = 1:nvertices
+        
+        onedge = pointonline(point, vertices[i,:], vertices[i+1,:], tol=shift/2.0)
+        # break
+        if onedge
+
+        #     # get a vector for the edge 
+        #     vectoredge = vertices[i+1,:] - vertices[i,:] 
+
+        #     # get a vector perpendicular to the edge 
+        #     vectorperpendicular = [vectoredge[2], -vectoredge[1]]
+
+        #     # get a unit vector perpendicular to the edge 
+        #     vectorperpendicularhat = vectorperpendicular./nansafenorm(vectorperpendicular)
+
+        #     # get distance from edge to point 
+        #     c = -abs_smooth(dot(point, vectorperpendicularhat), eps())
+
+        #     break
+        # end
+            if return_distance
+                return 0.0 #-abs_smooth(d, eps())
+            else
+                return -1
+            end
+        end
+        #     # if the point is approximately on a vertex or face, move the point slightly
+        #     # this introduces some slight error, but should be well within the error
+        #     # for actual turbine placement. 
+            
+        #     # The direction moved is perpendicular to line between the previous and 
+        #     # following vertices to avoid moving along an adjacent face
+        #     if i == 1
+        #         pre_direction_vector = vertices[i+1,:] - vertices[nvertices, :]
+        #     else
+        #         pre_direction_vector = vertices[i+1,:] - vertices[i-1, :]
+        #     end
+            
+        #     # get a vector perpendicular to the pre_direction_vector
+        #     perpendicular_direction = [pre_direction_vector[2], -pre_direction_vector[1]]
+
+        #     # normalize perpendicular vector to make it a unit vector
+        #     # perpendicular_direction ./= norm(perpendicular_direction)
+        #     perpendicular_direction ./= nansafesqrt(sum(perpendicular_direction.^2))
+            
+        #     # move the point by shift in the direction of the perpendicular vector
+        #     point .+= shift*perpendicular_direction
+        # end
     end
 
     # iterate through each boundary
     for j = 1:nvertices
     
         # check if x-coordinate of turbine is between the x-coordinates of the two boundary vertices
-        if real(vertices[j, 1]) < real(point[1]) < real(vertices[j+1, 1]) || real(vertices[j, 1]) > real(point[1]) > real(vertices[j+1, 1])
+        if real(vertices[j, 1]) <= real(point[1]) < real(vertices[j+1, 1]) || real(vertices[j, 1]) >= real(point[1]) > real(vertices[j+1, 1])
     
             # check to see if the turbine is below the boundary
             y = (vertices[j+1, 2] - vertices[j, 2]) / (vertices[j+1, 1] - vertices[j, 1]) * (point[1] - vertices[j, 1]) + vertices[j, 2]
             if real(point[2]) < real(y) #(vertices[j+1, 2] - vertices[j, 2]) / (vertices[j+1, 1] - vertices[j, 1]) * (point[1] - vertices[j, 1]) + vertices[j, 2]
+                # println((point[1]-vertices[j, 1]))
+                # check for case in boundary with sharp angle and point is at same x value as the vertex in the sharp angle
+                if isapprox(point[1], vertices[j, 1])
+                    # println("here1")
+                    if j == 1
+                        vprev = vertices[nvertices]
+                    else
+                        vprev = vertices[j-1]
+                    end
+                    vnext = vertices[j+1]
 
-                # the vertical ray intersects the boundary
-                intersection_counter += 1
+                    if (vprev[1] <= vertices[j, 1] && vnext[1] <= vertices[j, 1]) || (vprev[1] >= vertices[j, 1] && vnext[1] >= vertices[j, 1])
+                    else
+                        # the vertical ray intersects the boundary
+                        intersection_counter += 1
+                    end
+                else
+                    # the vertical ray intersects the boundary
+                    intersection_counter += 1
+                end
+                # intersection_counter += 1
 
             end
-    
+        # elseif vertices[j, 1] == real(point[1])
+        #     if j == 1
+        #         vprev = vertices[nvertices]
+        #     else
+        #         vprev = vertices[j-1]
+        #     end
+        #     vnext = vertices[j+1]
+
+        #     if (vprev[1] < vertices[j, 1] < vnext[1]) || (vprev[1] > vertices[j, 1] > vnext[1])
+        #         continue
+        #     else
+        #         # the vertical ray intersects the boundary
+        #         intersection_counter += 1
+        #     end    
         end
     
-        if return_distance
+        if return_distance #&& !onedge
             # define the vector from the turbine to the second point of the face
             turbine_to_second_facepoint = vertices[j+1, :] - point # dy/dp = -1
         
             # find perpendicular distance from turbine to current face (vector projection)
+            
+            # get vector defining the boundary
             boundary_vector = vertices[j+1, :] - vertices[j, :]
             
             # check if perpendicular distance is the shortest
-            if real(sum(boundary_vector .* -turbine_to_first_facepoint)) > 0 && real(sum(boundary_vector .* turbine_to_second_facepoint)) > 0
+            if real(dot(boundary_vector, -turbine_to_first_facepoint)) > 0 && real(dot(boundary_vector,turbine_to_second_facepoint)) > 0
             # if boundary_vector <= turbine_to_first_facepoint && boundary_vector <= turbine_to_second_facepoint
               
                 # perpendicular distance from turbine to face
                 turbine_to_face_distance[j] = abs_smooth(dot(turbine_to_first_facepoint, normals[j,:]), eps())
             
             # check if distance to first facepoint is shortest
-            elseif real(sum(boundary_vector .* -turbine_to_first_facepoint)) < 0
+            elseif real(dot(boundary_vector, -turbine_to_first_facepoint)) < 0
         
                 # distance from turbine to first facepoint
                 # turbine_to_face_distance[j] = norm(turbine_to_first_facepoint)
-                turbine_to_face_distance[j] = nansafesqrt(sum(turbine_to_first_facepoint.^2))
+                turbine_to_face_distance[j] = nansafenorm(turbine_to_first_facepoint)
         
             # distance to second facepoint is shortest
             else
         
                 # distance from turbine to second facepoint
                 # turbine_to_face_distance[j] = norm(turbine_to_second_facepoint)
-                turbine_to_face_distance[j] = sqrt(sum(turbine_to_second_facepoint.^2))
+                turbine_to_face_distance[j] = nansafenorm(turbine_to_second_facepoint)
         
             end
             
@@ -1365,11 +1442,15 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
     
     if return_distance
         # magnitude of the constraint value
+        # if !onedge
+        #     c = -ff.smooth_max(-turbine_to_face_distance, s=s)
+        #     # c = -ksmax(-turbine_to_face_distance, s)
+        # end
         c = -ff.smooth_max(-turbine_to_face_distance, s=s)
-        # c = -ksmax(-turbine_to_face_distance, s)
+            # c = -ksmax(-turbine_to_face_distance, s)
         
         # sign of the constraint value (- is inside, + is outside)
-        if mod(intersection_counter, 2) == 1 #|| onvertex || onface
+        if mod(intersection_counter, 2) == 1 #|| onvertex || onedge
             c = -c
         end
     else
@@ -1399,5 +1480,21 @@ function nansafesqrt(a::Number)
     else
         return sqrt(a)
     end
+
+end
+
+"""
+    nansafenorm(v)
+
+Calculate the norm of a vector, but if the sum of the squares is less than the given tolerance 
+then use the line y = a(sqrt(eps())/eps()) so that the derivative is well defined.
+
+# Arguments
+- `v::Vector{}`: takes the norm of this vector, but avoids NaN by using a linear 
+    approximation of sqrt near 0.
+"""
+function nansafenorm(v::Vector)
+    
+    return nansafesqrt(sum(v.^2))
 
 end

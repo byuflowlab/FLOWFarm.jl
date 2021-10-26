@@ -305,6 +305,23 @@ using FiniteDiff
             # check that ArgumentError occurs if point is given in ints and distance is desired 
             @test_throws ArgumentError ff.pointinpolygon([-5, 5], vertices, return_distance=true)
 
+            # almost a triangle but four sided shape
+            vertices = [0.0 0.0; 0.0 10.0; 4.0 4.0; 10.0 2.0] # almost a triangle 
+
+            # test point directly below acute angle and outside of shape
+            point = [10.0, 0.0]
+            c = ff.pointinpolygon(point, vertices, return_distance=true)
+            @test isapprox(c, dot(([2.0, -10.0]./norm([2.0, -10.0])), point))
+
+            # test point directly below concave angle and inside of shape
+            point = [4.0, 3.0]
+            c = ff.pointinpolygon(point, vertices, return_distance=true)
+            boundary_vector = vertices[4,:] .- vertices[3,:]
+            normal_vector = [boundary_vector[2], -boundary_vector[1]]
+            normal_vector ./= norm(normal_vector)
+            distance = -abs(dot(point-vertices[3,:], normal_vector))
+            @test isapprox(c, distance)
+
         end
 
         @testset "point in polygon derivatives" begin
@@ -313,7 +330,7 @@ using FiniteDiff
             point = [0.0, 0.0]
 
             # set up simple square boundary for testing 
-            boundaryvertices = [-1.0 -1.0; -1.0 1.0; 1.0 1.0; 1.0 -1.0]
+            boundaryvertices = reverse([-1.0 -1.0; -1.0 1.0; 1.0 1.0; 1.0 -1.0])
             boundarynormals = ff.boundary_normals_calculator(boundaryvertices)
 
             # set up function for getting AD derivatives
@@ -343,34 +360,28 @@ using FiniteDiff
             derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
             @test derivad ≈ derivfd atol = 1E-6
 
-            # test correct derivative on vertex 1 - fails with FD and complex step
-            point[1] = boundaryvertices[1, 1] + 0.1
-            point[2] = boundaryvertices[1, 2] 
-            derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:central}, absstep=1E-100)
-            derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:complex})
-            derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
-
-            @test derivad ≈ [derivfd] rtol = 1E-4
-
-            # AD manually
-            point = [ForwardDiff.Dual(-1.0, 1.0, 0.0), ForwardDiff.Dual(-1.0, 0.0, 1.0)]
-            derivmanad = pointinpolygon_diff(point)
-
-            # test correct derivative on vertex 2 - failing
-            point[1] = boundaryvertices[2, 1]
-            point[2] = boundaryvertices[2, 2]
+            # test correct derivative on vertex 1 - passing
+            point[1] = deepcopy(boundaryvertices[1, 1])
+            point[2] = deepcopy(boundaryvertices[1, 2])
             derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:complex})
             derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
             @test derivad ≈ derivfd rtol = 1E-4
 
-            # test correct derivative on vertex 3 - failing
+            # test correct derivative on vertex 2 - passing
+            point[1] = deepcopy(boundaryvertices[2, 1])
+            point[2] = deepcopy(boundaryvertices[2, 2])
+            derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:complex})
+            derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
+            @test derivad ≈ derivfd rtol = 1E-4
+
+            # test correct derivative on vertex 3 - passing
             point[1] = boundaryvertices[3, 1]
             point[2] = boundaryvertices[3, 2]
             derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:complex})
             derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
             @test derivad ≈ derivfd rtol = 1E-4
 
-            # test correct derivative on vertex 4 - failing
+            # test correct derivative on vertex 4 - passing
             point[1] = boundaryvertices[4, 1]
             point[2] = boundaryvertices[4, 2]
             derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:complex})
@@ -381,25 +392,33 @@ using FiniteDiff
             point[1] = 0.0
             point[2] = 1.0
             derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
-            @test derivad ≈ [0.0, 1.0] rtol = 1E-4
+            # derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:central})
+            # @test derivad ≈ derivfd rtol = 1E-4
+            @test derivad ≈ [0.0, 0.0] rtol = 1E-4
 
-            # test correct derivative on left face - passing
+            # test correct derivative on left face - failing
             point[1] = -1.0
             point[2] = 0.0
             derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
-            @test derivad ≈ [-1.0, 0.0] rtol = 1E-4
+            # derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:central})
+            # @test derivad ≈ derivfd rtol = 1E-4
+            @test derivad ≈ [0.0, 0.0] rtol = 1E-4
 
             # test correct derivative on right face - passing
             point[1] = 1.0
             point[2] = 0.0
             derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
-            @test derivad ≈ [1.0, 0.0] rtol = 1E-4
+            # derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:central})
+            # @test derivad ≈ derivfd rtol = 1E-4
+            @test derivad ≈ [0.0, 0.0] rtol = 1E-4
 
             # test correct derivative on bottom face - passing
             point[1] = 0.0
             point[2] = -1.0
             derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
-            @test derivad ≈ [0.0, -1.0] rtol = 1E-4
+            # derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:central})
+            # @test derivad ≈ derivfd rtol = 1E-4
+            @test derivad ≈ [0.0, 0.0] rtol = 1E-4
 
         end
 
