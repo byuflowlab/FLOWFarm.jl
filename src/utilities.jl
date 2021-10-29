@@ -1294,66 +1294,116 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
         if isapprox(point, vertices[i,:], atol=shift/2.0)
             # println("ON VERTEX")
             onvertex = true
+            break
+            # # if the point is approximately on a vertex or face, move the point slightly
+            # # this introduces some slight error, but should be well within the error
+            # # for actual turbine placement. 
+            
+            # # The direction moved is perpendicular to line between the previous and 
+            # # following vertices to avoid moving along an adjacent face
+            # if i == 1
+            #     pre_direction_vector = vertices[i+1,:] - vertices[nvertices, :]
+            # else
+            #     pre_direction_vector = vertices[i+1,:] - vertices[i-1, :]
+            # end
+            
+            # # get a vector perpendicular to the pre_direction_vector
+            # perpendicular_direction = [pre_direction_vector[2], -pre_direction_vector[1]]
+
+            # # normalize perpendicular vector to make it a unit vector
+            # # perpendicular_direction ./= norm(perpendicular_direction)
+            # perpendicular_direction ./= nansafesqrt(sum(perpendicular_direction.^2))
+            
+            # # move the point by shift in the direction of the perpendicular vector
+            # point .+= shift*perpendicular_direction
+
+            # break
         
-            if return_distance
-                return 0.0
-            else
-                return -1
-            end
+        elseif pointonline(point, vertices[i,:], vertices[i+1,:], tol=shift/2.0)
+            onedge = true
+            break
+            # # if the point is approximately on a vertex or face, move the point slightly
+            # # this introduces some slight error, but should be well within the error
+            # # for actual turbine placement. 
+            
+            # # The direction moved is perpendicular to line between the previous and 
+            # # following vertices to avoid moving along an adjacent face
+            # if i == 1
+            #     pre_direction_vector = vertices[i+1,:] - vertices[nvertices, :]
+            # else
+            #     pre_direction_vector = vertices[i+1,:] - vertices[i-1, :]
+            # end
+            
+            # # get a vector perpendicular to the pre_direction_vector
+            # perpendicular_direction = [pre_direction_vector[2], -pre_direction_vector[1]]
+
+            # # normalize perpendicular vector to make it a unit vector
+            # # perpendicular_direction ./= norm(perpendicular_direction)
+            # perpendicular_direction ./= nansafesqrt(sum(perpendicular_direction.^2))
+            
+            # # move the point by shift in the direction of the perpendicular vector
+            # point .+= shift*perpendicular_direction
+
+            # break
+            # # if return_distance
+            # #     return 0.0
+            # # else
+            # #     return -1
+            # # end
 
         end
     end
 
     # check and handle if vertex is on an edge
-    for i = 1:nvertices
+    # for i = 1:nvertices
         
-        onedge = pointonline(point, vertices[i,:], vertices[i+1,:], tol=shift/2.0)
-        # break
-        if onedge
+    #     onedge = pointonline(point, vertices[i,:], vertices[i+1,:], tol=shift/2.0)
+    #     # break
+    #     if onedge || onvertex
 
-        #     # get a vector for the edge 
-        #     vectoredge = vertices[i+1,:] - vertices[i,:] 
+    #     #     # get a vector for the edge 
+    #     #     vectoredge = vertices[i+1,:] - vertices[i,:] 
 
-        #     # get a vector perpendicular to the edge 
-        #     vectorperpendicular = [vectoredge[2], -vectoredge[1]]
+    #     #     # get a vector perpendicular to the edge 
+    #     #     vectorperpendicular = [vectoredge[2], -vectoredge[1]]
 
-        #     # get a unit vector perpendicular to the edge 
-        #     vectorperpendicularhat = vectorperpendicular./nansafenorm(vectorperpendicular)
+    #     #     # get a unit vector perpendicular to the edge 
+    #     #     vectorperpendicularhat = vectorperpendicular./nansafenorm(vectorperpendicular)
 
-        #     # get distance from edge to point 
-        #     c = -abs_smooth(dot(point, vectorperpendicularhat), eps())
+    #     #     # get distance from edge to point 
+    #     #     c = -abs_smooth(dot(point, vectorperpendicularhat), eps())
 
-        #     break
-        # end
-            if return_distance
-                return 0.0 #-abs_smooth(d, eps())
-            else
-                return -1
-            end
-        end
-        #     # if the point is approximately on a vertex or face, move the point slightly
-        #     # this introduces some slight error, but should be well within the error
-        #     # for actual turbine placement. 
+    #     #     break
+    #     # end
+    #     #     if return_distance
+    #     #         return 0.0 #-abs_smooth(d, eps())
+    #     #     else
+    #     #         return -1
+    #     #     end
+    #     # end
+    #         # if the point is approximately on a vertex or face, move the point slightly
+    #         # this introduces some slight error, but should be well within the error
+    #         # for actual turbine placement. 
             
-        #     # The direction moved is perpendicular to line between the previous and 
-        #     # following vertices to avoid moving along an adjacent face
-        #     if i == 1
-        #         pre_direction_vector = vertices[i+1,:] - vertices[nvertices, :]
-        #     else
-        #         pre_direction_vector = vertices[i+1,:] - vertices[i-1, :]
-        #     end
+    #         # The direction moved is perpendicular to line between the previous and 
+    #         # following vertices to avoid moving along an adjacent face
+    #         if i == 1
+    #             pre_direction_vector = vertices[i+1,:] - vertices[nvertices, :]
+    #         else
+    #             pre_direction_vector = vertices[i+1,:] - vertices[i-1, :]
+    #         end
             
-        #     # get a vector perpendicular to the pre_direction_vector
-        #     perpendicular_direction = [pre_direction_vector[2], -pre_direction_vector[1]]
+    #         # get a vector perpendicular to the pre_direction_vector
+    #         perpendicular_direction = [pre_direction_vector[2], -pre_direction_vector[1]]
 
-        #     # normalize perpendicular vector to make it a unit vector
-        #     # perpendicular_direction ./= norm(perpendicular_direction)
-        #     perpendicular_direction ./= nansafesqrt(sum(perpendicular_direction.^2))
+    #         # normalize perpendicular vector to make it a unit vector
+    #         # perpendicular_direction ./= norm(perpendicular_direction)
+    #         perpendicular_direction ./= nansafesqrt(sum(perpendicular_direction.^2))
             
-        #     # move the point by shift in the direction of the perpendicular vector
-        #     point .+= shift*perpendicular_direction
-        # end
-    end
+    #         # move the point by shift in the direction of the perpendicular vector
+    #         point .+= shift*perpendicular_direction
+    #     end
+    # end
 
     # iterate through each boundary
     for j = 1:nvertices
@@ -1375,8 +1425,7 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
                     end
                     vnext = vertices[j+1]
 
-                    if (vprev[1] <= vertices[j, 1] && vnext[1] <= vertices[j, 1]) || (vprev[1] >= vertices[j, 1] && vnext[1] >= vertices[j, 1])
-                    else
+                    if !((vprev[1] <= vertices[j, 1] && vnext[1] <= vertices[j, 1]) || (vprev[1] >= vertices[j, 1] && vnext[1] >= vertices[j, 1]))
                         # the vertical ray intersects the boundary
                         intersection_counter += 1
                     end
@@ -1417,8 +1466,13 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
             # if boundary_vector <= turbine_to_first_facepoint && boundary_vector <= turbine_to_second_facepoint
               
                 # perpendicular distance from turbine to face
-                turbine_to_face_distance[j] = abs_smooth(dot(turbine_to_first_facepoint, normals[j,:]), eps())
-            
+                d = dot(turbine_to_first_facepoint, normals[j,:])
+                if !onedge && !onvertex
+                    turbine_to_face_distance[j] = abs(d)
+                else
+                    turbine_to_face_distance[j] = abs(d+eps())
+                end
+
             # check if distance to first facepoint is shortest
             elseif real(dot(boundary_vector, -turbine_to_first_facepoint)) < 0
         
@@ -1450,11 +1504,11 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
             # c = -ksmax(-turbine_to_face_distance, s)
         
         # sign of the constraint value (- is inside, + is outside)
-        if mod(intersection_counter, 2) == 1 #|| onvertex || onedge
+        if mod(intersection_counter, 2) == 1 || onvertex || onedge
             c = -c
         end
     else
-        if mod(intersection_counter, 2) == 1
+        if mod(intersection_counter, 2) == 1 || onedge || onvertex
             c = -1
         else
             c = 1
