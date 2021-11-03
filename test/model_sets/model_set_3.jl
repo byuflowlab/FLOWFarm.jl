@@ -49,7 +49,7 @@ ambient_ti = 0.1
 measurementheight = copy(hub_height)
 ambient_tis = ones(length(winddirections)).*ambient_ti
 shearexponent = 0.15
-wind_shear_model = ff.PowerLawWindShear(shearexponent)
+wind_shear_model = ff.PowerLawWindShear(shearexponent, 0.0, "nothing")
 windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, wind_shear_model)
 
 alpha = 0.04

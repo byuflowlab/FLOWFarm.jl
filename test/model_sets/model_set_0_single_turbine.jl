@@ -3,6 +3,10 @@ import FLOWFarm; const ff = FLOWFarm
 turbine_x = [0.0]
 turbine_y = [0.0]
 turbine_z = [0.0]
+turbine_yaw = [0.0]
+
+nturbines = length(turbine_x)
+diam = 126.4
 
 # set turbine design parameters
 rotor_diameter = zeros(nturbines) .+ diam # m

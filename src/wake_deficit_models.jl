@@ -121,6 +121,7 @@ struct GaussSimple{TF, ATF} <: AbstractWakeDeficitModel
     wec_factor::ATF
 end
 GaussSimple(k) = GaussSimple(k, [1.0])
+GaussSimple() = GaussSimple(0.0324555, [1.0])
 
 """
     wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::JensenTopHat)

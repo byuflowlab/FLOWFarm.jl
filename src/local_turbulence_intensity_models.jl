@@ -190,7 +190,7 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
     h_dst = hub_height[turbine_id]
 
     # extract the number of turbines
-    nturbines = length(rotor_diameter)
+    nturbines = length(turbine_x)
 
     # loop over upstream turbines
     for u=1:nturbines

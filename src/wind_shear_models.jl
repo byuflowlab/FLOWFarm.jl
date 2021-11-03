@@ -9,15 +9,17 @@ Ground height may be tuned because the power law does not always hold near the g
 # Arguments
 - `shear_exponent::Float`: defines trajectory of wind shear
 - `ground_height::Float`: height of the ground (typically zero)
+- `shear_order::Bool`: when shear should be calculated. Can be "first", "last", or "none"
 """
-struct PowerLawWindShear{TF} <: AbstractWindShearModel
+struct PowerLawWindShear{TF, TS} <: AbstractWindShearModel
     
     # model parameter
     shear_exponent::TF
     ground_height::TF
+    shear_order::TS
 
 end
-PowerLawWindShear(x) = PowerLawWindShear(x,0.0)
+PowerLawWindShear(x) = PowerLawWindShear(x,0.0,"first")
 
 #TODO add log shear
 """

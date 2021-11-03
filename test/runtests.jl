@@ -1966,32 +1966,6 @@ using FiniteDiff
             model.wec_factor[1] = 3.0
             loss1 = ff.wake_deficit_model(x4_0, 2.0*rotor_diameter, hub_height[1], turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, ambient_ti, turbine_ct, turbine_yaw, model)
             @test loss1 > 3.0*loss0
-
-            # # test centerline loss 40 meters downstream (data from Jensen 1983)
-            # @test ff.wake_deficit_model([40., 0.0, hub_height], deflection, model, turbine) == centerloss40
-
-            # # test centerline loss 100 meters downstream (data from Jensen 1983)
-            # @test ff.wake_deficit_model([100., 0.0, hub_height], deflection, model, turbine) == centerloss100
-
-            # # test wake diameter 40 meters downstream (data from Jensen 1983)
-            # @test ff.wake_deficit_model([40., dy40, hub_height], deflection, model, turbine) == 0.0
-            # @test ff.wake_deficit_model([40., (dy40 + 1E-12), hub_height], deflection, model, turbine) == 0.0
-            # @test ff.wake_deficit_model([40., (dy40 - 1E1), hub_height], deflection, model, turbine) >= 0.0
-            # @test ff.wake_deficit_model([40., -(dy40), hub_height], deflection, model, turbine) == 0.0
-            # @test ff.wake_deficit_model([40., -(dy40 + 1E-12), hub_height], deflection, model, turbine) == 0.0
-            # @test ff.wake_deficit_model([40., -(dy40 - 1E1), hub_height], deflection, model, turbine) >= 0.0
-
-            # # test wake diameter 100 meters downstream (data from Jensen 1983)
-            # @test ff.wake_deficit_model([100., dy100, hub_height], deflection, model, turbine) == 0.0
-            # @test ff.wake_deficit_model([100., (dy100 + 1E-12), hub_height], deflection, model, turbine) == 0.0
-            # @test ff.wake_deficit_model([100., (dy100 - 1E1), hub_height], deflection, model, turbine) >= 0.0
-            # @test ff.wake_deficit_model([100., -(dy100), hub_height], deflection, model, turbine) == 0.0
-            # @test ff.wake_deficit_model([100., -(dy100 + 1E-12), hub_height], deflection, model, turbine) == 0.0
-            # @test ff.wake_deficit_model([100., -(dy100 - 1E1), hub_height], deflection, model, turbine) >= 0.0
-
-            # # test value at point in wake 40 m downstream and with theta=15 degrees
-            # @test ff.wake_deficit_model([40., dy, hub_height], deflection, model, turbine) == loss40attheta
-
         end
 
         @testset "Gauss Yaw Model Variable Spread" begin
@@ -2334,6 +2308,9 @@ using FiniteDiff
             # define how far off the ground to investigate
             maxheight = 4.0*rotor_diameter[1]./2.0
 
+            # set sample points
+            rotor_sample_points_y, rotor_sample_points_z = ff.rotor_sample_points(1)
+
             # set up point grid for flow field
             xrange = -1*rotor_diameter[1]
             yrange = 0
@@ -2348,9 +2325,9 @@ using FiniteDiff
             wind_resource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheights, air_density, ambient_tis, wind_shear_model)
 
             ffvelocities = ff.calculate_flow_field(xrange, yrange, zrange,
-                model_set, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
-                rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
-                wind_resource)         
+            model_set, turbine_x, turbine_y, turbine_z, turbine_yaw,
+            rotor_diameter, hub_height, ct_models, rotor_sample_points_y, rotor_sample_points_z,
+            wind_resource)         
 
             @test all(ffvelocities .== inflowuniform)
 
@@ -2366,7 +2343,8 @@ using FiniteDiff
 
             shearexponent = 0.12539210313906432
             groundheight = 4.842460795576101
-            wind_shear_model = ff.PowerLawWindShear(shearexponent, groundheight)
+            shear_order = "last"
+            wind_shear_model = ff.PowerLawWindShear(shearexponent, groundheight, shear_order)
             wind_resource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheights, air_density, ambient_tis, wind_shear_model)
 
             rotor_sample_points_y, rotor_sample_points_z = ff.rotor_sample_points(1)
@@ -2387,7 +2365,7 @@ using FiniteDiff
             ffvelocitiesbp2014 = ff.calculate_flow_field(xrange, yrange, zrange_b,
                 model_set_bp2014, turbine_x, turbine_y, turbine_z, turbine_yaw,
                 rotor_diameter, hub_height, ct_models, rotor_sample_points_y, rotor_sample_points_z,
-                wind_resource, shearfirst=false)  
+                wind_resource)  
 
             ffvelocitiesbp2014 = reshape(ffvelocitiesbp2014, (length(u0_b)))
 
