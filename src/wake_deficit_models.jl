@@ -707,8 +707,8 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     wf = model.wec_factor[1]
 
     # calculate loss 
-    sigmay = k*dx+dt/sqrt(8.0)
-    radical = 1.0-ct/(8.0*(sigmay^2)/(dt^2))
+    sigmay = k*dx + dt/sqrt(8.0)
+    radical = 1.0 - ct/(8.0*(sigmay^2)/(dt^2))
     exponent = -0.5*(dy/(wf*sigmay))^2
     loss = (1.0 - sqrt(radical))*exp(exponent)
 

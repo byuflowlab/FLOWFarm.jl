@@ -42,6 +42,7 @@ function wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum
 end
 
 function wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model::SumOfSquaresFreestreamSuperposition)
+    # Katic et al. 1986
     
     new_deficit_sum = nansafesqrt(old_deficit_sum^2 + (wind_speed*deltav)^2)
     

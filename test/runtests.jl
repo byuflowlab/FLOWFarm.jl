@@ -2260,6 +2260,8 @@ using FiniteDiff
             rtol = 1E-6
 
             include("./model_sets/model_set_1.jl")
+
+            
             turbine_x = [0.0]
             # test no loss upstream (data from Jensen 1983)
             expected_velocity = wind_speed
