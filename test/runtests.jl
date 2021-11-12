@@ -22,6 +22,34 @@ using FiniteDiff
     end
 
     @testset "utilities" begin
+        @testset "met2cart" begin
+
+            # from N
+            angle_met = 0.0
+            @test ff.met2cart(angle_met) == 3*pi/2
+
+            # from S
+            angle_met = pi
+            @test ff.met2cart(angle_met) == pi/2
+
+        end
+
+        @testset "Coordinate rotation" begin
+            atol = 1E-15
+
+            xlocs = [-1.0 1.0]
+            ylocs = [0.0 0.0]
+
+            wind_direction_met = 0.0
+            xnew, ynew = ff.rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
+            @test xnew ≈ [0.0 0.0] atol=atol
+            @test ynew ≈ [-1.0 1.0] atol=atol
+
+            wind_direction_met = 3*pi/2
+            xnew, ynew = ff.rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
+            @test xnew ≈ [-1.0 1.0] atol=atol
+            @test ynew ≈ [0.0 0.0] atol=atol
+        end
 
         @testset "latitude longitude to xy" begin
 
@@ -2237,23 +2265,6 @@ using FiniteDiff
     end
 
     @testset "General Models" begin
-
-        @testset "Coordinate rotation" begin
-            atol = 1E-15
-
-            xlocs = [-1.0 1.0]
-            ylocs = [0.0 0.0]
-
-            wind_direction_met = 0.0
-            xnew, ynew = ff.rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
-            @test xnew ≈ [0.0 0.0] atol=atol
-            @test ynew ≈ [-1.0 1.0] atol=atol
-
-            wind_direction_met = 3*pi/2
-            xnew, ynew = ff.rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
-            @test xnew ≈ [-1.0 1.0] atol=atol
-            @test ynew ≈ [0.0 0.0] atol=atol
-        end
 
         @testset "Point velocity" begin
 

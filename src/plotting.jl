@@ -261,23 +261,22 @@ end
 - `d::Vector`: wind rose directions
 - `f::Vector`: wind rose radial variable
 - `roundingdigit::Int`: how many significant digits to round to
-- `color::=String`: sets color for turbine markers
-- `alpha::Number`: tranparancy of bars between 0 (transparent) and 1 (opaque)
 - `fontsize::Int`: font size of text on figures
 - `dticks::Tuple`: contains angular tick locations
 - `dlabels::Tuple`: contains angular tick labels
 - `fticks::Tuple`: contains radial tick locations
 - `flabels::Tuple`: contains radial tick labels
 - `normalize::Bool`: choose whether or not to normalize by the sum of f
-- `edgecolor`: color of edges of each bar in polar chart, nothing means no color
 - `units::String`: Units to append to flabels
 - `rlabel_position:Number`: Angle at which to draw the radial axis
+- `plotcommand::String`: Type of plot. Can be ["bar", "plot"]
+- `kwargs::Tuple`: tuple containing key word arguments to plotcommand in the form (key => "value")
 """
-function plotwindrose!(ax, d, f; roundingdigit=1, color="C0",alpha=0.5,fontsize=8,
+function plotwindrose!(ax, d, f; roundingdigit=1,fontsize=8,
     dticks=(0,pi/4,pi/2,3*pi/4,pi,5*pi/4,3*pi/2,7*pi/4),
     dlabels=("E","NE","N","NW","W","SW","S","SW"),
-    fticks=nothing, flabels=nothing, normalize=false, edgecolor=nothing, units="",
-    rlabel_position=-45, title="")
+    fticks=nothing, flabels=nothing, normalize=false, units="",
+    rlabel_position=-45, title="", plotcommand="bar", kwargs=(:edgecolor=>nothing, :alpha=>0.5, :color=>"C0"))
 
     # set up function ticks if not provided, scale and round appropriately
     if fticks === nothing
@@ -292,7 +291,7 @@ function plotwindrose!(ax, d, f; roundingdigit=1, color="C0",alpha=0.5,fontsize=
     end
     # set up function labels if not provided
     if flabels === nothing 
-        flabels = string.(fticks).*units
+        flabels = string.(fticks).*" ".*units
     end
     
     # normalize if desired
@@ -307,17 +306,20 @@ function plotwindrose!(ax, d, f; roundingdigit=1, color="C0",alpha=0.5,fontsize=
 
     # get the number of wind directions
     ndirs = length(d)
-
-    # specify bar width
-    width = (2*pi/ndirs)*0.95
    
     # plot wind rose
-    ax.bar(pi/2 .-d,f,width=width,color=color,alpha=alpha,edgecolor=edgecolor)
+    if plotcommand == "bar"
+        # specify bar width
+        width = (2*pi/ndirs)*0.95
+        ax.bar(pi/2 .-d, f; width, kwargs...)
+    elseif plotcommand == "plot"
+        ax.plot(pi/2 .-d, f; kwargs...)
+    end
 
     # format polar plot
     ax.set_xticks(dticks)
     ax.set_xticklabels(dlabels,fontsize=fontsize)
-    ax.set_rgrids(fticks,flabels,angle=rlabel_position,fontsize=fontsize)
+    ax.set_rgrids(fticks,flabels,angle=rlabel_position,fontsize=fontsize, zorder=0)
     for tick in ax.yaxis.get_majorticklabels()
         tick.set_horizontalalignment("center")
     end

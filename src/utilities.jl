@@ -1,4 +1,50 @@
 """
+    met2cart(angle_met)
+
+Convert from meteorological polar system (CW, 0 rad.=N, wind from) to cartesian polar system 
+(CCW, 0 rad.=E, wind to).
+
+# Arguments
+- `angle_met::Number`: an angle in radians in a meteorological coordinate system
+"""
+function met2cart(angle_met)
+    angle_cartesian = (3.0*pi/2.0 - angle_met)
+
+    if angle_cartesian < 0.0
+        angle_cartesian += 2.0*pi
+    end
+    return angle_cartesian
+end
+
+"""
+    rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
+
+Rotates wind farm coordinates to be in wind direction reference where wind direction is to
+the positive x.
+
+# Arguments
+- `xlocs::Array`: contains turbine east-west locations in the global reference frame
+- `ylocs::Array`: contains turbine north-south locations in the global reference frame
+- `wind_direction_met::Array`: contains wind direction in radians in meteorological standard 
+    system (N=0 rad, proceeds CW, wind from direction given)
+"""
+function rotate_to_wind_direction(xlocs, ylocs, wind_direction_met; center=[0.0,0.0])
+    # use radians
+
+    # convert from meteorological polar system (CW, 0 rad.=N) to standard polar system (CCW, 0 rad.=E)
+    wind_direction_cart = met2cart(wind_direction_met)
+
+    cos_wdr = cos(-wind_direction_cart)
+    sin_wdr = sin(-wind_direction_cart)
+
+    # convert to cartesian coordinates with wind to positive x
+    x_cart = (xlocs.-center[1])*cos_wdr - (ylocs.-center[2])*sin_wdr
+    y_cart = (xlocs.-center[1])*sin_wdr + (ylocs.-center[2])*cos_wdr
+
+    return x_cart.+center[1], y_cart.+center[2]
+end
+
+"""
     latlong_to_xy(latitude, longitude, utm_zone; isnorth=true, units="m")
 
 Converts arrays of points from latitude and longitude to x and y in meters in a local

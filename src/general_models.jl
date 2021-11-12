@@ -23,38 +23,6 @@ struct WindFarmModelSet{DTM,DNM,CM,TIM} <: AbstractModelSet
 end
 
 """
-    rotate_to_wind_direction(xlocs, ylocs, wind_direction_met)
-
-Rotates wind farm coordinates to be in wind direction reference where wind direction is to
-the positive x.
-
-# Arguments
-- `xlocs::Array`: contains turbine east-west locations in the global reference frame
-- `ylocs::Array`: contains turbine north-south locations in the global reference frame
-- `wind_direction_met::Array`: contains wind direction in radians in meteorological standard 
-    system (N=0 rad, proceeds CW, wind from direction given)
-"""
-function rotate_to_wind_direction(xlocs, ylocs, wind_direction_met; center=[0.0,0.0])
-    # use radians
-
-    # convert from meteorological polar system (CW, 0 rad.=N) to standard polar system (CCW, 0 rad.=E)
-    wind_direction_cart = (3.0*pi/2.0 - wind_direction_met)
-
-    if wind_direction_cart < 0.0
-        wind_direction_cart += 2.0*pi
-    end
-
-    cos_wdr = cos(-wind_direction_cart)
-    sin_wdr = sin(-wind_direction_cart)
-
-    # convert to cartesian coordinates with wind to positive x
-    x_cart = (xlocs.-center[1])*cos_wdr - (ylocs.-center[2])*sin_wdr
-    y_cart = (xlocs.-center[1])*sin_wdr + (ylocs.-center[2])*cos_wdr
-
-    return x_cart.+center[1], y_cart.+center[2]
-end
-
-"""
     point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
     wind_resource, model_set::AbstractModelSet;
