@@ -225,7 +225,7 @@ end
 """
     smooth_max_ndim(x; s=100.0)
 
-Calculate the smoothmax (a.k.a. softmax or LogSumExponential) of the elements in x.
+Calculate the smooth-max (a.k.a. softmax or LogSumExponential) of the elements in x.
 
 Based on John D. Cook's writings at 
 (1) https://www.johndcook.com/blog/2010/01/13/soft-maximum/
