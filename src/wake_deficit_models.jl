@@ -507,11 +507,12 @@ with an interpolation on the near wake.
 """
 function _gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd)
     # calculate wake spread
-    if dx > xd # far wake 
+    if dx > x0 # far wake 
         sigma = _gauss_yaw_spread(dt, k, dx, x0, yaw)
 
     else # linear interpolation in the near wakes
-        sigma = _gauss_yaw_spread(dt, k, xd, x0, yaw)
+        dx_interp = xd+((x0-xd)/(x0))*(dx)
+        sigma = _gauss_yaw_spread(dt, k, dx_interp, x0, yaw)
     end
 
     return sigma
