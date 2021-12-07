@@ -190,6 +190,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
     turbine_ai = zeros(arr_type, n_turbines)
     turbine_local_ti = zeros(arr_type, n_turbines)
 
+    # loop over all turbines
     for d=1:n_turbines
 
         # get index of downstream turbine
@@ -201,13 +202,14 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         wind_turbine_velocity = 0.0
         # turbine_velocities[downwind_turbine_id] = 0.0
 
+        # loop over all rotor sample points to approximate the effective inflow velocity
         for p=1:n_rotor_sample_points
-
 
             # scale rotor sample point coordinate by rotor diameter (in rotor hub ref. frame)
             local_rotor_sample_point_y = rotor_sample_points_y[p]*0.5*rotor_diameter[downwind_turbine_id]
             local_rotor_sample_point_z = rotor_sample_points_z[p]*0.5*rotor_diameter[downwind_turbine_id]
 
+            # put rotor sample points in wind direction coordinate system, and account for yaw
             locx = turbine_x[downwind_turbine_id] .+ local_rotor_sample_point_y*sin(turbine_yaw[downwind_turbine_id])
             locy = turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y*cos(turbine_yaw[downwind_turbine_id])
             locz = turbine_z[downwind_turbine_id] .+ hub_height[downwind_turbine_id] + local_rotor_sample_point_z
