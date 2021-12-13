@@ -1123,7 +1123,7 @@ using FiniteDiff
             # println(modelAEP/paperAEP)
             @test modelAEP/paperAEP ≈ 1 atol=0.1
 
-            end
+        end
 
         @testset "Test AEP on large farm" begin
             # test based on Borselle II and IV wind farms as used in IEA task 37 case studies 3 and 4
@@ -1395,6 +1395,43 @@ using FiniteDiff
 
     end
 
+    @testset "Wind Resources" begin
+        @testset "" begin
+
+            # set flow parameters
+            data = readdlm("inputfiles/windrose_nantucket_36dir.txt",  ' ', skipstart=1)
+            winddirections = data[:, 1].*pi/180.0
+            windspeeds = data[:,2]
+            windprobabilities = data[:, 3]
+            nstates = length(windspeeds)
+
+            air_density = 1.1716  # kg/m^3
+            ambient_ti = 0.077
+            shearexponent = 0.15
+            ambient_tis = zeros(nstates) .+ ambient_ti
+            measurementheight = zeros(nstates) .+ 70.0
+
+            shearexponent = 0.12539210313906432
+            groundheight = 4.842460795576101
+            shear_order = "last"
+            wind_shear_model = ff.PowerLawWindShear(shearexponent, groundheight, shear_order)
+            wind_resource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, wind_shear_model)
+
+            ndirectionbins = 360
+            startangle = 0.0
+            wind_resource_new = ff.rediscretize_windrose(wind_resource, ndirectionbins, start=startangle, averagespeed=false)
+            
+            # test number of bins 
+            @test length(wind_resource_new.wind_directions) == ndirectionbins
+
+            # test start bin angle 
+            @test wind_resource_new.wind_directions[1] == startangle
+
+            # test probability sum is 1 
+            @test sum(wind_resource_new.wind_probabilities) ≈ 1 atol=1E-6
+
+            end
+    end
 
     @testset "Wind Shear Models" begin
 

@@ -240,10 +240,12 @@ function plotwindresource!(ax::Array, windresource::ff.DiscretizedWindResource; 
     f = windresource.wind_probabilities
 
     # plot wind speed rose
-    plotwindrose!(ax[1], d, s, roundingdigit=roundingdigits[1], color=colors[1], alpha=alpha, fontsize=fontsize, edgecolor=edgecolor, units="m/s", title=titles[1])
+    kwargs=(:edgecolor=>edgecolor, :alpha=>alpha, :color=>colors[1])
+    plotwindrose!(ax[1], d, s, roundingdigit=roundingdigits[1], fontsize=fontsize, units="m/s", title=titles[1], kwargs=kwargs)
     
     # plot wind frequency rose
-    plotwindrose!(ax[2], d, f, roundingdigit=roundingdigits[2], color=colors[2], alpha=alpha, fontsize=fontsize, edgecolor=edgecolor, units="%", title=titles[2])
+    kwargs=(:edgecolor=>edgecolor, :alpha=>alpha, :color=>colors[2])
+    plotwindrose!(ax[2], d, f, roundingdigit=roundingdigits[2], fontsize=fontsize, units="%", title=titles[2], kwargs=kwargs)
 
 end
 
