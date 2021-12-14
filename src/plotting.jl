@@ -232,8 +232,14 @@ end
 - `edgecolor`: color of edges of each bar in polar chart, nothing means no color
 - `rlabel_position:Number`: Angle at which to draw the radial axes
 """
-function plotwindresource!(ax::Array, windresource::ff.DiscretizedWindResource; roundingdigits=[1,3], fill=false, alpha=0.5, colors=["b", "b"], fontsize=8, edgecolor=nothing, rlabel_position=-45, titles=["Wind Speed", "Wind Probability"])
+function plotwindresource!(windresource::ff.DiscretizedWindResource; ax::Array=[], roundingdigits=[1,3], fill=false, alpha=0.5, colors=["b", "b"], fontsize=8, edgecolor=nothing, rlabel_position=-45, titles=["Wind Speed", "Wind Probability"])
     
+    axes_generated = false
+    if length(ax) == 0
+        fig, ax = plt.subplots(1, 2, subplot_kw=Dict("projection"=>"polar"))
+        axes_generated = true
+    end
+
     # extract wind resource elements for windrose plots
     d = windresource.wind_directions
     s = windresource.wind_speeds
@@ -247,6 +253,8 @@ function plotwindresource!(ax::Array, windresource::ff.DiscretizedWindResource; 
     kwargs=(:edgecolor=>edgecolor, :alpha=>alpha, :color=>colors[2])
     plotwindrose!(ax[2], d, f, roundingdigit=roundingdigits[2], fontsize=fontsize, units="%", title=titles[2], kwargs=kwargs)
 
+    # return axis if newly generated
+    axes_generated && return ax
 end
 
 """

@@ -42,28 +42,30 @@ end
 """
 function rediscretize_windrose(windrosein::DiscretizedWindResource, ndirectionbins; start=0.0, averagespeed=false)
 
-    # create interpolation of windrosein
+    # create Akima spline interpolation of windrosein
     splinedirs = [-2*pi.+windrosein.wind_directions; windrosein.wind_directions; 2*pi.+windrosein.wind_directions]
     speedspline = Akima(splinedirs, [windrosein.wind_speeds; windrosein.wind_speeds; windrosein.wind_speeds])
     probabilityspline = Akima(splinedirs, [windrosein.wind_probabilities; windrosein.wind_probabilities; windrosein.wind_probabilities])
+    heightspline = Akima(splinedirs, [windrosein.measurement_heights; windrosein.measurement_heights; windrosein.measurement_heights])
+    ambienttispline = Akima(splinedirs, [windrosein.ambient_tis; windrosein.ambient_tis; windrosein.ambient_tis])
     
-    # create splines for wind rose attributes
+    
+    # get new interpolated wind rose attributes
     directionsnew = collect(range(start,2*pi+start-2*pi/ndirectionbins,length=ndirectionbins))
     if averagespeed
         speedsnew = speedspline.(ones(ndirectionbins)*sum(directionsnew)/ndirectionbins)
     else
         speedsnew = speedspline.(directionsnew)
     end
-
-    # get new interpolated wind rose attributes
     probabilitiesnew = probabilityspline.(directionsnew)
-    heightsnew = windrosein.measurement_heights[1]*ones(ndirectionbins)
+    heightsnew = heightspline.(directionsnew)
+    ambient_tis_new = ambienttispline.(directionsnew)
 
     # re-normalize probabilites 
     probabilitiesnew = probabilitiesnew./sum(probabilitiesnew)
 
     # create new wind rose 
-    windroseout = DiscretizedWindResource(directionsnew, speedsnew, probabilitiesnew, heightsnew, windrosein.air_density, windrosein.ambient_tis, windrosein.wind_shear_model)
+    windroseout = DiscretizedWindResource(directionsnew, speedsnew, probabilitiesnew, heightsnew, windrosein.air_density, ambient_tis_new, windrosein.wind_shear_model)
 
     return windroseout
 end

@@ -113,14 +113,10 @@ function test_wind_rose_interpolation()
     wind_shear_model = ff.PowerLawWindShear(shearexponent, groundheight, shear_order)
     wind_resource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, wind_shear_model)
 
-    ndirectionbins = 360
-    wind_resource_new = ff.rediscretize_windrose(wind_resource, ndirectionbins, start=10*pi/180, averagespeed=true)
-    println(wind_resource.wind_directions)
-    println(wind_resource_new.wind_probabilities)
-    fig, ax = plt.subplots(2, subplot_kw=Dict("projection"=>"polar"))
-    ff.plotwindresource!(ax, wind_resource)
-    fig, ax = plt.subplots(2, subplot_kw=Dict("projection"=>"polar"))
-    ff.plotwindresource!(ax, wind_resource_new)
+    ndirectionbins = 36
+    wind_resource_new = ff.rediscretize_windrose(wind_resource, ndirectionbins, start=10*pi/180, averagespeed=false)
+    ax1 = ff.plotwindresource!(wind_resource)
+    ax2 = ff.plotwindresource!(wind_resource_new)
     
     println(sum(wind_resource_new.wind_probabilities))
     println(sum(wind_resource.wind_probabilities))
