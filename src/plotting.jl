@@ -284,7 +284,7 @@ end
 """
 function plotwindrose!(ax, d, f; roundingdigit=1,fontsize=8,
     dticks=(0,pi/4,pi/2,3*pi/4,pi,5*pi/4,3*pi/2,7*pi/4),
-    dlabels=("E","NE","N","NW","W","SW","S","SW"),
+    dlabels=("E","NE","N","NW","W","SW","S","SE"),
     fticks=nothing, flabels=nothing, normalize=false, units="",
     rlabel_position=-45, title="", plotcommand="bar", kwargs=(:edgecolor=>nothing, :alpha=>0.5, :color=>"C0"))
 
