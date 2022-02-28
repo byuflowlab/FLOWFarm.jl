@@ -7,6 +7,7 @@ WindFarm(windfarm, windresource, windfarmstates)
 Struct defining a wind farm
 
 # Arguments
+- `adding another commit`
 - `turbine_x::Array{Float}(Nturbines)`: contains windturbine x coordinates in the global reference frame
 - `turbine_y::Array{Float}(Nturbines)`: contains windturbine y coordinates in the global reference frame
 - `turbine_z::Array{Float}(Nturbines)`: contains windturbine base/z coordinates in the global reference frame
