@@ -17,6 +17,7 @@
     Convenience function for plotting wind farms
 
 # Arguments
+- `making a change
 - `ax
 - `boundary_vertices::Array{Float,1}(nvertices)`: an nx2 array of boundary vertices
 - `turbinex::Array{Float,1}(nturbines)`: an array x coordinates of wind turbine locations
