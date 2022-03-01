@@ -170,6 +170,50 @@ end
     [1] Bastankhah and Porte-Agel 2016 "Experimental and theoretical study of
     wind turbine wakes in yawed conditions"
 """
+function wake_deflection_model_tilt(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::GaussYawDeflection)
+
+    dx = locx-turbine_x[turbine_id]
+    tilt = turbine_tilt[turbine_id]
+    ct = turbine_ct[turbine_id]
+    diam = rotor_diameter[turbine_id]
+    ti = turbine_local_ti[turbine_id]
+
+    as = model.alpha_star
+    bs = model.beta_star
+    ky = model.horizontal_spread_rate
+    kz = model.vertical_spread_rate
+
+    # [1] eqn 6.12
+    theta0 = _bpa_theta_0(tilt, ct)
+
+    # [1] eqn 7.4
+    x0 = _gauss_yaw_potential_core(diam, tilt, ct, as, ti, bs)
+
+    # calculate the discontinuity point of the gauss yaw model 
+    xd = _gauss_yaw_discontinuity(diam, x0, ky, kz, tilt, ct)
+    
+    # calculate horizontal wake spread (paper eq: 7.2)
+    sigmay = _gauss_yaw_spread_interpolated(diam, ky, dx, x0, 0.0, xd)
+
+    # calculate vertical wake spread (paper eq: 7.2)
+    sigmaz = _gauss_yaw_spread_interpolated(diam, kz, dx, x0, tilt, xd)
+
+    
+    # y_deflection = _bpa_deflection(diam, ct, yaw, ky, kz, sigmay, sigmaz, theta0, x0)
+    z_deflection = _bpa_deflection(diam, ct, tilt, ky, kz, sigmay, sigmaz, theta0, x0)
+
+    return z_deflection
+end
+
+"""
+    wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::GaussYawDeflection)
+
+    Calculates the horizontal deflection of the wind turbine wake
+
+    Based on:
+    [1] Bastankhah and Porte-Agel 2016 "Experimental and theoretical study of
+    wind turbine wakes in yawed conditions"
+"""
 function wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::GaussYawDeflection)
 
     dx = locx-turbine_x[turbine_id]
