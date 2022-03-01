@@ -83,7 +83,7 @@ struct GaussYaw{TF, ATF} <: AbstractWakeDeficitModel
     beta_star::TF
     wec_factor::ATF
 end
-GaussYaw() = GaussYaw(0.022, 0.022, 2.32, 0.154, [1.0])
+GaussYaw() = GaussYaw(0.022, 0.0175, 2.32, 0.154, [1.0])
 GaussYaw(a, b, c, d) = GaussYaw(a, b, c, d, [1.0])
 
 """
@@ -490,9 +490,9 @@ end
 
 Helper function for wake_deficit_model when using the GaussYaw model. Computes the standard deviation of the wake.
 """
-function _gauss_yaw_spread(dt, k, dx, x0, yaw)
+function _gauss_yaw_spread(dt, ky, dx, x0, yaw)
     # from Bastankhah and Porte-Agel 2016 eqn 7.2
-    sigma = k*(dx - x0) + dt*cos(yaw)/sqrt(8.0)
+    sigma = ky*(dx - x0) + dt*cos(yaw)/sqrt(8.0)
 
     return sigma
 
@@ -560,6 +560,93 @@ function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, w
         loss = 0.0
     end
 
+
+    return loss
+
+end
+
+function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky, kz, wf)
+
+    if dx > 1E-6 # loss in the wake
+
+        # println("x0 inputs:", diam, " ", yaw, " ", ct, " ", as, " ", ti, " ", bs)
+        # calculate the length of the potential core (paper eq: 7.3)
+        x0 = _gauss_yaw_potential_core(dt, tilt, ct, as, ti, bs)
+
+        # calculate the discontinuity point of the gauss yaw model 
+        xd = _gauss_yaw_discontinuity(dt, x0, ky, kz, tilt, ct)
+        
+        # calculate horizontal wake spread (paper eq: 7.2)
+        sigma_y = _gauss_yaw_spread_interpolated(dt, ky, dx, x0, 0.0, xd)
+        
+        # calculate vertical wake spread (paper eq: 7.2)
+        sigma_z = _gauss_yaw_spread_interpolated(dt, kz, dx, x0, tilt, xd)
+
+        # calculate velocity deficit #check - infty when large input ~= 500
+        ey = exp(-0.5*(dy/(wf*sigma_y))^2)
+        ez = exp(-0.5*(dz/(wf*sigma_z))^2)
+
+        sqrtterm = 1.0-ct*cos(tilt)/(8.0*(sigma_y*sigma_z/dt^2))
+        if sqrtterm >= 1e-8 #check - could try increasing tolerance
+            loss = (1.0-sqrt(sqrtterm))*ey*ez
+        else
+            loss = ey*ez
+        end
+    else # loss upstream of turbine
+        loss = 0.0
+    end
+
+
+    return loss
+
+end
+
+"""
+    wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::GaussYaw)
+
+Computes the wake deficit at a given location using the The Gaussian wake model presented by Bastankhah and Porte-Agel in the paper: "Experimental and theoretical study of wind turbine wakes in yawed conditions" (2016)
+
+# Arguments
+- `locx::Float`: x coordinate where wind speed is calculated 
+- `locy::Float`: y coordinate where wind speed is calculated
+- `locz::Float`: z coordinate where wind speed is calculated
+- `turbine_x::Array(Float)`: vector containing x coordinates for all turbines in farm
+- `turbine_y::Array(Float)`: vector containing y coordinates for all turbines in farm
+- `turbine_z::Array(Float)`: vector containing z coordinates for all turbines in farm
+- `deflection_y::Float`: deflection in the y direction of downstream wake 
+- `deflection_z::Float`: deflection in the z direction of downstream wake 
+- `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
+- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
+- `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
+- `rotor_diameter::Array(Float)`: vector containing rotor diameters for all turbines in farm
+- `turbine_ai::Array(Float)`: vector containing initial velocity deficits for all turbines in farm
+- `turbine_local_ti::Array(Float)`: vector containing local turbulence intensities for all turbines in farm
+- `turbine_ct::Array(Float)`: vector containing thrust coefficients for all turbines in farm
+- `turbine_tilt::Array(Float)`: vector containing the tilt angle(s) for all turbines in farm
+- `model::GaussYaw`: indicates the wake model in use
+
+"""
+function wake_deficit_model_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_tilt, model::GaussYaw)
+
+    dx = locx-turbine_x[upstream_turbine_id]
+    dy = locy-(turbine_y[upstream_turbine_id]+deflection_y)
+    dz = locz-(turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
+
+    # extract turbine properties
+    dt = rotor_diameter[upstream_turbine_id]
+    tilt = turbine_tilt[upstream_turbine_id]
+    ct = turbine_ct[upstream_turbine_id]
+
+    # extract model parameters
+    # ks = model.k_star       # wake spread rate (k* in 2014 paper)
+    ti = turbine_local_ti[upstream_turbine_id]
+    ky = model.horizontal_spread_rate
+    kz = model.vertical_spread_rate
+    as = model.alpha_star
+    bs = model.beta_star
+    wec_factor = model.wec_factor[1]
+
+    loss = _gauss_yaw_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky, kz, wec_factor)
 
     return loss
 
