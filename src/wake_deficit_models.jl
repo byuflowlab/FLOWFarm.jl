@@ -87,6 +87,27 @@ GaussYaw() = GaussYaw(0.022, 0.0175, 2.32, 0.154, [1.0])
 GaussYaw(a, b, c, d) = GaussYaw(a, b, c, d, [1.0])
 
 """
+    GaussTilt(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+
+Container for parameters related to the Gaussian deficit model with yaw presented by Bastankhah and Porte-Agel 2016
+
+# Arguments
+- `horizontal_spread_rate::Float`: parameter controlling the horizontal spread of the deficit model. Default value is 0.022.
+- `vertical_spread_rate::Float`: parameter controlling the vertical spread of the deficit model. Default value is 0.022.
+- `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
+- `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
+"""
+struct GaussTilt{TF, ATF} <: AbstractWakeDeficitModel
+    horizontal_spread_rate::TF
+    vertical_spread_rate::TF
+    alpha_star::TF
+    beta_star::TF
+    wec_factor::ATF
+end
+GaussTilt() = GaussTilt(0.022, 0.0175, 2.32, 0.154, [1.0])
+GaussTilt(a, b, c, d) = GaussTilt(a, b, c, d, [1.0])
+
+"""
     GaussYawVariableSpread(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
 
 Container for parameters related to the Gaussian deficit model with yaw presented by Bastankhah and Porte-Agel 2016
@@ -626,7 +647,7 @@ Computes the wake deficit at a given location using the The Gaussian wake model 
 - `model::GaussYaw`: indicates the wake model in use
 
 """
-function wake_deficit_model_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_tilt, model::GaussYaw)
+function wake_deficit_model_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_tilt, model::GaussTilt)
 
     dx = locx-turbine_x[upstream_turbine_id]
     dy = locy-(turbine_y[upstream_turbine_id]+deflection_y)
@@ -646,7 +667,7 @@ function wake_deficit_model_tilt(locx, locy, locz, turbine_x, turbine_y, turbine
     bs = model.beta_star
     wec_factor = model.wec_factor[1]
 
-    loss = _gauss_yaw_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky, kz, wec_factor)
+    loss = _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky, kz, wec_factor)
 
     return loss
 
