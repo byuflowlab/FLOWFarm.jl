@@ -20,6 +20,25 @@ end
 GaussYawDeflection() = GaussYawDeflection(0.022, 0.0175, 2.32, 0.154)
 
 """
+    GaussTiltDeflection(horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+
+Container for parameters related to the Gaussian deflection model presented by Bastankhah and Porte-Agel 2016
+
+# Arguments
+- `horizontal_spread_rate::Float`: parameter controlling the horizontal spread of the deficit model. Default value is 0.022.
+- `vertical_spread_rate::Float`: parameter controlling the vertical spread of the deficit model. Default value is 0.0175
+- `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
+- `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
+"""
+struct GaussTiltDeflection{TF} <: AbstractWakeDeflectionModel
+    horizontal_spread_rate::TF
+    vertical_spread_rate::TF
+    alpha_star::TF
+    beta_star::TF
+end
+GaussTiltDeflection() = GaussTiltDeflection(0.022, 0.0175, 2.32, 0.154)
+
+"""
     GaussYawDeflectionVariableSpread(alpha_star, beta_star, k1, k2, wec_factor)
 
 Container for parameters related to the Gaussian deflection model with yaw presented by Bastankhah and Porte-Agel 2016
@@ -170,7 +189,7 @@ end
     [1] Bastankhah and Porte-Agel 2016 "Experimental and theoretical study of
     wind turbine wakes in yawed conditions"
 """
-function wake_deflection_model_tilt(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::GaussYawDeflection)
+function wake_deflection_model_tilt(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::GaussTiltDeflection)
 
     dx = locx-turbine_x[turbine_id]
     tilt = turbine_tilt[turbine_id]
