@@ -446,7 +446,7 @@ function turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, 
             # put rotor sample points in wind direction coordinate system, and account for yaw
             locx = turbine_x[downwind_turbine_id] .+ local_rotor_sample_point_y*sin(turbine_tilt[downwind_turbine_id])
             locy = turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y
-            locz = turbine_z[downwind_turbine_id] .+ hub_he5ight[downwind_turbine_id] .+ local_rotor_sample_point_z*cos(turbine_tilt[downwind_turbine_id])
+            locz = turbine_z[downwind_turbine_id] .+ hub_height[downwind_turbine_id] .+ local_rotor_sample_point_z*cos(turbine_tilt[downwind_turbine_id])
 
             # calculate the velocity at given point
             point_velocity_with_shear = point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_tilt, turbine_ct, turbine_ai,
