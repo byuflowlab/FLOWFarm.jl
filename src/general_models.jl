@@ -777,8 +777,8 @@ function calculate_flow_field_tilt(xrange, yrange, zrange,
     sorted_turbine_index, ct_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
     model_set, wind_farm_state_id=wind_farm_state_id, velocity_only=false)
 
-    return calculate_flow_field(xrange, yrange, zrange,
-        model_set, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+    return calculate_flow_field_tilt(xrange, yrange, zrange,
+        model_set, turbine_x, turbine_y, turbine_z, turbine_tilt, turbine_ct, turbine_ai,
         rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, turbine_velocities,
         wind_resource, wind_farm_state_id=wind_farm_state_id)
 

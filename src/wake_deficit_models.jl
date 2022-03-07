@@ -647,7 +647,7 @@ Computes the wake deficit at a given location using the The Gaussian wake model 
 - `model::GaussYaw`: indicates the wake model in use
 
 """
-function wake_deficit_model_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_tilt, model::GaussTilt)
+function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_tilt, model::GaussTilt)
 
     dx = locx-turbine_x[upstream_turbine_id]
     dy = locy-(turbine_y[upstream_turbine_id]+deflection_y)
