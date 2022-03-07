@@ -181,7 +181,7 @@ function _bpa_deflection(diam, ct, yaw, ky, kz, sigmay, sigmaz, theta0, x0)
 end
 
 """
-    wake_deflection_model_tilt(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::GaussTiltDeflection)
+    wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::GaussTiltDeflection)
 
     Calculates the horizontal deflection of the wind turbine wake
 
@@ -189,7 +189,7 @@ end
     [1] Bastankhah and Porte-Agel 2016 "Experimental and theoretical study of
     wind turbine wakes in yawed conditions"
 """
-function wake_deflection_model_tilt(locx, locy, locz, turbine_x, turbine_tilt, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::GaussTiltDeflection)
+function wake_deflection_model(locx, locy, locz, turbine_x, turbine_tilt, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::GaussTiltDeflection)
 
     dx = locx-turbine_x[turbine_id]
     tilt = turbine_tilt[turbine_id]
