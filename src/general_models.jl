@@ -140,7 +140,7 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
 end
 
 """
-    point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_tilt, turbine_ct, turbine_ai,
+    point_velocity_tilt(loc, turbine_x, turbine_y, turbine_z, turbine_tilt, turbine_ct, turbine_ai,
     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
     wind_resource, model_set::AbstractModelSet;
     wind_farm_state_id=1, downwind_turbine_id=0)
@@ -678,6 +678,40 @@ function calculate_flow_field(xrange, yrange, zrange,
         wind_resource, wind_farm_state_id=wind_farm_state_id)
 
 end
+
+"""
+calculate_flow_field_tilt(xrange, yrange, zrange, model_set::AbstractModelSet, turbine_x, 
+    turbine_y, turbine_z, turbine_tilt, turbine_ct, turbine_ai, rotor_diameter, hub_height, 
+    turbine_local_ti, sorted_turbine_index, wtvelocities, wind_resource; wind_farm_state_id=1)
+
+Generates a flow field for a given state and cross section
+
+# Arguments
+- `xrange::Range`: range defining east-west locations to sample in global reference frame
+- `yrange::Range`: range defining north-west locations to sample in global reference frame
+- `zrange::Range`: range defining vertical locations to sample in global reference frame
+- `model_set::AbstractModelSet`: defines wake-realated models to be used in analysis
+- `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the global 
+    reference frame
+- `turbine_y::Array{TF,nTurbines}`: turbine north-south locations in the global 
+    reference frame
+- `turbine_z::Array{TF,nTurbines}`: turbine base height in the global reference frame
+- `turbine_tilt::Array{TF,nTurbines}`: turbine yaw for the given wind direction in 
+    radians
+- `turbine_ct::Array{TF,nTurbines}`: thrust coefficient of each turbine for the given state
+- `turbine_ai::Array{TF,nTurbines}`: turbine axial induction for the given state
+- `rotor_diameter::Array{TF,nTurbines}`: turbine rotor diameters
+- `hub_height::Array{TF,nTurbines}`: turbine hub heights
+- `turbine_local_ti::Array{TF,nTurbines}`: turbine local turbulence intensity for 
+    the given state
+- `sorted_turbine_index::Array{TF,nTurbines}`: turbine north-south locations in the 
+    global reference frame
+- `wtvelocities::Array{TF,nTurbines}`: effective inflow wind speed for given state
+- `wind_resource::DiscretizedWindResource`: wind resource discreption (directions, speeds, 
+    frequencies, etc)
+- `wind_farm_state_id::Int`: index to correct state to use from wind resource provided.
+    Defaults to 1
+"""
 
 function calculate_flow_field_tilt(xrange, yrange, zrange,
     model_set::AbstractModelSet, turbine_x, turbine_y, turbine_z, turbine_tilt, turbine_ct, turbine_ai,
