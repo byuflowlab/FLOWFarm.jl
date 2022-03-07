@@ -189,7 +189,7 @@ end
     [1] Bastankhah and Porte-Agel 2016 "Experimental and theoretical study of
     wind turbine wakes in yawed conditions"
 """
-function wake_deflection_model_tilt(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::GaussTiltDeflection)
+function wake_deflection_model_tilt(locx, locy, locz, turbine_x, turbine_tilt, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::GaussTiltDeflection)
 
     dx = locx-turbine_x[turbine_id]
     tilt = turbine_tilt[turbine_id]
