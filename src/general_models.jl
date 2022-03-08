@@ -384,7 +384,7 @@ function calculate_flow_field(xrange, yrange, zrange,
     zlen = length(zrange)
     npoints = xlen*ylen*zlen
     point_velocities = zeros(npoints)
-    point_velocities = reshape(point_velocities, (zlen, ylen, xlen))
+    point_velocities = reshape(point_velocities, (xlen, ylen, zlen))
 
     # rotate to direction frame for velocity calculations
     rot_tx, rot_ty = rotate_to_wind_direction(turbine_x, turbine_y, wind_resource.wind_directions[wind_farm_state_id])
@@ -392,15 +392,15 @@ function calculate_flow_field(xrange, yrange, zrange,
     # sort the turbines
     sorted_turbine_index = sortperm(rot_tx)
 
-    for zi in 1:zlen
+    for xi in 1:xlen
         for yi in 1:ylen
-            for xi in 1:xlen
+            for zi in 1:zlen
                 locx = xrange[xi]
                 locy = yrange[yi]
                 locz = zrange[zi]
                 locx, locy = rotate_to_wind_direction(locx, locy, wind_resource.wind_directions[wind_farm_state_id])
 
-                point_velocities[zi, yi, xi] = point_velocity(locx, locy, locz, rot_tx, rot_ty, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+                point_velocities[xi, yi, zi] = point_velocity(locx, locy, locz, rot_tx, rot_ty, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
                     wind_resource, model_set,
                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=0)
@@ -412,13 +412,13 @@ function calculate_flow_field(xrange, yrange, zrange,
     
 
     # if zlen == 1
-    #     return point_velocities[1,1:ylen,1:xlen]
+    #     return point_velocities[1,1:ylen,1:zlen]
     # elseif ylen == 1
-    #     return point_velocities[1:zlen,1,1:xlen]
+    #     return point_velocities[1:xlen,1,1:zlen]
     # elseif xlen == 1
-    #     return point_velocities[1:zlen,1:ylen,1]
+    #     return point_velocities[1:xlen,1:ylen,1]
     # else
-    return point_velocities[1:zlen,1:ylen,1:xlen]
+    return point_velocities[1:xlen,1:ylen,1:zlen]
     # end
 
 end

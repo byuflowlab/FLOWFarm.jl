@@ -320,8 +320,9 @@ the ray-casting algorithm. Negative means the turbine is inside the boundary.
 - `discrete::Bool`: if true, indicates the boundary is made of multiple discrete regions
 - `s::Number`: smoothing factor for smooth max (ksmax)
 - `tol::Float`: how close points have to be to vertex or face before they will be shifted slightly to avoid a discontinuity
+- `return_region::bool`: if true, return a vector specifying which region each turbine is in
 """
-function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, turbine_y; discrete=false, s=700, tol=1E-6)
+function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, turbine_y; discrete=false, s=700, tol=1E-6, return_region=false)
     # discrete=boundary.discrete
 
     # number of turbines and boundary vertices
@@ -349,6 +350,9 @@ function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, tu
         # number of regions
         nregions = length(boundary_vertices)
 
+        # if region spec is desired, initialize vector 
+        region = zeros(nturbines)
+
         # initialize turbine status vector
         status = zeros(Int64, nturbines)
 
@@ -363,9 +367,12 @@ function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, tu
 
                 # check if point is in this region
                 ctmp = pointinpolygon([turbine_x[i], turbine_y[i]], boundary_vertices[k], boundary_normals[k], s=s, shift=tol, return_distance=false)
-                if ctmp <= 0
+                if ctmp <= 0 # negative if in boundary
                     c[i] = pointinpolygon([turbine_x[i], turbine_y[i]], boundary_vertices[k], boundary_normals[k], s=s, shift=tol, return_distance=true)
                     status[i] = 1
+                    if return_region
+                        region[i] = k
+                    end
                     break
                 end
 
@@ -391,6 +398,7 @@ function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, tu
 
         end
 
+        return_region && return c, region
         return c
 
     end
