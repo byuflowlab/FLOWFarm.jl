@@ -466,7 +466,7 @@ Calculate AEP for each requested state respectively
 function calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
             hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
             cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set::AbstractModelSet;
-            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0, weighted=true)
+            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0, weighted=true, wind_farm_state_id=1)
 
     wind_probabilities = wind_resource.wind_probabilities
 
@@ -476,6 +476,14 @@ function calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),typeof(rated_power[1]))
     state_energy = zeros(arr_type,nstates)
  
+    # if typeof(model_set.wake_deficit_model) == SumOfSquaresFreestreamSuperposition
+    #     # get unique directions
+    #     # loop over unique directions
+    #         # calculate wind speed in for each turbine in this direction at the average wind speed
+    #         # calculate deficit in this direction using the average wind speed
+    #         # loop over each wind speed for this direction
+    #             # calculate the wind speeds at each turbine based on the deficits 
+
     for i = 1:nstates
 
         rot_x, rot_y = rotate_to_wind_direction(turbine_x, turbine_y, wind_resource.wind_directions[i])
@@ -529,7 +537,6 @@ function calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hu
 end
 
 
-
 """
     calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
     hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
@@ -573,7 +580,13 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0, distributed=false)
 
     # find how many wind states are being calculated
-    nstates = length(wind_resource.wind_probabilities)
+    nstates = length(wind_resource.wind_directions)
+
+    # find unique directions
+    unique_directions = unique(wind_resource.wind_directions)
+
+    # find how many unique directions there are 
+    ndirections = length(unique_directions)
 
     # state_energy = Vector{typeof(wind_farm.turbine_x[1])}(undef,nstates)
     arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),typeof(hub_height[1]),typeof(turbine_yaw[1]),
@@ -581,14 +594,24 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
 
     # calculate AEP in parallel using multi-threading
     if Threads.nthreads() > 1
-        state_aep = zeros(arr_type,nstates)
-        Threads.@threads for i = 1:nstates
+        if typeof(model_set.wake_deficit_model) == SumOfSquaresFreestreamSuperposition
+            state_aep = zeros(arr_type,ndirections)
+            Threads.@threads for i = 1:ndirections
+#TODO finish this work - need to get more efficiency by only calculating deficits in each direction once
+                state_aep[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, 
+                    turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
+                    rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+                    model_set; wind_farm_state_id=i, hours_per_year=hours_per_year, velocity_only=true, wind_direction=unique_directions[i])
+            end
+        else
+            state_aep = zeros(arr_type,nstates)
+            Threads.@threads for i = 1:nstates
 
-            state_aep[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, 
-                turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
-                rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                model_set; wind_farm_state_id=i, hours_per_year=hours_per_year, velocity_only=true)
-           
+                state_aep[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, 
+                    turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
+                    rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+                    model_set; wind_farm_state_id=i, hours_per_year=hours_per_year, velocity_only=true)
+            end
         end
 
         AEP = sum(state_aep)
@@ -596,9 +619,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
     # calculate AEP in serial or in parallel using distributed processing
     else
         AEP = @sync @distributed (+) for i = 1:nstates
-            # if i % 100 == 0
-            #     println("running state $i of $nstates")
-            # end
+            
             state_aep = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, 
                 turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                 rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
