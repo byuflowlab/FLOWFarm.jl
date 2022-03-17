@@ -730,8 +730,7 @@ function calculate_flow_field_tilt(xrange, yrange, zrange,
 
     # sort the turbines
     sorted_turbine_index = sortperm(rot_tx)
-    print("wind_resource.wind_directions[wind_farm_state_id]: ", wind_resource.wind_directions[wind_farm_state_id], "\n")
-
+    
     for zi in 1:zlen
         for yi in 1:ylen
             for xi in 1:xlen
