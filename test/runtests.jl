@@ -1140,6 +1140,21 @@ using FiniteDiff
 
         end
 
+        @testset "Test AEP on larger farm" begin
+            # test based on Borselle II and IV wind farms as used in IEA task 37 case studies 3 and 4
+
+            # import model set with wind farm and related details
+            include("./model_sets/model_set_7_ieacs4.jl")
+
+            aep = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
+                hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
+                cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
+                rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z, hours_per_year=365.0*24.0)
+            
+            @test aep/1E6 ≈ 2.851096412519999780E6 rtol=1E-6
+
+        end
+
         @testset "Test AEP states on large farm" begin
             # test based on Borselle II and IV wind farms as used in IEA task 37 case studies 3 and 4
 

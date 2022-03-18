@@ -49,7 +49,6 @@ function rediscretize_windrose(windrosein::DiscretizedWindResource, ndirectionbi
     heightspline = Akima(splinedirs, [windrosein.measurement_heights; windrosein.measurement_heights; windrosein.measurement_heights])
     ambienttispline = Akima(splinedirs, [windrosein.ambient_tis; windrosein.ambient_tis; windrosein.ambient_tis])
     
-    
     # get new interpolated wind rose attributes
     directionsnew = collect(range(start,2*pi+start-2*pi/ndirectionbins,length=ndirectionbins))
     if averagespeed
