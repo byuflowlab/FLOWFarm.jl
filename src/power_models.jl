@@ -675,14 +675,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
         
     # calculate AEP in serial or in parallel using distributed processing
     else
-        # AEP = @sync @distributed (+) for i = 1:nstates
-            
-        #     state_aep = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, 
-        #         turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
-        #         rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-        #         model_set; wind_farm_state_id=i, hours_per_year=hours_per_year)
-        # end
-
+        # if possible, avoid recalculating wakes for more than one speed in each direction
         if typeof(model_set.wake_combination_model) == SumOfSquaresFreestreamSuperposition
             state_aep = zeros(arr_type,ndirections)
             AEP = @sync @distributed (+) for i = 1:ndirections
@@ -691,7 +684,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 wind_speed_ids = findall(wind_resource.wind_directions .== unique_directions[i])
 
                 # take a speed in the middle (so it is not zero)
-                middle_id = wind_speed_ids[Int(length(wind_speed_ids)/2.0)]
+                middle_id = wind_speed_ids[max(Int(round(length(wind_speed_ids)/2.0)),1)]
                 
                 # get direction aep including all wind speeds for that direction
                 calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, 
