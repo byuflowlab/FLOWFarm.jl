@@ -7,7 +7,7 @@ Convert from meteorological polar system (CW, 0 rad.=N, wind from) to cartesian 
 # Arguments
 - `angle_met::Number`: an angle in radians in a meteorological coordinate system
 """
-function met2cart(angle_met)
+function met2cart(angle_met::Number)
     angle_cartesian = (3.0*pi/2.0 - angle_met)
 
     if angle_cartesian < 0.0
@@ -28,7 +28,7 @@ the positive x.
 - `wind_direction_met::Array`: contains wind direction in radians in meteorological standard 
     system (N=0 rad, proceeds CW, wind from direction given)
 """
-function rotate_to_wind_direction(xlocs, ylocs, wind_direction_met; center=[0.0,0.0])
+function rotate_to_wind_direction(xlocs::AbstractArray, ylocs::AbstractArray, wind_direction_met::Number; center=[0.0,0.0])
     # use radians
 
     # convert from meteorological polar system (CW, 0 rad.=N) to standard polar system (CCW, 0 rad.=E)
