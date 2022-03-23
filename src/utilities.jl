@@ -28,7 +28,7 @@ the positive x.
 - `wind_direction_met::Array`: contains wind direction in radians in meteorological standard 
     system (N=0 rad, proceeds CW, wind from direction given)
 """
-function rotate_to_wind_direction(xlocs::AbstractArray, ylocs::AbstractArray, wind_direction_met::Number; center=[0.0,0.0])
+function rotate_to_wind_direction(xlocs, ylocs, wind_direction_met::Number; center=[0.0,0.0])
     # use radians
 
     # convert from meteorological polar system (CW, 0 rad.=N) to standard polar system (CCW, 0 rad.=E)
