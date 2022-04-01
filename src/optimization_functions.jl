@@ -322,7 +322,7 @@ the ray-casting algorithm. Negative means the turbine is inside the boundary.
 - `tol::Float`: how close points have to be to vertex or face before they will be shifted slightly to avoid a discontinuity
 - `return_region::bool`: if true, return a vector specifying which region each turbine is in
 """
-function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, turbine_y; discrete=false, s=700, tol=1E-6, return_region=false)
+function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, turbine_y; discrete=false, s=700, tol=1E-6, return_region=false, regions=[])
     # discrete=boundary.discrete
 
     # number of turbines and boundary vertices
@@ -344,14 +344,27 @@ function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, tu
 
         return c
 
-    # multiple discrete regions
+    # multiple discrete regions with pre-defined region assignments 
+    elseif length(regions) > 0
+
+        # iterate through each turbine location
+        for i = 1:nturbines
+
+            # determine if point is contained in the assigned polygonal region
+            c[i] = pointinpolygon([turbine_x[i], turbine_y[i]], boundary_vertices[regions[i]], boundary_normals[regions[i]], s=s, shift=tol)
+            
+        end
+
+        return c
+
+    # multiple discrete regions without pre-defined region assignments 
     else
 
         # number of regions
         nregions = length(boundary_vertices)
 
         # if region spec is desired, initialize vector 
-        region = zeros(nturbines)
+        region = zeros(Int, nturbines)
 
         # initialize turbine status vector
         status = zeros(Int64, nturbines)
@@ -392,7 +405,12 @@ function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, tu
                 # magnitude of the constraint value
                 # c[i] = -ff.smooth_max(-turbine_to_face_distance, s=s)
                 c[i] = -ksmax(-turbine_to_region_distance, s)
+
+                # set status to indicate that the turbine has been assigned
                 status[i] = 1
+
+                # indicate closest region
+                region[i] = argmin(turbine_to_region_distance)
 
             end
 

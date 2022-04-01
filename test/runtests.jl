@@ -816,7 +816,97 @@ using FiniteDiff
 
         end
 
-        @testset "ray casting boundary distances - multi region" begin
+        @testset "ray casting boundary distances - multi region pre-defined" begin
+
+            # set up turbine location for testing 
+            turbinex = [0.0]
+            turbiney = [0.0]
+
+            # set up simple square boundary for testing 
+            boundaryvertices1 = [-1.0 -1.0; -1.0 1.0; 1.0 1.0; 1.0 -1.0]
+            boundaryvertices2 = [3.0 -1.0; 3.0 1.0; 5.0 1.0; 5.0 -1.0]
+            boundaryvertices = [boundaryvertices1, boundaryvertices2]
+            boundarynormals = ff.boundary_normals_calculator(boundaryvertices, nboundaries=2)
+            _, regions = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, return_region=true)
+
+            # test correct sign (negative) for inside region 1
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, regions=regions)
+            @test sign(boundarydistance[1]) == -1
+
+            # test correct sign (negative) for inside region 2
+            _, regions = ff.ray_casting_boundary(boundaryvertices, boundarynormals, 4.0, 0.0, discrete=true, return_region=true)
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, 4.0, 0.0, discrete=true, regions=regions)
+            @test sign(boundarydistance[1]) == -1
+
+            # test correct sign (positive) for outside region 1
+            turbinex = [-2.0]
+            _, regions = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, return_region=true)
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, regions=regions)
+            @test sign(boundarydistance[1]) == 1
+
+            # test correct sign (positive) for outside region 2
+            turbinex = [6.0]
+            _, regions = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, return_region=true)
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, regions=regions)
+            @test sign(boundarydistance[1]) == 1
+
+            # test correct distance inside region 1
+            turbinex = [0.0]
+            _, regions = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, return_region=true)
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, regions=regions)
+            @test boundarydistance[1] ≈ -1 atol = 1E-2
+
+            # test correct distance inside region 2
+            turbinex = [4.0]
+            _, regions = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, return_region=true)
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, regions=regions)
+            @test boundarydistance[1] ≈ -1 atol = 1E-2
+
+            # test correct distance between regions
+            turbinex = [2.0]
+            turbiney = [0.0]
+            _, regions = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, return_region=true)
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, regions=regions)
+            @test boundarydistance[1] ≈ 1 atol = 1E-2
+
+            # test correct distance outside region 2
+            turbinex = [2.5]
+            turbiney = [0.0]
+            _, regions = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, return_region=true)
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, regions=regions)
+            @test boundarydistance[1] ≈ 0.5 atol = 1E-2
+
+            # test correct distance on vertex of region 1
+            turbinex = [1.0]
+            turbiney = [1.0]
+            _, regions = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, return_region=true)
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, regions=regions)
+            @test boundarydistance[1] ≈ 0 atol = 1E-3
+
+            # test correct distance on vertex of region 2
+            turbinex = [3.0]
+            turbiney = [1.0]
+            _, regions = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, return_region=true)
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, regions=regions)
+            @test boundarydistance[1] ≈ 0 atol = 1E-3
+
+            # test correct distance on face of region 1
+            turbinex = [1.0]
+            turbiney = [0.0]
+            _, regions = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, return_region=true)
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, regions=regions)
+            @test boundarydistance[1] ≈ 0 atol = 1E-2
+
+            # test correct distance on face of region 2
+            turbinex = [3.0]
+            turbiney = [0.0]
+            _, regions = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, return_region=true)
+            boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney, discrete=true, regions=regions)
+            @test boundarydistance[1] ≈ 0 atol = 1E-2
+
+        end
+
+        @testset "ray casting boundary distances - multi region not pre-defined" begin
 
             # set up turbine location for testing 
             turbinex = [0.0]
@@ -969,7 +1059,102 @@ using FiniteDiff
 
         end
 
-        @testset "ray casting boundary derivatives - multiple regions" begin
+        @testset "ray casting boundary derivatives - multiple regions pre-defined region" begin
+
+            # set up turbine location for testing 
+            turbinex = [0.0]
+            turbiney = [0.0]
+
+            # set up simple square boundary for testing 
+            boundaryvertices1 = [-1.0 -1.0; -1.0 1.0; 1.0 1.0; 1.0 -1.0]
+            boundaryvertices2 = [3.0 -1.0; 3.0 1.0; 5.0 1.0; 5.0 -1.0]
+            boundaryvertices = [boundaryvertices1, boundaryvertices2]
+            boundarynormals = ff.boundary_normals_calculator(boundaryvertices, nboundaries=2)
+            
+            # set up function for getting AD derivatives
+            ray_casting_boundary_diff(x) = ff.ray_casting_boundary(boundaryvertices, boundarynormals, x[1], x[2], discrete=true, regions=ff.ray_casting_boundary(boundaryvertices, boundarynormals, x[1], x[2], discrete=true, return_region=true)[2])
+
+            # test correct derivative inside region 1 equi-distant to all vertices
+            turbinex = [0.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd atol = 1E-6
+
+            # test correct derivative inside region 2 equi-distant to all vertices
+            turbinex = [4.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd atol = 1E-6
+
+            # test correct derivative inside to face region 1
+            turbinex = [0.1]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd rtol = 1E-6
+
+            # test correct derivative inside to face region 2
+            turbinex = [4.1]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd rtol = 1E-6
+
+            # test correct derivative inside to two faces in region 1
+            turbiney = [0.1]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd rtol = 1E-6
+
+            # test correct derivative inside to two faces in region 2
+            turbiney = [4.1]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd rtol = 1E-6
+
+            # test correct derivative between regions nearer to 1
+            turbinex = [2.0-2E-5]
+            turbiney = [0.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd atol = 1E-6
+
+            # test correct derivative between regions nearer to 2
+            turbinex = [2.0+2E-5]
+            turbiney = [0.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central})
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd atol = 1E-6
+
+            # # test correct derivative on vertex region 1
+            # turbinex = [1.0]
+            # turbiney = [1.0]
+            # derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central}, relstep=1E-10)
+            # derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            # @test derivad ≈ derivfd rtol = 1E-4
+
+            # # test correct derivative on vertex region 2
+            # turbinex = [3.0]
+            # turbiney = [1.0]
+            # derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central}, relstep=1E-10)
+            # derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            # @test derivad ≈ derivfd rtol = 1E-4
+
+            # test correct derivative on edge region 1 
+            turbinex = [-1.0]
+            turbiney = [0.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central}, relstep=1E-1)
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd atol = 1E-8
+
+            # test correct derivative on edge region 2 
+            turbinex = [3.0]
+            turbiney = [0.0]
+            derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central}, relstep=1E-1)
+            derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
+            @test derivad ≈ derivfd atol = 1E-8
+
+        end
+
+        @testset "ray casting boundary derivatives - multiple regions region not pre-defined" begin
 
             # set up turbine location for testing 
             turbinex = [0.0]
