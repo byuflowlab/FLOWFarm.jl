@@ -76,7 +76,9 @@ end
 """
     _ct_to_axial_ind_func(ct)
 
-Calculate axial induction from the thrust coefficient
+Calculate axial induction from the thrust coefficient. See Gebraad et. al. 2017 
+"Maximization of the Annual Energy Production of Wind Power Plants by Optimization of 
+Layout and Yaw-Based Wake Control"
 
 # Arguments
 - `ct::Float`: thrust coefficient
