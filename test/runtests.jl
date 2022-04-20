@@ -34,6 +34,21 @@ using FiniteDiff
 
         end
 
+        @testset "wake interpolation" begin
+            dt = 80.0
+            k = 0.03
+            dx = 200
+            x0 = 320
+            yaw = 0
+            xd = 230
+
+            #interpolated
+            @test ff._gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd) ≈ 27.2717712474619
+
+            #non-interpolated
+            @test ff._gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd, interpolate=false) ≈ 25.5842712474619
+        end
+
         @testset "Coordinate rotation" begin
             atol = 1E-15
 

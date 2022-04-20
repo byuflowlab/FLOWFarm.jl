@@ -505,14 +505,17 @@ Helper function for wake_deficit_model when using the GaussYaw model. Computes t
 with an interpolation on the near wake. 
 
 """
-function _gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd)
+function _gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd; interpolate=true)
     # calculate wake spread
+
     if dx > x0 # far wake 
         sigma = _gauss_yaw_spread(dt, k, dx, x0, yaw)
 
     else # linear interpolation in the near wakes
-        dx_interp = xd+((x0-xd)/(x0))*(dx)
-        sigma = _gauss_yaw_spread(dt, k, dx_interp, x0, yaw)
+        if interpolate
+            xd = xd+((x0-xd)/(x0))*(dx)
+        end
+        sigma = _gauss_yaw_spread(dt, k, xd, x0, yaw)
     end
 
     return sigma
