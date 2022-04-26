@@ -139,8 +139,7 @@ windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobab
 measurementheight, airdensity, ambienttis, windshearmodel)
 
 # visualize the wind resource
-fig, ax = subplots(1,2, subplot_kw=Dict("projection"=>"polar"))
-ff.plotwindresource!(ax, windresource)
+ff.plotwindresource!(windresource)
 plt.tight_layout() # hide
 plt.savefig("windresource.png") # hide
 ```

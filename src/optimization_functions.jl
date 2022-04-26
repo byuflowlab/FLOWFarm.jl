@@ -320,15 +320,23 @@ the ray-casting algorithm. Negative means the turbine is inside the boundary.
 - `discrete::Bool`: if true, indicates the boundary is made of multiple discrete regions
 - `s::Number`: smoothing factor for smooth max (ksmax)
 - `tol::Float`: how close points have to be to vertex or face before they will be shifted slightly to avoid a discontinuity
+- `return_region::bool`: if true, return a vector specifying which region each turbine is in
 """
-function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, turbine_y; discrete=false, s=700, tol=1E-6)
+function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, turbine_y; discrete=false, s=700, tol=1E-6, return_region=false, regions=[], c=[])#, turbine_to_face_distance=[])
     # discrete=boundary.discrete
 
     # number of turbines and boundary vertices
     nturbines = length(turbine_x)
 
     # initialize constraint output values
-    c = zeros(typeof(turbine_x[1]),(nturbines))
+    if c == []
+        c = zeros(typeof(turbine_x[1]),(nturbines))
+    end
+
+    # if turbine_to_face_distance == [] && discrete == true
+    #     turbine_to_face_distance = zeros(typeof(boundary_vertices[1][1]), size(boundary_normals))
+    #     println("here is type in ray casting: ", typeof(turbine_to_face_distance))
+    # end
 
     # single region
     if discrete == false
@@ -343,11 +351,26 @@ function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, tu
 
         return c
 
-    # multiple discrete regions
-    else
+    # multiple discrete regions with pre-defined region assignments 
+    elseif length(regions) > 0
+        
+        # iterate through each turbine location
+        for i = 1:nturbines
 
+            # determine if point is contained in the assigned polygonal region
+            c[i] = pointinpolygon([turbine_x[i], turbine_y[i]], boundary_vertices[regions[i]], boundary_normals[regions[i]], s=s, shift=tol)#, turbine_to_face_distance=turbine_to_face_distance[regions[i]])
+            
+        end
+
+        return c
+
+    # multiple discrete regions without pre-defined region assignments 
+    else
         # number of regions
         nregions = length(boundary_vertices)
+
+        # if region spec is desired, initialize vector 
+        region = zeros(Int, nturbines)
 
         # initialize turbine status vector
         status = zeros(Int64, nturbines)
@@ -362,10 +385,13 @@ function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, tu
             for k = 1:nregions
 
                 # check if point is in this region
-                ctmp = pointinpolygon([turbine_x[i], turbine_y[i]], boundary_vertices[k], boundary_normals[k], s=s, shift=tol, return_distance=false)
-                if ctmp <= 0
-                    c[i] = pointinpolygon([turbine_x[i], turbine_y[i]], boundary_vertices[k], boundary_normals[k], s=s, shift=tol, return_distance=true)
+                ctmp = pointinpolygon([turbine_x[i], turbine_y[i]], boundary_vertices[k], boundary_normals[k], s=s, shift=tol, return_distance=false)#, turbine_to_face_distance=turbine_to_face_distance[k])
+                if ctmp <= 0 # negative if in boundary
+                    c[i] = pointinpolygon([turbine_x[i], turbine_y[i]], boundary_vertices[k], boundary_normals[k], s=s, shift=tol, return_distance=true)#, turbine_to_face_distance=turbine_to_face_distance[k])
                     status[i] = 1
+                    if return_region
+                        region[i] = k
+                    end
                     break
                 end
 
@@ -378,19 +404,25 @@ function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, tu
                 for k = 1:nregions
 
                     # check if point is in this region
-                    turbine_to_region_distance[k] = pointinpolygon([turbine_x[i], turbine_y[i]], boundary_vertices[k], boundary_normals[k], s=s, shift=tol, return_distance=true)
+                    turbine_to_region_distance[k] = pointinpolygon([turbine_x[i], turbine_y[i]], boundary_vertices[k], boundary_normals[k], s=s, shift=tol, return_distance=true)#, turbine_to_face_distance=turbine_to_face_distance[k])
 
                 end
 
                 # magnitude of the constraint value
                 # c[i] = -ff.smooth_max(-turbine_to_face_distance, s=s)
                 c[i] = -ksmax(-turbine_to_region_distance, s)
+
+                # set status to indicate that the turbine has been assigned
                 status[i] = 1
+
+                # indicate closest region
+                region[i] = argmin(turbine_to_region_distance)
 
             end
 
         end
 
+        return_region && return c, region
         return c
 
     end

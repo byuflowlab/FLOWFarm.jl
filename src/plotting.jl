@@ -38,13 +38,13 @@ function plotwindfarm!(ax, turbinex, turbiney, rotordiameter; nboundaries=1,
     # determine how many turbines are in the farm
     nturbines = length(turbinex)
 
-    # add the wind turbines
-    plotlayout!(ax, turbinex, turbiney, rotordiameter; aspect=aspect, fill=fill, color=turbinecolor, markeralpha=markeralpha, title=title, linestyle=turbinelinestyle)
-    
-    # add the bounary/ies
+    # add the boundary/ies
     if boundary_vertices != []
         plotboundary!(ax, boundary_vertices, nboundaries=nboundaries, color=boundarycolor, linestyle=boundarylinestyle)
     end
+
+    # add the wind turbines
+    plotlayout!(ax, turbinex, turbiney, rotordiameter; aspect=aspect, fill=fill, color=turbinecolor, markeralpha=markeralpha, title=title, linestyle=turbinelinestyle)
 
     # adjust plot x limits if not set
     if xlim !== nothing 
@@ -115,7 +115,7 @@ function plotlayout!(ax, turbinex, turbiney, rotordiameter; aspect="equal", fill
     
     # add turbines
     for i in 1:nturbines
-        circle = matplotlib.patches.Circle((turbinex[i], turbiney[i]), rotordiameter[i]/2.0, fill=fill, color=color, linestyle=linestyle)
+        circle = matplotlib.patches.Circle((turbinex[i], turbiney[i]), rotordiameter[i]/2.0, fill=fill, color=color, linestyle=linestyle, zorder=Inf)
         ax.add_patch(circle)
     end
 
@@ -232,25 +232,35 @@ end
 - `edgecolor`: color of edges of each bar in polar chart, nothing means no color
 - `rlabel_position:Number`: Angle at which to draw the radial axes
 """
-function plotwindresource!(ax::Array, windresource::ff.DiscretizedWindResource; roundingdigits=[1,3], fill=false, alpha=0.5, colors=["b", "b"], fontsize=8, edgecolor=nothing, rlabel_position=-45, titles=["Wind Speed", "Wind Probability"])
+function plotwindresource!(windresource::ff.DiscretizedWindResource; ax::Array=[], roundingdigits=[1,3], fill=false, alpha=0.5, colors=["b", "b"], fontsize=8, edgecolor=nothing, rlabel_position=-45, titles=["Wind Speed", "Wind Probability"])
     
+    axes_generated = false
+    if length(ax) == 0
+        fig, ax = plt.subplots(1, 2, subplot_kw=Dict("projection"=>"polar"))
+        axes_generated = true
+    end
+
     # extract wind resource elements for windrose plots
     d = windresource.wind_directions
     s = windresource.wind_speeds
     f = windresource.wind_probabilities
 
     # plot wind speed rose
-    plotwindrose!(ax[1], d, s, roundingdigit=roundingdigits[1], color=colors[1], alpha=alpha, fontsize=fontsize, edgecolor=edgecolor, units="m/s", title=titles[1])
+    kwargs=(:edgecolor=>edgecolor, :alpha=>alpha, :color=>colors[1])
+    plotwindrose!(ax[1], d, s, roundingdigit=roundingdigits[1], fontsize=fontsize, units="m/s", title=titles[1], kwargs=kwargs)
     
     # plot wind frequency rose
-    plotwindrose!(ax[2], d, f, roundingdigit=roundingdigits[2], color=colors[2], alpha=alpha, fontsize=fontsize, edgecolor=edgecolor, units="%", title=titles[2])
+    kwargs=(:edgecolor=>edgecolor, :alpha=>alpha, :color=>colors[2])
+    plotwindrose!(ax[2], d, f, roundingdigit=roundingdigits[2], fontsize=fontsize, units="%", title=titles[2], kwargs=kwargs)
 
+    # return axis if newly generated
+    axes_generated && return ax
 end
 
 """
     plotwindrose!(ax, d, f; roundingdigit=1, color="C0",alpha=0.5,fontsize=8,
     dticks=(0,pi/4,pi/2,3*pi/4,pi,5*pi/4,3*pi/2,7*pi/4),
-    dlabels=("E","NE","N","NW","W","SW","S","SW"),
+    dlabels=("E","NE","N","NW","W","SW","S","SE"),
     fticks=nothing, flabels=nothing, normalize=false, edgecolor=nothing, units="",
     rlabel_position=-45)
 
@@ -274,7 +284,7 @@ end
 """
 function plotwindrose!(ax, d, f; roundingdigit=1,fontsize=8,
     dticks=(0,pi/4,pi/2,3*pi/4,pi,5*pi/4,3*pi/2,7*pi/4),
-    dlabels=("E","NE","N","NW","W","SW","S","SW"),
+    dlabels=("E","NE","N","NW","W","SW","S","SE"), dbuffer=0.3,
     fticks=nothing, flabels=nothing, normalize=false, units="",
     rlabel_position=-45, title="", plotcommand="bar", kwargs=(:edgecolor=>nothing, :alpha=>0.5, :color=>"C0"))
 
@@ -320,6 +330,7 @@ function plotwindrose!(ax, d, f; roundingdigit=1,fontsize=8,
     ax.set_xticks(dticks)
     ax.set_xticklabels(dlabels,fontsize=fontsize)
     ax.set_rgrids(fticks,flabels,angle=rlabel_position,fontsize=fontsize, zorder=0)
+    # ax.set_thetagrids(dticks, dlabels, frac=1.0+dbuffer)
     for tick in ax.yaxis.get_majorticklabels()
         tick.set_horizontalalignment("center")
     end
