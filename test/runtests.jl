@@ -43,10 +43,10 @@ using FiniteDiff
             xd = 150
 
             # sigma interpolation is true
-            # Interpolate to set interpolated xd value between x0 and xd where equations are all defined
-            interpolated_xd = xd+((x0-xd)/(x0))*(dx)
+            # Interpolate to set interpolated dx value between x0 and xd where equations are all defined
+            dx_interpolate = xd+((x0-xd)/(x0))*(dx)
             # From Bastankhah and Porte-Agel 2016 eqn 7.2
-            sigma = k*(interpolated_xd - x0) + dt*cos(yaw)/sqrt(8.0)
+            sigma = k*(dx_interpolate - x0) + dt*cos(yaw)/sqrt(8.0)
             @test ff._gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd) ≈ sigma
 
             # sigma if interpolation is false

@@ -76,15 +76,18 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 - `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 """
-struct GaussYaw{TF, ATF} <: AbstractWakeDeficitModel
+struct GaussYaw{TF, ATF, B} <: AbstractWakeDeficitModel
     horizontal_spread_rate::TF
     vertical_spread_rate::TF
     alpha_star::TF
     beta_star::TF
     wec_factor::ATF
+    interpolate_sigma::B
 end
-GaussYaw() = GaussYaw(0.022, 0.022, 2.32, 0.154, [1.0])
-GaussYaw(a, b, c, d) = GaussYaw(a, b, c, d, [1.0])
+GaussYaw() = GaussYaw(0.022, 0.022, 2.32, 0.154, [1.0], true)
+GaussYaw(interp) = GaussYaw(0.022, 0.022, 2.32, 0.154, [1.0], interp)
+GaussYaw(a, b, c, d) = GaussYaw(a, b, c, d, [1.0], true)
+GaussYaw(a, b, c, d, interp) = GaussYaw(a, b, c, d, [1.0], interp)
 
 """
     GaussYawVariableSpread(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
@@ -96,16 +99,20 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 - `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 """
-struct GaussYawVariableSpread{TF, ATF} <: AbstractWakeDeficitModel
+struct GaussYawVariableSpread{TF, ATF, B} <: AbstractWakeDeficitModel
     alpha_star::TF
     beta_star::TF
     k1::TF
     k2::TF
     wec_factor::ATF
+    interpolate_sigma::B
 end
-GaussYawVariableSpread() = GaussYawVariableSpread(2.32, 0.154, 0.3837, 0.003678, [1.0])
-GaussYawVariableSpread(x, y, z) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, z)
-GaussYawVariableSpread(x, y) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, [1.0])
+GaussYawVariableSpread() = GaussYawVariableSpread(2.32, 0.154, 0.3837, 0.003678, [1.0], true)
+GaussYawVariableSpread(interp) = GaussYawVariableSpread(2.32, 0.154, 0.3837, 0.003678, [1.0], interp)
+GaussYawVariableSpread(x, y, z) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, z, true)
+GaussYawVariableSpread(x, y, z, interp) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, z, interp)
+GaussYawVariableSpread(x, y) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, [1.0], true)
+GaussYawVariableSpread(x, y, interp) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, [1.0], interp)
 
 """
     GaussSimple(k, wec_factor)
@@ -512,8 +519,8 @@ function _gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd; interpolate=true
         if dx > x0 # far wake 
             sigma = _gauss_yaw_spread(dt, k, dx, x0, yaw)
         else # linear interpolation in the near wakes
-            xd_interp = xd+((x0-xd)/(x0))*(dx)
-            sigma = _gauss_yaw_spread(dt, k, xd_interp, x0, yaw)
+            dx_interpolate = xd+((x0-xd)/(x0))*(dx)
+            sigma = _gauss_yaw_spread(dt, k, dx_interpolate, x0, yaw)
         end
     else
         if dx > xd # far wake 
