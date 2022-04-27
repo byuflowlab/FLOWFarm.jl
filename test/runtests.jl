@@ -34,19 +34,25 @@ using FiniteDiff
 
         end
 
-        @testset "wake interpolation" begin
+        @testset "_gauss_yaw_spread_interpolated" begin
             dt = 80.0
             k = 0.03
-            dx = 200
+            dx = 100
             x0 = 320
             yaw = 0
-            xd = 230
+            xd = 150
 
-            #interpolated
-            @test ff._gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd) ≈ 27.2717712474619
+            # sigma interpolation is true
+            # Interpolate to set interpolated xd value between x0 and xd where equations are all defined
+            interpolated_xd = xd+((x0-xd)/(x0))*(dx)
+            # From Bastankhah and Porte-Agel 2016 eqn 7.2
+            sigma = k*(interpolated_xd - x0) + dt*cos(yaw)/sqrt(8.0)
+            @test ff._gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd) ≈ sigma
 
-            #non-interpolated
-            @test ff._gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd, interpolate=false) ≈ 25.5842712474619
+            # sigma if interpolation is false
+            # if dx is less than xd use xd as the distance so sigma is defined
+            sigma = k*(xd - x0) + dt*cos(yaw)/sqrt(8.0)
+            @test ff._gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd, interpolate=false) ≈ sigma
         end
 
         @testset "Coordinate rotation" begin
