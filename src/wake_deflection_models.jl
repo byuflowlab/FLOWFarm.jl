@@ -1,6 +1,14 @@
 abstract type AbstractWakeDeflectionModel end
 
 """
+    NoYawDeflection()
+
+Allows for bypassing deflection calculations.
+"""
+struct NoYawDeflection <: AbstractWakeDeflectionModel
+end
+
+"""
     GaussYawDeflection(horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
 
 Container for parameters related to the Gaussian deflection model presented by Bastankhah and Porte-Agel 2016
@@ -70,7 +78,19 @@ end
 MultizoneDeflection() = MultizoneDeflection(0.15, -4.5, -0.01)
 
 """
-    wake_deflection_model(locx, locy, locz, turbine_id, turbine_definition::TurbineDefinition, model::JiminezYawDeflection, windfarmstate::SingleWindFarmState)
+    wake_deflection_model(locx, locy, locz, turbine_id, turbine_definition::TurbineDefinition, model::NoYawDeflection, windfarmstate::SingleWindFarmState)
+
+    Bypasses yaw deflection calculations.
+
+"""
+function wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::NoYawDeflection)
+
+    return 0.0
+
+end
+
+"""
+    wake_deflection_model(locx, locy, locz, turbine_id, turbine_definition::TurbineDefinition, model::JiminezYawDeflection)
 
     Calculates the horizontal deflection of the wind turbine wake
 

@@ -90,3 +90,37 @@ function test_point_in_polygon()
     cbar3 = plt.colorbar(cplot3)
     
 end
+
+function test_wind_rose_interpolation()
+
+    # set flow parameters
+    # data = readdlm("inputfiles/windrose_nantucket_12dir.txt",  ' ', skipstart=1)
+    data = readdlm("inputfiles/windrose_nantucket_36dir.txt",  ' ', skipstart=1)
+    winddirections = data[:, 1].*pi/180.0
+    windspeeds = data[:,2]
+    windprobabilities = data[:, 3]
+    nstates = length(windspeeds)
+
+    air_density = 1.1716  # kg/m^3
+    ambient_ti = 0.077
+    shearexponent = 0.15
+    ambient_tis = zeros(nstates) .+ ambient_ti
+    measurementheight = zeros(nstates) .+ 70.0
+
+    shearexponent = 0.12539210313906432
+    groundheight = 4.842460795576101
+    shear_order = "last"
+    wind_shear_model = ff.PowerLawWindShear(shearexponent, groundheight, shear_order)
+    wind_resource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, wind_shear_model)
+
+    ndirectionbins = 36
+    wind_resource_new = ff.rediscretize_windrose(wind_resource, ndirectionbins, start=10*pi/180, averagespeed=false)
+    ax1 = ff.plotwindresource!(wind_resource)
+    ax2 = ff.plotwindresource!(wind_resource_new)
+    
+    println(sum(wind_resource_new.wind_probabilities))
+    println(sum(wind_resource.wind_probabilities))
+    println(wind_resource_new.wind_directions[argmax(wind_resource_new.wind_probabilities)]*180/pi)
+    println(wind_resource.wind_directions[argmax(wind_resource.wind_probabilities)]*180/pi)
+
+end

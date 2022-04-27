@@ -28,6 +28,47 @@ struct DiscretizedWindResource{AF, TF, ASM} <: AbstractWindResourceModel
 
 end
 
+"""
+    rediscretize_windrose(windrosein::DiscretizedWindResource, ndirectionbins, nspeedbins)
+
+    Function for re-interpreting a wind rose into a desired number of bins. Returns the new
+    wind rose. Currently only works for windroses with a single speed in each direction.
+
+# Arguments
+- `windrosein::DiscretizedWindResource`: original wind rose
+- `ndirectionbins::Integer`: number of direction bins for the new wind rose
+- `start::Float`: direction for first bin in radians
+- `averagespeed::Bool`: set whether or not to return the average wind speed as the speed for all bins
+"""
+function rediscretize_windrose(windrosein::DiscretizedWindResource, ndirectionbins; start=0.0, averagespeed=false)
+
+    # create Akima spline interpolation of windrosein
+    splinedirs = [-2*pi.+windrosein.wind_directions; windrosein.wind_directions; 2*pi.+windrosein.wind_directions]
+    speedspline = Akima(splinedirs, [windrosein.wind_speeds; windrosein.wind_speeds; windrosein.wind_speeds])
+    probabilityspline = Akima(splinedirs, [windrosein.wind_probabilities; windrosein.wind_probabilities; windrosein.wind_probabilities])
+    heightspline = Akima(splinedirs, [windrosein.measurement_heights; windrosein.measurement_heights; windrosein.measurement_heights])
+    ambienttispline = Akima(splinedirs, [windrosein.ambient_tis; windrosein.ambient_tis; windrosein.ambient_tis])
+    
+    # get new interpolated wind rose attributes
+    directionsnew = collect(range(start,2*pi+start-2*pi/ndirectionbins,length=ndirectionbins))
+    if averagespeed
+        speedsnew = speedspline.(ones(ndirectionbins)*sum(directionsnew)/ndirectionbins)
+    else
+        speedsnew = speedspline.(directionsnew)
+    end
+    probabilitiesnew = probabilityspline.(directionsnew)
+    heightsnew = heightspline.(directionsnew)
+    ambient_tis_new = ambienttispline.(directionsnew)
+
+    # re-normalize probabilites 
+    probabilitiesnew = probabilitiesnew./sum(probabilitiesnew)
+
+    # create new wind rose 
+    windroseout = DiscretizedWindResource(directionsnew, speedsnew, probabilitiesnew, heightsnew, windrosein.air_density, ambient_tis_new, windrosein.wind_shear_model)
+
+    return windroseout
+end
+
 
 function _dist_weibull(x,L;k=2.0)
     if L < 0.0001

@@ -59,10 +59,6 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
                     wind_resource, model_set::AbstractModelSet;
                     wind_farm_state_id=1, downwind_turbine_id=0)
-
-    wakedeficitmodel = model_set.wake_deficit_model
-    wakedeflectionmodel = model_set.wake_deflection_model
-    wakecombinationmodel = model_set.wake_combination_model
     
     # extract flow information
     wind_speed = wind_resource.wind_speeds[wind_farm_state_id]
@@ -108,17 +104,17 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
 
             # calculate wake deflection of the current wake at the point of interest
             horizontal_deflection = wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct,
-                            upwind_turb_id, rotor_diameter, turbine_local_ti, wakedeflectionmodel)
+                            upwind_turb_id, rotor_diameter, turbine_local_ti, model_set.wake_deflection_model)
 
             vertical_deflection = 0.0
 
             # velocity difference in the wake
             deltav = wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, horizontal_deflection, vertical_deflection,
                             upwind_turb_id, downwind_turbine_id, hub_height, rotor_diameter, turbine_ai,
-                            turbine_local_ti, turbine_ct, turbine_yaw, wakedeficitmodel)
+                            turbine_local_ti, turbine_ct, turbine_yaw, model_set.wake_deficit_model)
 
             # combine deficits according to selected wake combination method
-            deficit_sum = wake_combination_model(deltav, wind_speed_internal, wtvelocities[upwind_turb_id], deficit_sum, wakecombinationmodel)
+            deficit_sum = wake_combination_model(deltav, wind_speed_internal, wtvelocities[upwind_turb_id], deficit_sum, model_set.wake_combination_model)
             # println(deficit_sum, " ", downwind_turbine_id, " ", upwind_turb_id)
             
         end
@@ -174,21 +170,52 @@ Calculates the wind speed at a given point for a given state
 """
 function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
                     sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                    model_set::AbstractModelSet; wind_farm_state_id=1, velocity_only=true)
+                    model_set::AbstractModelSet; wind_farm_state_id::Int=1, velocity_only::Bool=true, turbine_velocities=nothing,
+                    turbine_ct=nothing, turbine_ai=nothing, turbine_local_ti=nothing)
     
     # get number of turbines and rotor sample point
     n_turbines = length(turbine_x)
-    n_rotor_sample_points = length(rotor_sample_points_y)
 
     # initialize correct array types
-    arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
-                            typeof(hub_height[1]),typeof(turbine_yaw[1]))
+    if turbine_velocities===nothing || turbine_ai === nothing || turbine_ct === nothing || turbine_local_ti === nothing
+        arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
+                                typeof(hub_height[1]),typeof(turbine_yaw[1]))
+        # initialize arrays
+        if turbine_velocities === nothing
+            turbine_velocities = zeros(arr_type, n_turbines)
+        end
+        if turbine_ct === nothing
+            turbine_ct = zeros(arr_type, n_turbines)
+        end
+        if turbine_ai === nothing
+            turbine_ai = zeros(arr_type, n_turbines)
+        end
+        if turbine_local_ti === nothing
+            turbine_local_ti = zeros(arr_type, n_turbines)
+        end
+    end
 
-    # initialize arrays
-    turbine_velocities = zeros(arr_type, n_turbines)
-    turbine_ct = zeros(arr_type, n_turbines)
-    turbine_ai = zeros(arr_type, n_turbines)
-    turbine_local_ti = zeros(arr_type, n_turbines)
+    turbine_velocities_one_direction!(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+    sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+    model_set, turbine_velocities,
+    turbine_ct, turbine_ai, turbine_local_ti; wind_farm_state_id=wind_farm_state_id, velocity_only=velocity_only)
+
+    if velocity_only
+        return turbine_velocities 
+    else
+        return turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti
+    end
+
+end
+
+function turbine_velocities_one_direction!(turbine_x::Vector{T0}, turbine_y::Vector{T1}, turbine_z::Vector{T2}, rotor_diameter::Vector{T3}, hub_height::Vector{T4}, turbine_yaw::Vector{T5},
+    sorted_turbine_index::Vector{Int}, ct_model::Vector{<:AbstractThrustCoefficientModel}, rotor_sample_points_y::Vector{T6}, rotor_sample_points_z::Vector{T6}, wind_resource,
+    model_set::AbstractModelSet, turbine_velocities::Vector{T7},
+    turbine_ct::Vector{T7}, turbine_ai::Vector{T7}, turbine_local_ti::Vector{T7}; wind_farm_state_id::Int=1, velocity_only::Bool=true) where {T0, T1, T2, T3, T4, T5, T6, T7}
+
+    # get number of turbines and rotor sample point
+    n_turbines = length(turbine_x)
+    n_rotor_sample_points = length(rotor_sample_points_y)
 
     # loop over all turbines
     for d=1:n_turbines
@@ -197,10 +224,10 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         downwind_turbine_id = Int(sorted_turbine_index[d])
 
         # initialize downstream wind turbine velocity to zero
-        # println("start array: ", turbine_velocities[downwind_turbine_id])
-        # wind_turbine_velocity = typeof(turbine_velocities[downwind_turbine_id])(0.0)
         wind_turbine_velocity = 0.0
-        # turbine_velocities[downwind_turbine_id] = 0.0
+
+        # initialize point vel with shear 
+        point_velocity_with_shear = 0.0
 
         # loop over all rotor sample points to approximate the effective inflow velocity
         for p=1:n_rotor_sample_points
@@ -242,101 +269,91 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         # update local turbulence intensity for downstream turbine
         turbine_local_ti[downwind_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
                             turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=1E-6)
-
-        # println("local ti turb 9: ", turbine_local_ti[downwind_turbine_id])
-    end
-
-    # df = DataFrame(ID=1:n_turbines, V=turbine_velocities, TI=turbine_local_ti, CT=turbine_ct)
-    # CSV.write("internaldata.txt", df)
-
-    if velocity_only
-        return turbine_velocities 
-    else
-        return turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti
-    end
-end
-
-function turbine_velocities_one_direction(x, turbine_z, rotor_diameter, hub_height, turbine_yaw,
-    sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-    model_set::AbstractModelSet; wind_farm_state_id=1, velocity_only=true)
-
-    n_turbines = Int(length(x)/2)
-    # println(typeof(x), n_turbines)
-    turbine_x = x[1:n_turbines] 
-    turbine_y = x[n_turbines+1:end]
-    # println(turbine_x)
-    # println("turbine_x type ", typeof(turbine_x))
-    # println("type of x ", typeof(x))
-
-    # get number of turbines and rotor sample point
-    # n_turbines = length(turbine_x)
-    n_rotor_sample_points = length(rotor_sample_points_y)
-
-    arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
-                typeof(hub_height[1]),typeof(turbine_yaw[1]))
-    turbine_velocities = zeros(arr_type, n_turbines)
-    turbine_ct = zeros(arr_type, n_turbines)
-    turbine_ai = zeros(arr_type, n_turbines)
-    turbine_local_ti = zeros(arr_type, n_turbines)
-
-    for d=1:n_turbines
-
-        # get index of downstream turbine
-        downwind_turbine_id = Int(sorted_turbine_index[d])
-
-        # initialize downstream wind turbine velocity to zero
-        # println("start array: ", turbine_velocities[downwind_turbine_id])
-        # wind_turbine_velocity = typeof(turbine_velocities[downwind_turbine_id])(0.0)
-        wind_turbine_velocity = 0.0
-        # turbine_velocities[downwind_turbine_id] = 0.0
-
-        for p=1:n_rotor_sample_points
-
-
-            # scale rotor sample point coordinate by rotor diameter (in rotor hub ref. frame)
-            local_rotor_sample_point_y = rotor_sample_points_y[p]*0.5*rotor_diameter[downwind_turbine_id]
-            local_rotor_sample_point_z = rotor_sample_points_z[p]*0.5*rotor_diameter[downwind_turbine_id]
-
-            locx = turbine_x[downwind_turbine_id] .+ local_rotor_sample_point_y*sin(turbine_yaw[downwind_turbine_id])
-            locy = turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y*cos(turbine_yaw[downwind_turbine_id])
-            locz = turbine_z[downwind_turbine_id] .+ hub_height[downwind_turbine_id] + local_rotor_sample_point_z
-
-            # calculate the velocity at given point
-            point_velocity_with_shear = point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
-                                rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, turbine_velocities,
-                                wind_resource, model_set,
-                                wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=downwind_turbine_id)
-
-            # add sample point velocity to turbine velocity to be averaged later
-            wind_turbine_velocity += point_velocity_with_shear
-
-        end
-
-        # final velocity calculation for downstream turbine (average equally across all points)
-        wind_turbine_velocity /= n_rotor_sample_points
-
-        turbine_velocities[downwind_turbine_id] = deepcopy(wind_turbine_velocity)
-
-        # update thrust coefficient for downstream turbine
-        turbine_ct[downwind_turbine_id] = calculate_ct(turbine_velocities[downwind_turbine_id], ct_model[downwind_turbine_id])
-
-        # update axial induction for downstream turbine
-        turbine_ai[downwind_turbine_id] = _ct_to_axial_ind_func(turbine_ct[downwind_turbine_id])
-
-        # update local turbulence intensity for downstream turbine
-        ambient_ti = wind_resource.ambient_tis[wind_farm_state_id]
-        turbine_local_ti[downwind_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                    turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=1E-6)
-
-    end
-
-    if velocity_only
-        return turbine_velocities 
-    else
-        return turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti
     end
 
 end
+
+# function turbine_velocities_one_direction(x, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+#     sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+#     model_set::AbstractModelSet; wind_farm_state_id=1, velocity_only=true)
+
+#     n_turbines = Int(length(x)/2)
+#     # println(typeof(x), n_turbines)
+#     turbine_x = x[1:n_turbines] 
+#     turbine_y = x[n_turbines+1:end]
+#     # println(turbine_x)
+#     # println("turbine_x type ", typeof(turbine_x))
+#     # println("type of x ", typeof(x))
+
+#     # get number of turbines and rotor sample point
+#     # n_turbines = length(turbine_x)
+#     n_rotor_sample_points = length(rotor_sample_points_y)
+
+#     arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
+#                 typeof(hub_height[1]),typeof(turbine_yaw[1]))
+#     turbine_velocities = zeros(arr_type, n_turbines)
+#     turbine_ct = zeros(arr_type, n_turbines)
+#     turbine_ai = zeros(arr_type, n_turbines)
+#     turbine_local_ti = zeros(arr_type, n_turbines)
+
+#     for d=1:n_turbines
+
+#         # get index of downstream turbine
+#         downwind_turbine_id = Int(sorted_turbine_index[d])
+
+#         # initialize downstream wind turbine velocity to zero
+#         # println("start array: ", turbine_velocities[downwind_turbine_id])
+#         # wind_turbine_velocity = typeof(turbine_velocities[downwind_turbine_id])(0.0)
+#         wind_turbine_velocity = 0.0
+#         # turbine_velocities[downwind_turbine_id] = 0.0
+
+#         for p=1:n_rotor_sample_points
+
+
+#             # scale rotor sample point coordinate by rotor diameter (in rotor hub ref. frame)
+#             local_rotor_sample_point_y = rotor_sample_points_y[p]*0.5*rotor_diameter[downwind_turbine_id]
+#             local_rotor_sample_point_z = rotor_sample_points_z[p]*0.5*rotor_diameter[downwind_turbine_id]
+
+#             locx = turbine_x[downwind_turbine_id] .+ local_rotor_sample_point_y*sin(turbine_yaw[downwind_turbine_id])
+#             locy = turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y*cos(turbine_yaw[downwind_turbine_id])
+#             locz = turbine_z[downwind_turbine_id] .+ hub_height[downwind_turbine_id] + local_rotor_sample_point_z
+
+#             # calculate the velocity at given point
+#             point_velocity_with_shear = point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+#                                 rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, turbine_velocities,
+#                                 wind_resource, model_set,
+#                                 wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=downwind_turbine_id)
+
+#             # add sample point velocity to turbine velocity to be averaged later
+#             wind_turbine_velocity += point_velocity_with_shear
+
+#         end
+
+#         # final velocity calculation for downstream turbine (average equally across all points)
+#         wind_turbine_velocity /= n_rotor_sample_points
+
+#         turbine_velocities[downwind_turbine_id] = deepcopy(wind_turbine_velocity)
+
+#         # update thrust coefficient for downstream turbine
+#         turbine_ct[downwind_turbine_id] = calculate_ct(turbine_velocities[downwind_turbine_id], ct_model[downwind_turbine_id])
+
+#         # update axial induction for downstream turbine
+#         turbine_ai[downwind_turbine_id] = _ct_to_axial_ind_func(turbine_ct[downwind_turbine_id])
+
+#         # update local turbulence intensity for downstream turbine
+#         ambient_ti = wind_resource.ambient_tis[wind_farm_state_id]
+#         turbine_local_ti[downwind_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+#                     turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=1E-6)
+
+#     end
+
+#     if velocity_only
+#         return turbine_velocities 
+#     else
+#         return turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti
+#     end
+
+# end
 
 # turbine_velocities_one_direction!(model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1) = turbine_velocities_one_direction!([0.0], [0.0],
 # model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1)
