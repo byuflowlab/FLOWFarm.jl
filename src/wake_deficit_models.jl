@@ -76,13 +76,13 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 - `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 """
-struct GaussYaw{TF, ATF, B} <: AbstractWakeDeficitModel
+struct GaussYaw{TF, ATF, BO} <: AbstractWakeDeficitModel
     horizontal_spread_rate::TF
     vertical_spread_rate::TF
     alpha_star::TF
     beta_star::TF
     wec_factor::ATF
-    interpolate_sigma::B
+    interpolate_sigma::BO
 end
 GaussYaw() = GaussYaw(0.022, 0.022, 2.32, 0.154, [1.0], true)
 GaussYaw(interp) = GaussYaw(0.022, 0.022, 2.32, 0.154, [1.0], interp)
@@ -99,13 +99,13 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 - `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 """
-struct GaussYawVariableSpread{TF, ATF, B} <: AbstractWakeDeficitModel
+struct GaussYawVariableSpread{TF, ATF, BO} <: AbstractWakeDeficitModel
     alpha_star::TF
     beta_star::TF
     k1::TF
     k2::TF
     wec_factor::ATF
-    interpolate_sigma::B
+    interpolate_sigma::BO
 end
 GaussYawVariableSpread() = GaussYawVariableSpread(2.32, 0.154, 0.3837, 0.003678, [1.0], true)
 GaussYawVariableSpread(interp) = GaussYawVariableSpread(2.32, 0.154, 0.3837, 0.003678, [1.0], interp)
