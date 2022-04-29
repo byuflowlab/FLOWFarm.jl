@@ -66,7 +66,7 @@ end
 GaussOriginal() = GaussOriginal(0.075)
 
 """
-    GaussYaw(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+    GaussYaw(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star, interpolation)
 
 Container for parameters related to the Gaussian deficit model with yaw presented by Bastankhah and Porte-Agel 2016
 
@@ -75,6 +75,7 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 - `vertical_spread_rate::Float`: parameter controlling the vertical spread of the deficit model. Default value is 0.022.
 - `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
+- `interpolation::Bool`: boolean stating if the the near wake should be interpolated. Default value is true.
 """
 struct GaussYaw{TF, ATF, BO} <: AbstractWakeDeficitModel
     horizontal_spread_rate::TF
@@ -90,7 +91,7 @@ GaussYaw(a, b, c, d) = GaussYaw(a, b, c, d, [1.0], true)
 GaussYaw(a, b, c, d, interp) = GaussYaw(a, b, c, d, [1.0], interp)
 
 """
-    GaussYawVariableSpread(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+    GaussYawVariableSpread(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star, interpolation)
 
 Container for parameters related to the Gaussian deficit model with yaw presented by Bastankhah and Porte-Agel 2016
     and the farm model presented by Niayifar and Porte-Agel in 2016.
@@ -98,6 +99,7 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 # Arguments
 - `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
+- `interpolation::Bool`: boolean stating if the the near wake should be interpolated. Default value is true.
 """
 struct GaussYawVariableSpread{TF, ATF, BO} <: AbstractWakeDeficitModel
     alpha_star::TF
@@ -113,6 +115,22 @@ GaussYawVariableSpread(x, y, z) = GaussYawVariableSpread(x, y, 0.3837, 0.003678,
 GaussYawVariableSpread(x, y, z, interp) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, z, interp)
 GaussYawVariableSpread(x, y) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, [1.0], true)
 GaussYawVariableSpread(x, y, interp) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, [1.0], interp)
+
+"""
+    GaussSimple(k, wec_factor)
+
+Container for parameters related to the Gaussian deficit model with yaw presented by Bastankhah and Porte-Agel 2016
+
+# Arguments
+- `k::Float`: parameter controlling the spread of the wake
+- `wec_factor::Array{Float}`: parameter artificial wake spreading for wake expansion continuation (WEC) optimization
+"""
+struct GaussSimple{TF, ATF} <: AbstractWakeDeficitModel
+    k::TF
+    wec_factor::ATF
+end
+GaussSimple(k) = GaussSimple(k, [1.0])
+GaussSimple() = GaussSimple(0.0324555, [1.0])
 
 """
     GaussSimple(k, wec_factor)
