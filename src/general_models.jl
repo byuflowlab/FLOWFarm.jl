@@ -135,11 +135,12 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
 end
 
 """
-    point_velocity(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+    turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
     sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-    model_set::AbstractModelSet; wind_farm_state_id=1)
+    model_set::AbstractModelSet; wind_farm_state_id::Int=1, velocity_only::Bool=true, turbine_velocities=nothing,
+    turbine_ct=nothing, turbine_ai=nothing, turbine_local_ti=nothing)
 
-Calculates the wind speed at a given point for a given state
+Calculates the wind speeds for the farm
 
 # Arguments
 - `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the state 
@@ -194,10 +195,19 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         end
     end
 
-    turbine_velocities_one_direction!(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
-    sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-    model_set, turbine_velocities,
-    turbine_ct, turbine_ai, turbine_local_ti; wind_farm_state_id=wind_farm_state_id, velocity_only=velocity_only)
+    if typeof(model_set.wake_deficit_model) == CumulativeCurl{Float64}
+        turbine_velocities_one_direction_CC!(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+        sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+        model_set, turbine_velocities,
+        turbine_ct, turbine_ai, turbine_local_ti; wind_farm_state_id=wind_farm_state_id, velocity_only=velocity_only)
+    else
+        turbine_velocities_one_direction!(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+        sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+        model_set, turbine_velocities,
+        turbine_ct, turbine_ai, turbine_local_ti; wind_farm_state_id=wind_farm_state_id, velocity_only=velocity_only)
+    end
+
+    
 
     if velocity_only
         return turbine_velocities 

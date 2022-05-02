@@ -14,6 +14,7 @@ using YAML
 using XLSX
 using DataFrames
 using CSV
+using SpecialFunctions
 
 include("io.jl")
 include("utilities.jl")
@@ -34,4 +35,5 @@ include("fatigue_model.jl")
 include("tip.jl")
 include("cost_models.jl")
 include("plotting.jl")
+include("cumulative_curl_model.jl")
 end # module

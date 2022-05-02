@@ -114,7 +114,6 @@ GaussYawVariableSpread(interp) = GaussYawVariableSpread(2.32, 0.154, 0.3837, 0.0
 GaussYawVariableSpread(x, y, z) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, z, true)
 GaussYawVariableSpread(x, y, z, interp) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, z, interp)
 GaussYawVariableSpread(x, y) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, [1.0], true)
-GaussYawVariableSpread(x, y, interp) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, [1.0], interp)
 
 """
     GaussSimple(k, wec_factor)
@@ -133,20 +132,29 @@ GaussSimple(k) = GaussSimple(k, [1.0])
 GaussSimple() = GaussSimple(0.0324555, [1.0])
 
 """
-    GaussSimple(k, wec_factor)
+    CumulativeCurl(a_s, b_s, c_s1, c_s2, a_f, b_f, c_f)
 
-Container for parameters related to the Gaussian deficit model with yaw presented by Bastankhah and Porte-Agel 2016
+Container for parameters related to the Cumulative Curl model used in FLORIS v3 as shown in Bay 2022 (https://doi.org/10.5194/wes-2022-17)
 
 # Arguments
-- `k::Float`: parameter controlling the spread of the wake
-- `wec_factor::Array{Float}`: parameter artificial wake spreading for wake expansion continuation (WEC) optimization
+- `a_s::Float`: parameter relating turbulence intensity to wake spread. Default value is 0.179367259
+- `b_s::Float`: parameter controlling the default wake spread. Default value is 0.0118889215
+- `c_s1::Float`: parameter relating Ct to initial wake width. Default value is 0.0563691592
+- `c_s2::Float`: parameter affecting initial wake width. Default value is 0.13290157
+- `a_f::Float`: Default value is 3.11
+- `b_f::Float`: Default value is -0.68
+- `c_f::Float`: Default value is 2.41
 """
-struct GaussSimple{TF, ATF} <: AbstractWakeDeficitModel
-    k::TF
-    wec_factor::ATF
+struct CumulativeCurl{TF} <: AbstractWakeDeficitModel
+    a_s::TF
+    b_s::TF
+    c_s1::TF
+    c_s2::TF
+    a_f::TF
+    b_f::TF
+    c_f::TF
 end
-GaussSimple(k) = GaussSimple(k, [1.0])
-GaussSimple() = GaussSimple(0.0324555, [1.0])
+CumulativeCurl() = CumulativeCurl(0.179367259, 0.0118889215, 0.0563691592, 0.13290157, 3.11, -0.68, 2.41)
 
 """
     wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::JensenTopHat)
@@ -749,3 +757,33 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     return loss
 
 end
+
+# """
+#     wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::JensenTopHat)
+
+# Computes the wake deficit using the Cumulative Curl model, from the paper:
+# "Addressing deep array effects and impacts to wake steering with the cumulative-curl wake model" by Bay, Christopher (2022) (https://doi.org/10.5194/wes-2022-17)
+
+# # Arguments
+# - `locx::Float`: x coordinate where wind speed is calculated 
+# - `locy::Float`: y coordinate where wind speed is calculated
+# - `locz::Float`: z coordinate where wind speed is calculated
+# - `turbine_x::Array(Float)`: vector containing x coordinates for all turbines in farm
+# - `turbine_y::Array(Float)`: vector containing y coordinates for all turbines in farm
+# - `turbine_z::Array(Float)`: vector containing z coordinates for all turbines in farm
+# - `deflection_y::Float`: deflection in the y direction of downstream wake 
+# - `deflection_z::Float`: deflection in the z direction of downstream wake 
+# - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
+# - `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
+# - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
+# - `rotor_diameter::Array(Float)`: vector containing rotor diameters for all turbines in farm
+# - `turbine_ai::Array(Float)`: vector containing initial velocity deficits for all turbines in farm
+# - `turbine_local_ti::Array(Float)`: vector containing local turbulence intensities for all turbines in farm
+# - `turbine_ct::Array(Float)`: vector containing thrust coefficients for all turbines in farm
+# - `turbine_yaw::Array(Float)`: vector containing the yaw angle? for all turbines in farm
+# - `model::CumulativeCurl`: indicates the wake model in use
+
+# """
+# function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::CumulativeCurl)
+#     # extract model properties
+# end
