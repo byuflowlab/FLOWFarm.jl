@@ -10,6 +10,7 @@ using YAML
 using ForwardDiff
 using FiniteDiff
 
+
 @testset ExtendedTestSet "all tests" begin
     @testset "cost_models" begin
         Parameters = ff.Levelized()
@@ -293,6 +294,25 @@ using FiniteDiff
             # test with two directions
             upstream_turbines = ff.find_upstream_turbines(turbinex, turbiney, winddirection, diameter, inverse=false)
             @test upstream_turbines == [[1, 2],[1]]
+        end
+
+        @testset "random_start_polygon" begin
+            # set up polygon 
+            boundary_vertices = [0.0 0.0; 0.0 1.0; 1.0 1.0; 0.0 0.0].*10
+
+            # run function 
+            npoints = 3
+            diameter = 1
+            turbinex, turbiney = ff.random_start_polygon(diameter, boundary_vertices, npoints)
+
+            # test we got the right number of turbines 
+            @test length(turbinex) == npoints
+
+            # test that the turbines are all inside the boundary 
+            @test all([ff.pointinpolygon([turbinex[i], turbiney[i]], boundary_vertices, return_distance=false) for i in 1:npoints] .== [-1, -1, -1])
+
+            # test that the turbines are all the correct distance from each other 
+            @test all(ff.turbine_spacing(turbinex, turbiney) .>= 2.0)
         end
 
         @testset "point in polygon" begin

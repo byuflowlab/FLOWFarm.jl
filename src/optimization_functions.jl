@@ -526,16 +526,18 @@ function VR_boundary(bndry_x_clsd, bndry_y_clsd, start_dist, turb_spacing, num_t
     curr_seg = 1
     for i in 1:num_segs   # Looping through the segments till we get there
         curr_seg = i
-        if (bndry_seg_length[i] < leg_remaining)  # If this segment length is less than the start length
+        if (bndry_seg_length[i] <= leg_remaining)  # If this segment length is less than the start length
             leg_remaining -= bndry_seg_length[i]  # Clip the start length and move to the next one
         else                                        # Otherwise the start point is on this segment
             percent_to_start = leg_remaining / bndry_seg_length[i] # How far along our segment we are
+
             # Translate how far along the segment we are to actual x- y-coords
             turbine_x[1] = bndry_x_clsd[i] + ((bndry_x_clsd[i+1] - bndry_x_clsd[i]) * percent_to_start)
             turbine_y[1] = bndry_y_clsd[i] + ((bndry_y_clsd[i+1] - bndry_y_clsd[i]) * percent_to_start)
             break
         end
     end
+
     # Get how much distance is left on this leg after the starting point
     percent_left_of_segment = 1 - abs((turbine_x[1] - bndry_x_clsd[curr_seg]) / (bndry_x_clsd[curr_seg+1] - bndry_x_clsd[curr_seg]))
     seg_remaining = bndry_seg_length[curr_seg] * percent_left_of_segment
@@ -607,11 +609,11 @@ function iea37cs4BndryVRIntPM(bndry_x_clsd, bndry_y_clsd, bndry_corner_indicies,
     #-- Initialize interior space --#w
     num_sides = length(bndry_corner_indicies)-1
     #- Get the x-values -#
-    x_min_indx = 3                      # Default to work w/ squared boundaries
+    x_min_indx = argmin(bndry_x_clsd)    #3                      # Default to work w/ squared boundaries
     if num_sides == 3                   # If we only have 3 corners
         x_min_indx = 2                  # denote that it's a triangle boundary
     end
-    x_max = bndry_x_clsd[bndry_corner_indicies[1]]           # Our maximum x-value
+    x_max = maximum(bndry_x_clsd)    #bndry_x_clsd[bndry_corner_indicies[1]]           # Our maximum x-value
     x_min = bndry_x_clsd[bndry_corner_indicies[x_min_indx]]  # Our min x-value
     turbine_x[num_bndry_turbs+1:end] = (x_max - x_min)*rand(Float64, num_interior_turbs) .+ x_min # Get random x-values for the interior turbines
 
@@ -622,12 +624,13 @@ function iea37cs4BndryVRIntPM(bndry_x_clsd, bndry_y_clsd, bndry_corner_indicies,
     while (i <= num_tot_turbs)
         # Get the max and min y-value for this x-value
         y_min, y_max = getUpDwnYvals(turbine_x[i], bndry_x_clsd, bndry_y_clsd, bndry_corner_indicies)
+        println("$i ")
         # Generate a random y-value within these limits
         turbine_y[i] = (y_max - y_min)*rand(Float64) + y_min # Get a random number in our bounds
         #- Check it doesn't conflict with aleady placed turbines -#
         for j in 1:(i-1) # Check the new ones we've place so far
             # If this turbine has a proximity conflict
-            if (coordDist(turbine_x[i], turbine_y[i], turbine_x[j], turbine_y[j]) < turb_min_space)
+            if (coordDist(turbine_x[i], turbine_y[i], turbine_x[j], turbine_y[j]) < turb_min_space) || isapprox(y_max, y_min, atol=1.0)
                 turbine_x[i] = (x_max - x_min)*rand(Float64) + x_min # Give it a new x-val
                 i = i-1 # Redo the y-val too
                 break # Stop checking for conflicts and redo the y-value

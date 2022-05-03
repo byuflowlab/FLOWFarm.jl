@@ -1252,6 +1252,59 @@ function generate_round_layouts(nlayouts, rotor_diameter; farm_center=0., farm_d
     end
 end
 
+function random_start_polygon(rotor_diameter, boundary_vertices, nturbines; min_spacing=2., verbose=false)
+
+    # initialize output
+    turbinex = zeros(nturbines)
+    turbiney = zeros(nturbines)
+
+    # get general bounds
+    maxx = maximum(boundary_vertices[:,1])
+    minx = minimum(boundary_vertices[:,1])
+    maxy = maximum(boundary_vertices[:,2])
+    miny = minimum(boundary_vertices[:,2])
+
+    # generate random points within the wind farm boundary
+    for i = 1:nturbines
+
+        # initialize bool exit flag
+        good_point = false
+
+        # try this until a good point is found
+        while !good_point
+
+            # generate random point in containing rectangle
+            turbinex[i] = rand(minx:maxx)
+            turbiney[i] = rand(miny:maxy)
+
+            # determine if the point is inside the wind farm boundary
+            inout = pointinpolygon([turbinex[i], turbiney[i]], boundary_vertices, return_distance=false)
+            
+            # assign bool flag based on if the point is inside the polygon
+            if inout == -1
+                good_point = true
+            else
+                good_point = false
+            end
+
+            if good_point
+                # check turbine spacing 
+                spacing = turbine_spacing(turbinex[1:i], turbiney[1:i])
+
+                # assign bool flag based on if the point is too close to another point
+                if all(spacing .>= min_spacing)
+                    good_point = true
+                else
+                    good_point = false
+                end
+            end
+
+        end
+        verbose && println("i, ")
+    end
+    return turbinex, turbiney
+end
+
 """
     pointonline(p, v1, v2; tol=1E-6)
 
