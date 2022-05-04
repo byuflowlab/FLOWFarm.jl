@@ -32,21 +32,6 @@ end
 LocalTIModelMaxTI(x, y) = LocalTIModelMaxTI(x, y, 0.3837, 0.003678)
 LocalTIModelMaxTI() = LocalTIModelMaxTI(2.32, 0.154, 0.3837, 0.003678)
 
-"""
-    LocalTIModelMaxTI(astar, bstar, k1, k2)
-
-Calculate local turbulence intensity using the model presented in Niayifar and 
-Porte Agel (2015, 2016)
-
-# Arguments
-- `astar::Float`: wake spreading parameter from Bastankhah and Porte-Agel Gaussian wake model
-- `bstar::Float`: wake spreading parameter from Bastankhah and Porte-Agel Gaussian wake model
-- `k1::Float`: slope of k vs TI curve
-- `k2::Float`: vertical offset of k vs TI curve
-"""
-struct CrespoHernandezTI{} <: AbstractLocalTurbulenceIntensityModel
-end
-
 
 """
     calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
