@@ -1,5 +1,4 @@
-
-
+using Statistics
 function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::Vector{T1}, turbine_z::Vector{T2}, rotor_diameter::Vector{T3}, hub_height::Vector{T4}, turbine_yaw::Vector{T5},
     sorted_turbine_index::Vector{Int}, ct_model::Vector{<:AbstractThrustCoefficientModel}, rotor_sample_points_y::Vector{T6}, rotor_sample_points_z::Vector{T6}, wind_resource,
     model_set::AbstractModelSet, turbine_velocities::Vector{T7},
@@ -16,8 +15,9 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
     C = zeros(arr_type,n_turbines,n_turbines)
     point_velocities = zeros(arr_type,n_turbines,n_rotor_sample_points)
     point_velocities .= U_inf
-
     deficits = zeros(arr_type,n_turbines,n_rotor_sample_points)
+    deflections = zeros(arr_type,n_turbines,n_turbines)
+    sigma = zeros(arr_type,n_turbines,n_turbines)
 
     ambient_ti = wind_resource.ambient_tis[wind_farm_state_id]
 
@@ -27,14 +27,17 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
 
     # loop over all turbines (n)
     for n=1:n_turbines
-        sum_C = 0
         current_turbine_id = Int(sorted_turbine_index[n])
         x_n = turbine_x[current_turbine_id]
         y_n = turbine_y[current_turbine_id]
         z_n = turbine_z[current_turbine_id] + hub_height[current_turbine_id]
 
         # update current turbine velocity from sample points
-        turbine_velocities[current_turbine_id] = sum(point_velocities[current_turbine_id,:]) / n_rotor_sample_points
+        tot = 0
+        for t = 1:n_rotor_sample_points
+            tot += point_velocities[current_turbine_id,t]
+        end
+        turbine_velocities[current_turbine_id] = tot / n_rotor_sample_points
 
         # update coefficient of thrust for current turbine
         turbine_ct[current_turbine_id] = calculate_ct(turbine_velocities[current_turbine_id], ct_model[current_turbine_id])
@@ -55,38 +58,52 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
                 y = turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y*cos(turbine_yaw[downwind_turbine_id])
                 z = turbine_z[downwind_turbine_id] .+ hub_height[downwind_turbine_id] + local_rotor_sample_point_z
 
-                x_tilde_n = abs(x - x_n) / rotor_diameter[current_turbine_id]
+                x_tilde_n = (x - x_n) / rotor_diameter[current_turbine_id]
+
                 m = a_f*exp(b_f*x_tilde_n)+c_f
                 a1 = 2^(2/m - 1)
                 a2 = 2^(4/m - 2)
 
-                sigma_n = wake_expansion(turbine_ct[current_turbine_id],turbine_local_ti[current_turbine_id],x_tilde_n,model_set.wake_deficit_model)
-                dy = 0
+                if p == 1
+                    dy = wake_deflection_model(x, y, z, turbine_x, turbine_yaw, turbine_ct,
+                        current_turbine_id, rotor_diameter, turbine_local_ti, model_set.wake_deflection_model)
+                    deflections[current_turbine_id,downwind_turbine_id] = dy
+
+                    sigma_n = wake_expansion(turbine_ct[current_turbine_id],turbine_local_ti[current_turbine_id],x_tilde_n,model_set.wake_deficit_model)
+                    sigma[current_turbine_id,downwind_turbine_id] = sigma_n
+                else
+                    dy = deflections[current_turbine_id,downwind_turbine_id]
+                    sigma_n = sigma[current_turbine_id,downwind_turbine_id]
+                end
+
+                sum_C = 0
                 for i = 1:n-1
                     other_turbine_id = Int(sorted_turbine_index[i])
-                    x_i = turbine_x[other_turbine_id]
+
                     y_i = turbine_y[other_turbine_id]
-                    z_i = turbine_z[other_turbine_id] + hub_height[current_turbine_id]
+                    z_i = turbine_z[other_turbine_id] + hub_height[other_turbine_id]
 
-                    x_tilde_i = abs(x - x_i) / rotor_diameter[current_turbine_id]
-                    sigma_i = wake_expansion(turbine_ct[other_turbine_id],turbine_local_ti[other_turbine_id],x_tilde_i,model_set.wake_deficit_model)
-                    # calculate wake deflection of the current wake at the point of interest
-                    dy = wake_deflection_model(x, y, z, turbine_x, turbine_yaw, turbine_ct,
-                        other_turbine_id, rotor_diameter, turbine_local_ti, model_set.wake_deflection_model)
+                    sigma_i = sigma[other_turbine_id,current_turbine_id]
                     
-                    lambda_n_i = sigma_n^2/(sigma_n^2+sigma_i^2) * exp(-(y_n-y_i-dy)^2/(2*(sigma_n^2+sigma_i^2))) * exp(-((z_n-z_i)^2)/(2*(sigma_n^2+sigma_i^2)))
+                    dy_i = deflections[other_turbine_id,current_turbine_id]
 
-                    sum_C += lambda_n_i * C[other_turbine_id,current_turbine_id] / U_inf
+                    lambda_n_i = sigma_n^2/(sigma_n^2+sigma_i^2) * exp(-((y_n-y_i-dy_i)^2 + (z_n-z_i)^2)/(2*(sigma_n^2+sigma_i^2)))
+
+                    sum_C += lambda_n_i * C[other_turbine_id,current_turbine_id]
                 end
-                calc = a2 - (m*turbine_ct[current_turbine_id]*cos(turbine_yaw[current_turbine_id]))/(16.0*gamma(2/m)*sign(sigma_n)*(abs(sigma_n)^(4/m))*(1-sum_C)^2)
+                calc = a2 - (m*turbine_ct[current_turbine_id]*cos(turbine_yaw[current_turbine_id]))/(16.0*gamma(2/m)*sign(sigma_n)*(abs(sigma_n)^(4/m))*(1-sum_C/U_inf)^2)
                 if calc < 0
                     calc = 0
                 end
-                C_point = (1-sum_C) * (a1-sqrt(calc))
+                C_point = (1-sum_C/U_inf) * (a1-sqrt(calc))
+
                 r_tilde = sqrt((y-y_n-dy)^2 + (z-z_n)^2)/rotor_diameter[current_turbine_id]
+
                 velDef = C_point*exp(-1 * (r_tilde^m)/(2*sigma_n^2))
                 deficits[downwind_turbine_id,p] += velDef * turbine_velocities[current_turbine_id]
-                point_velocities[downwind_turbine_id,p] = U_inf - deficits[downwind_turbine_id,p]
+                if d == n+1
+                    point_velocities[downwind_turbine_id,p] = U_inf - deficits[downwind_turbine_id,p]
+                end
                 if p == 1
                     C[current_turbine_id,downwind_turbine_id] = C_point
                 end
@@ -100,6 +117,5 @@ function wake_expansion(Ct,TI,x_tilde,model)
     epsilon = (model.c_s1*Ct+model.c_s2)*sqrt(beta)
     k = model.a_s*TI+model.b_s
     sigma = k*x_tilde+epsilon
-
     return sigma
 end
