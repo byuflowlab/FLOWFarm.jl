@@ -550,6 +550,70 @@ function _gauss_yaw_discontinuity(dt, x0, ky, kz, yaw, ct)
     return discontinuity_point
 end
 
+function Wake_rotation(top, dy, dz, D)
+    b = 2*pi*(dy^2+dz^2)
+    c = 1-exp((-(dy^2-dz)^2)/(0.3*D)^2)
+    return (top/b)*c
+end
+
+function top_vorticity(top, dy, dz, r)
+    b = 2*pi*(dy^2 + (dz-r)^2)
+    c = 1 - exp((-(dy^2-(dz-r))^2)/(0.3*D)^2)
+    return (top/b)*c
+end
+
+function bot_vorticity(top, dy, dz, r)
+    b = 2*pi*(dy^2 + (dz+r)^2)
+    c = 1 - exp((-(dy^2-(dz+r))^2)/(0.3*D)^2)
+    return (top/b)*c
+end
+
+function decay(V_wake, W_wake, dx, U_inf, z, U_top, U_bot, D)
+    a = (0.3*D)^2
+    du = U_top-U_bot
+    V_t = (((0.41*z)/(1+(0.41*z/(D/8))))^2)*abs(du/D)
+    b = a/((4*V_t*(dx/U_inf))+a)
+    V = V_wake*b
+    W = W_wake*b
+    return V, W
+end
+
+function _gch_ti_calc(ti, dz, dy, dx, tilt, U_inf, U_top, U_bot, D, lambda, C_T, rho, z, U_avg)
+
+    a = (1/(2*cos(tilt)))*(1-sqrt(1-(C_T*cos(tilt))))
+    Gamma_wr = (pi*(a-a^2)*U_inf*D)/lambda
+
+    # find vertical and spanwise component of velocity induced by the wake rotation
+    V_wr = Wake_rotation(Gamma_wr*dz, dy, dz, D)
+    W_wr = Wake_rotation(-Gamma_wr*dy, dy, dz, D)
+
+    # find the vertical and spanwise components of velocity induced at the top and bottom of the wake
+    Gamma_top = (pi/8)*rho*D*U_top*C_T*sin(tilt)*(cos(tilt))^2
+    Gamma_bot = (pi/8)*rho*D*U_bot*C_T*sin(tilt)*(cos(tilt))^2
+    Gamma = (pi/8)*rho*D*U_inf*C_T*sin(tilt)*(cos(tilt))^2
+    V_top = top_vorticity(Gamma*(dz+(D/2)), dy, dz, D/2)
+    W_top = top_vorticity(-Gamma_top*dy, dy, dz, D/2)
+    V_bot = bot_vorticity(Gamma*(dz-(D/2)), dy, dz, D/2)
+    W_bot = bot_borticity(-Gamma_bot*dy, dy, dz, D/2)
+
+    # Linearly add all vertical and spanwise velocity components
+    V_wake = V_wr + V_bot + V_top
+    W_wake = W_wr + W_bot + W_top
+
+    # include the decay in the vortices as they go downstream
+    V, W = decay(V_wake, W_wake, dx, U_inf, z, U_top, U_bot, D)
+
+    # Should this be ambient ti? or local ambient ti?
+    k = ((U_avg*ti)^2)/(2/3)
+    u = sqrt(2*k)
+    TKE = 0.5*((u^2) + (V^2) + (W^2))
+
+    # What should U_i be set to?
+    U_i = U_avg
+    ti_eff = sqrt((2/3)*TKE/U_i)
+    return ti_eff
+end
+
 function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, wf)
 
     if dx > 1E-6 # loss in the wake
@@ -649,6 +713,7 @@ Computes the wake deficit at a given location using the The Gaussian wake model 
 """
 function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_tilt, model::GaussTilt)
 
+    # need U_inf, lambda(tip-speed-ratio of turbine), C_T, rho, U_top, U_bot, U_avg
     dx = locx-turbine_x[upstream_turbine_id]
     dy = locy-(turbine_y[upstream_turbine_id]+deflection_y)
     dz = locz-(turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
@@ -660,14 +725,17 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
 
     # extract model parameters
     # ks = model.k_star       # wake spread rate (k* in 2014 paper)
-    ti = turbine_local_ti[upstream_turbine_id]
+    ti = turbine_local_ti[upstream_turbine_id]      # ambient ti
+    # find adjusted ti with GCH
+    ti_eff = _gch_ti_calc(locz)
+
     ky = model.horizontal_spread_rate
     kz = model.vertical_spread_rate
     as = model.alpha_star
     bs = model.beta_star
     wec_factor = model.wec_factor[1]
 
-    loss = _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky, kz, wec_factor)
+    loss = _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti_eff, as, bs, ky, kz, wec_factor)
 
     return loss
 
