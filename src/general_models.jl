@@ -140,7 +140,44 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
 end
 
 """
-    point_velocity_tilt(loc, turbine_x, turbine_y, turbine_z, turbine_tilt, turbine_ct, turbine_ai,
+    wake_added_tilt(loc, turbine_x, turbine_y, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
+    rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
+    wind_resource, model_set::AbstractModelSet;
+    wind_farm_state_id=1, downwind_turbine_id=0)
+
+Calculates the added tilt due to secondary wake steering
+
+# Arguments
+- `U_inf::Float`: streamwise wind velocity at turbine being compared to
+- `W::Float`: vertical spanwise wind velocity at turbine being compared to
+- `U_inf_initial::Float`: streamwise wind velocity of wind farm
+- `deltay::Float`: distance in y-direction between turbine of interest and turbine being compared to
+- `z_i::Float`: vertical location of center of turbine being compared to
+- `rotor_diameter::Float`: rotor diameter of turbine being comapared to
+- `hub_height::Float`: hub height of turbine being compared to
+- `cT::Float`: coefficient of thrust for turbine being compared to
+- `axial_induction::Float`: axial induction factor for turbine being compared to
+"""
+function wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, hub_height, cT, TSR, axial_induction, scale=1.0)
+
+    # turbine parameters
+    D = rotor_diameter
+    HH = hub_height
+    ai = axial_induction
+    avgW = W
+
+    # flow parameters
+    Uinf = U_inf_initial
+
+    # find velocity at top and bottom of rotor swept area
+
+    added_tilt = 1
+
+    return added_tilt
+end
+
+"""
+    point_velocity_tilt(loc, turbine_x, turbine_y, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
     wind_resource, model_set::AbstractModelSet;
     wind_farm_state_id=1, downwind_turbine_id=0)
@@ -224,7 +261,8 @@ function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, 
             if upwind_turb_id==downwind_turbine_id; continue; end
 
             # find the added tilt angle due to the vortices
-            # added_tilt = wake_added_tilt()
+            added_tilt = wake_added_tilt()
+            turbine_tilt += added_tilt
 
             # calculate wake deflection of the current wake at the point of interest
             horizontal_deflection = 0.0
@@ -377,7 +415,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
 end
 
 """
-    turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_tilt,
+    turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_tilt, TSR,
     sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
     model_set::AbstractModelSet; wind_farm_state_id=1)
 
@@ -409,7 +447,7 @@ Calculates the wind speed at a given point for a given state
 - `wind_farm_state_id::Int`: index to correct state to use from wind resource provided.
     Defaults to 1
 """
-function turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_tilt,
+function turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_tilt, TSR,
                     sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set::AbstractModelSet; wind_farm_state_id=1, velocity_only=true)
     
@@ -452,7 +490,7 @@ function turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, 
             locz = turbine_z[downwind_turbine_id] .+ hub_height[downwind_turbine_id] .+ local_rotor_sample_point_z*cos(turbine_tilt[downwind_turbine_id])
 
             # calculate the velocity at given point
-            point_velocity_with_shear = point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_tilt, turbine_ct, turbine_ai,
+            point_velocity_with_shear = point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
                                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, turbine_velocities,
                                     wind_resource, model_set,
                                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=downwind_turbine_id)
@@ -776,7 +814,7 @@ function calculate_flow_field_tilt(xrange, yrange, zrange,
     # sort the turbines
     sorted_turbine_index = sortperm(rot_tx)
 
-    turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = turbine_velocities_one_direction_tilt(rot_tx, rot_ty, turbine_z, rotor_diameter, hub_height, turbine_tilt,
+    turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = turbine_velocities_one_direction_tilt(rot_tx, rot_ty, turbine_z, rotor_diameter, hub_height, turbine_tilt, TSR,
     sorted_turbine_index, ct_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
     model_set, wind_farm_state_id=wind_farm_state_id, velocity_only=false)
 
