@@ -172,7 +172,7 @@ Calculates the wind speed at a given point for a given state (with tilt)
 - `downwind_turbine_id::Int`: index of wind turbine of interest (if any). If not a point for
     calculating effective wind speed of a turbine, then provide 0 (default)
 """
-function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_tilt, turbine_ct, turbine_ai,
+function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
                     wind_resource, model_set::AbstractModelSet;
                     wind_farm_state_id=1, downwind_turbine_id=0)
@@ -222,6 +222,9 @@ function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, 
         if x > 1E-6
             # skip this loop if it would include a turbine's impact on itself)
             if upwind_turb_id==downwind_turbine_id; continue; end
+
+            # find the added tilt angle due to the vortices
+            # added_tilt = wake_added_tilt()
 
             # calculate wake deflection of the current wake at the point of interest
             horizontal_deflection = 0.0
@@ -351,7 +354,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         turbine_ct[downwind_turbine_id] = calculate_ct(turbine_velocities[downwind_turbine_id], ct_model[downwind_turbine_id])
 
         # update axial induction for downstream turbine
-        turbine_ai[downwind_turbine_id] = _ct_to_axial_ind_func(turbine_ct[downwind_turbine_id])
+        turbine_ai[downwind_turbine_id] = _ct_to_axial_ind_func(turbine_ct[downwind_turbine_id], turbine_yaw[downwind_turbine_id])
 
         # get local turbulence intensity for this wind state
         ambient_ti = wind_resource.ambient_tis[wind_farm_state_id]
@@ -468,7 +471,7 @@ function turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, 
         turbine_ct[downwind_turbine_id] = calculate_ct(turbine_velocities[downwind_turbine_id], ct_model[downwind_turbine_id])
 
         # update axial induction for downstream turbine
-        turbine_ai[downwind_turbine_id] = _ct_to_axial_ind_func(turbine_ct[downwind_turbine_id])
+        turbine_ai[downwind_turbine_id] = _ct_to_axial_ind_func(turbine_ct[downwind_turbine_id], turbine_yaw[downwind_turbine_id])
 
         # get local turbulence intensity for this wind state
         ambient_ti = wind_resource.ambient_tis[wind_farm_state_id]
@@ -555,7 +558,7 @@ function turbine_velocities_one_direction(x, turbine_z, rotor_diameter, hub_heig
         turbine_ct[downwind_turbine_id] = calculate_ct(turbine_velocities[downwind_turbine_id], ct_model[downwind_turbine_id])
 
         # update axial induction for downstream turbine
-        turbine_ai[downwind_turbine_id] = _ct_to_axial_ind_func(turbine_ct[downwind_turbine_id])
+        turbine_ai[downwind_turbine_id] = _ct_to_axial_ind_func(turbine_ct[downwind_turbine_id], turbine_yaw[downwind_turbine_id])
 
         # update local turbulence intensity for downstream turbine
         ambient_ti = wind_resource.ambient_tis[wind_farm_state_id]
@@ -714,7 +717,7 @@ Generates a flow field for a given state and cross section
 """
 
 function calculate_flow_field_tilt(xrange, yrange, zrange,
-    model_set::AbstractModelSet, turbine_x, turbine_y, turbine_z, turbine_tilt, turbine_ct, turbine_ai,
+    model_set::AbstractModelSet, turbine_x, turbine_y, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
     wind_resource; wind_farm_state_id=1)
 
@@ -739,7 +742,7 @@ function calculate_flow_field_tilt(xrange, yrange, zrange,
                 locz = zrange[zi]
                 locx, locy = rotate_to_wind_direction(locx, locy, wind_resource.wind_directions[wind_farm_state_id])
 
-                point_velocities[zi, yi, xi] = point_velocity_tilt(locx, locy, locz, rot_tx, rot_ty, turbine_z, turbine_tilt, turbine_ct, turbine_ai,
+                point_velocities[zi, yi, xi] = point_velocity_tilt(locx, locy, locz, rot_tx, rot_ty, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
                     wind_resource, model_set,
                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=0)
@@ -764,7 +767,7 @@ end
 
 function calculate_flow_field_tilt(xrange, yrange, zrange,
     model_set::AbstractModelSet, turbine_x, turbine_y, turbine_z, turbine_tilt,
-    rotor_diameter, hub_height, ct_models, rotor_sample_points_y, rotor_sample_points_z,
+    rotor_diameter, hub_height, ct_models, TSR, rotor_sample_points_y, rotor_sample_points_z,
     wind_resource; wind_farm_state_id=1)
 
     # rotate to direction frame for velocity calculations
@@ -778,7 +781,7 @@ function calculate_flow_field_tilt(xrange, yrange, zrange,
     model_set, wind_farm_state_id=wind_farm_state_id, velocity_only=false)
 
     return calculate_flow_field_tilt(xrange, yrange, zrange,
-        model_set, turbine_x, turbine_y, turbine_z, turbine_tilt, turbine_ct, turbine_ai,
+        model_set, turbine_x, turbine_y, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
         rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, turbine_velocities,
         wind_resource, wind_farm_state_id=wind_farm_state_id)
 

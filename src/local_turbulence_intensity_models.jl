@@ -129,11 +129,16 @@ function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, ksta
 
     # only include turbines with area overlap in the softmax
     if wake_overlap > 0.0
-        # Calculate the turbulence added to the inflow of the downstream turbine by the
-        # wake of the upstream turbine based on Crespo, A.; Hernandez, J. Turbulence 
-        # characteristics in wind-turbine wakes. J. Wind Eng. Ind. Aerodyn. 1996,
-        # 61, 71–85.
-        ti_added = 0.73*(axial_induction_ust^0.8325)*(ti_ust^0.0325)*((x/d_ust)^(-0.32))
+        # # Calculate the turbulence added to the inflow of the downstream turbine by the
+        # # wake of the upstream turbine based on Crespo, A.; Hernandez, J. Turbulence 
+        # # characteristics in wind-turbine wakes. J. Wind Eng. Ind. Aerodyn. 1996,
+        # # 61, 71–85.
+        # ti_added = 0.73*(axial_induction_ust^0.8325)*(ti_ust^0.0325)*((x/d_ust)^(-0.32))
+
+        # ti_added equation can have slightly different values that have been tuned to 
+        # large-eddy simulations based on Jennifer King et al.; Control-oriented model for
+        # secondary effects of wake steering. J. Wind Energ. Sci. 2021, 6, 701-714.
+        ti_added = 0.5*(axial_induction_ust^0.8)*(ti_ust^0.1)*((x/d_ust)^(-0.32))
 
         rotor_area_dst = 0.25*pi*d_dst^2
         ti_area_ratio_tmp = ti_added*(wake_overlap/rotor_area_dst)

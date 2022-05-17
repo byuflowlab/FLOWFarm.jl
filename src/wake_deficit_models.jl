@@ -571,6 +571,10 @@ end
 function decay(V_wake, W_wake, dx, U_inf, z, U_top, U_bot, D)
     a = (0.3*D)^2
     du = U_top-U_bot
+
+    # to find abs(du/D) look at line 401-410 in gauss.py 
+    # https://github.com/NREL/floris/blob/fa9f63e18235ef627c772fde9845b427bdfb0d66/floris/simulation/wake_deflection/gauss.py#L475
+
     V_t = (((0.41*z)/(1+(0.41*z/(D/8))))^2)*abs(du/D)
     b = a/((4*V_t*(dx/U_inf))+a)
     V = V_wake*b
@@ -596,6 +600,10 @@ function _gch_ti_calc(ti, dz, dy, dx, tilt, U_inf, U_top, U_bot, D, lambda, C_T,
     V_bot = bot_vorticity(Gamma*(dz-(D/2)), dy, dz, D/2)
     W_bot = bot_borticity(-Gamma_bot*dy, dy, dz, D/2)
 
+    # Find the V and W with mirror vortices
+    # Lines 413 - 460 https://github.com/NREL/floris/blob/fa9f63e18235ef627c772fde9845b427bdfb0d66/floris/simulation/wake_deflection/gauss.py#L475
+
+
     # Linearly add all vertical and spanwise velocity components
     V_wake = V_wr + V_bot + V_top
     W_wake = W_wr + W_bot + W_top
@@ -604,14 +612,16 @@ function _gch_ti_calc(ti, dz, dy, dx, tilt, U_inf, U_top, U_bot, D, lambda, C_T,
     V, W = decay(V_wake, W_wake, dx, U_inf, z, U_top, U_bot, D)
 
     # Should this be ambient ti? or local ambient ti?
+    # see lines 489 - 507 https://github.com/NREL/floris/blob/fa9f63e18235ef627c772fde9845b427bdfb0d66/floris/simulation/wake_deflection/gauss.py#L475
+
     k = ((U_avg*ti)^2)/(2/3)
     u = sqrt(2*k)
     TKE = 0.5*((u^2) + (V^2) + (W^2))
 
     # What should U_i be set to?
-    U_i = U_avg
-    ti_eff = sqrt((2/3)*TKE/U_i)
-    return ti_eff
+    ti_eff = sqrt((2/3)*TKE/U_avg)
+    ti_mixing = ti_eff - ti
+    return ti_mixing
 end
 
 function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, wf)
@@ -713,6 +723,7 @@ Computes the wake deficit at a given location using the The Gaussian wake model 
 """
 function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_tilt, model::GaussTilt)
 
+    # see sequential_solver in solver.py https://github.com/NREL/floris/blob/main/floris/simulation/solver.py
     # need U_inf, lambda(tip-speed-ratio of turbine), C_T, rho, U_top, U_bot, U_avg
     dx = locx-turbine_x[upstream_turbine_id]
     dy = locy-(turbine_y[upstream_turbine_id]+deflection_y)
@@ -727,7 +738,8 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     # ks = model.k_star       # wake spread rate (k* in 2014 paper)
     ti = turbine_local_ti[upstream_turbine_id]      # ambient ti
     # find adjusted ti with GCH
-    ti_eff = _gch_ti_calc(locz)
+    ti_eff = _gch_ti_calc(ti, dz, dy, dx, tilt, U_inf, U_bot, U_top, D, lambda, C_T, rho, locz, U_avg)
+    # (ti, dz, dy, dx, tilt, U_inf, U_top, U_bot, D, lambda, C_T, rho, z, U_avg)
 
     ky = model.horizontal_spread_rate
     kz = model.vertical_spread_rate

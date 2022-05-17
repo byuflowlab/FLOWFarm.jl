@@ -83,7 +83,7 @@ Layout and Yaw-Based Wake Control"
 # Arguments
 - `ct::Float`: thrust coefficient
 """
-function _ct_to_axial_ind_func(ct)
+function _ct_to_axial_ind_func(ct, tilt)
 
     # initialize axial induction to zero
     axial_induction = 0.0
@@ -92,7 +92,7 @@ function _ct_to_axial_ind_func(ct)
     if ct > 0.96  # Glauert condition
         axial_induction = 0.143 + sqrt(0.0203 - 0.6427*(0.889 - ct))
     else
-        axial_induction = 0.5*(1.0 - sqrt(1.0 - ct))
+        axial_induction = 0.5*(1.0 - sqrt(1.0 - (ct*cos(tilt))))/(cos(tilt))
     end
 
     return axial_induction
