@@ -158,7 +158,7 @@ Calculates the added tilt due to secondary wake steering
 - `cT::Float`: coefficient of thrust for turbine being compared to
 - `axial_induction::Float`: axial induction factor for turbine being compared to
 """
-function wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, hub_height, cT, TSR, axial_induction, scale=1.0)
+function wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, hub_height, cT, TSR, axial_induction)
 
     # turbine parameters
     D = rotor_diameter
@@ -169,9 +169,53 @@ function wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, h
     # flow parameters
     Uinf = U_inf_initial
 
-    # find velocity at top and bottom of rotor swept area
+    # epsilon gain
+    eps_gain = 0.2
+    eps = eps_gain * D
 
-    added_tilt = 1
+    # find velocity at top and bottom of rotor swept area
+    vel_top = ((HH+D/2)/HH)^0.12
+    vel_bottom = ((HH-D/2)/HH)^0.12
+
+    # find Gamma at the top and bottom of the rotor swept area
+    # Gamma_top = gamma(D, vel_top, Uinf, cT)
+    Gamma_top = (pi/8)*D*Uinf*cT*vel_top                # why do we use Uinf here, should we use U_inf?
+    # Gamma_bot = -1*gamma(D, vel_bottom, Uinf, cT)
+    Gamma_bot = (pi/8)*D*Uinf*cT*vel_bottom*-1.0
+
+    # Use turbine average velocity to find Gamma due to wake rotation
+    turbine_average_velocity = U_inf
+    Gamma_wake_rotation = pi*D*(ai-ai^2)*turbine_average_velocity/TSR
+
+    ### Calculate the spanwise and vertical velocities induced by tilt ###
+    # top vortex
+    dz_top = z_i - (HH+D/2)             
+    r_top = deltay^2 + dz_top^2             
+    core_shape = 1-exp(-r_top/(eps^2))          
+    v_top = ((Gamma_top*dz_top)/(2*pi*r_top))*core_shape
+
+    # bottom vortex
+    dz_bot = z_i - (HH - D/2)
+    r_bot = deltay^2 + dz_bot^2
+    core_shape = 1-exp(-r_bot/(eps^2))
+    v_bot = ((Gamma_bot*dz_bot)/(2*pi*r_bot))*core_shape
+
+    # wake rotation vortex
+    dz_center = z_i - HH
+    r_center = deltay^2 + dz_center^2
+    core_shape = 1 - exp(-r_center/(eps^2))
+    v_center = ((Gamma_wake_rotation*dz_center)/(2*pi*r_center))*core_shape
+
+    val = 2*(avgW-v_center)/(v_top+v_bot)           # why is this multiplied by 2?
+
+    # cap the added_tilt to be between -45 and 45
+    if val > 1.0
+        val = 1.0
+    elseif val < -1.0
+        val = -1.0
+    end
+
+    added_tilt = 0.5*asin(val)              # why is this multiplied by 0.5?
 
     return added_tilt
 end
