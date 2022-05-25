@@ -729,11 +729,13 @@ function turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, 
                                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=downwind_turbine_id)
 
             # add sample point velocity to turbine velocity to be averaged later
-            wind_turbine_velocity += point_velocity_with_shear
+            wind_turbine_velocity .+= point_velocity_with_shear
             # do the same with vertical and horizontal spanwise velocities and tilt
+            print("W_adjusted: ", W_adjusted)
+            print("W_wake: ", W_wake)
             W_wake += W_adjusted
             V_wake += V_adjusted
-            Tilt += tilt_adjusted
+            Tilt .+= tilt_adjusted
 
 
         end
