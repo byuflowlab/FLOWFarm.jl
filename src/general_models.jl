@@ -746,14 +746,14 @@ function turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, 
         V_wake /= n_rotor_sample_points
         Tilt /= n_rotor_sample_points
 
-        turbine_velocities[downwind_turbine_id] = deepcopy(wind_turbine_velocity)
+        turbine_velocities[downwind_turbine_id] = wind_turbine_velocity
 
         # update tilt of upstream turbines
-        turbine_tilt = deepcopy(Tilt)
+        turbine_tilt = Tilt
 
         # update vertical and horizontal spanwise velocities for downwind turbine
-        W_sorted[downwind_turbine_id] = deepcopy(W_wake)
-        V_worted[downwind_turbine_id] = deepcopy(V_wake)
+        W_sorted[downwind_turbine_id] = W_wake
+        V_worted[downwind_turbine_id] = V_wake
 
         # update thrust coefficient for downstream turbine
         turbine_ct[downwind_turbine_id] = calculate_ct(turbine_velocities[downwind_turbine_id], ct_model[downwind_turbine_id])
