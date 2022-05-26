@@ -57,7 +57,7 @@ Returns ambient turbulence intesity value whenever local turbulence intensity is
 - `tol::Float`: How far upstream a turbine should be before being included in TI calculations
 """
 function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=1E-6)
+                    turbine_inflow_velcities, turbine_ct, tilt, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=1E-6)
     return ambient_ti
 end
 
@@ -85,7 +85,7 @@ _k_star_func(x) = _k_star_func(x, 0.3837, 0.003678)
 
 """
     _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, kstar_ust, delta_y, 
-        ti_amb, ti_ust, ti_dst, ti_area_ratio_in; s=700.0)
+        ti_amb, ti_ust, ti_dst, ti_area_ratio_in, tilt; s=700.0)
 
 Main code for calculating the local turbulence intensity at a turbine using the method of
     Niayifar and Porte Agel (2015, 2016).
@@ -103,13 +103,14 @@ Main code for calculating the local turbulence intensity at a turbine using the 
 - `ti_ust::Float`: upstream turbine local turbulence intensity
 - `ti_dst::Float`: downstream turbine local turbulence intensity
 - `ti_area_ratio_in::Float`: current value of TI-area ratio for use in calculatin local TI
+- `tilt::Float`: tilt of the current turbine
 - `s::Float`: smooth max smootheness parameter
 """
-function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, kstar_ust, delta_y, ti_amb, ti_ust, ti_dst, ti_area_ratio_in; s=700.0)
+function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, kstar_ust, delta_y, ti_amb, ti_ust, ti_dst, ti_area_ratio_in, tilt; s=700.0)
     # Niayifar and Porte Agel 2015, 2016 using smooth max on area TI ratio
 
     # calculate axial induction based on the Ct value
-    axial_induction_ust = _ct_to_axial_ind_func(ct_ust)
+    axial_induction_ust = _ct_to_axial_ind_func(ct_ust, tilt)
 
     # calculate BPA spread parameters Bastankhah and Porte Agel 2014
     beta = 0.5*((1.0 + sqrt(1.0 - ct_ust))/sqrt(1.0 - ct_ust))
@@ -184,7 +185,7 @@ Returns local turbulence intensity calculated using Niayifar and Porte Agel 2015
 - `tol::Float`: How far upstream a turbine should be before being included in TI calculations
 """
 function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                    turbine_inflow_velocities, turbine_ct, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6)
+                    turbine_inflow_velocities, turbine_ct, tilt, ti_model::LocalTIModelMaxTI; turbine_id=1, tol=1E-6)
 
     # calculate local turbulence intensity at turbI
 
@@ -195,6 +196,9 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
     # extract downstream turbine information
     d_dst = rotor_diameter[turbine_id]
     h_dst = hub_height[turbine_id]
+
+    # yaw of the turbine
+    tilt_angle = tilt[turbine_id]
 
     # extract the number of turbines
     nturbines = length(turbine_x)
@@ -254,7 +258,7 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
             ti_area_ratio_tmp = deepcopy(ti_area_ratio)
 
             # update local turbulence intensity
-            ti_dst, ti_area_ratio = _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, kstar_ust, delta_y, ambient_ti, ti_ust, ti_dst, ti_area_ratio_tmp)
+            ti_dst, ti_area_ratio = _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, kstar_ust, delta_y, ambient_ti, ti_ust, ti_dst, ti_area_ratio_tmp, tilt_angle)
             # println("ti output: ", turbine_id, " ", turb, " ", ti_area_ratio, " ", ti_dst)
         end
 

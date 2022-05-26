@@ -736,9 +736,9 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
 
     # extract model parameters
     # ks = model.k_star       # wake spread rate (k* in 2014 paper)
-    ti = turbine_local_ti[upstream_turbine_id]      # ambient ti
+    ti_eff = turbine_local_ti[upstream_turbine_id]      # ambient ti
     # find adjusted ti with GCH
-    ti_eff = _gch_ti_calc(ti, dz, dy, dx, tilt, U_inf, U_bot, U_top, D, lambda, C_T, rho, locz, U_avg)
+    # ti_eff = _gch_ti_calc(ti, dz, dy, dx, tilt, U_inf, U_bot, U_top, D, lambda, C_T, rho, locz, U_avg)
     # (ti, dz, dy, dx, tilt, U_inf, U_top, U_bot, D, lambda, C_T, rho, z, U_avg)
 
     ky = model.horizontal_spread_rate
