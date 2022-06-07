@@ -35,5 +35,4 @@ include("fatigue_model.jl")
 include("tip.jl")
 include("cost_models.jl")
 include("plotting.jl")
-include("cumulative_curl_model.jl")
 end # module
