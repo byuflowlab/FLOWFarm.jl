@@ -28,6 +28,8 @@ struct GaussYawDeflection{TF, B} <: AbstractWakeDeflectionModel
 end
 GaussYawDeflection() = GaussYawDeflection(0.022, 0.022, 2.32, 0.154, true)
 GaussYawDeflection(interp) = GaussYawDeflection(0.022, 0.022, 2.32, 0.154, interp)
+GaussYawDeflection(a,b,c,d) = GaussYawDeflection(a, b, c, d, true)
+GaussYawDeflection(a,b,c,d,interp) = GaussYawDeflection(a, b, c, d, interp)
 
 """
     GaussYawDeflectionVariableSpread(alpha_star, beta_star, k1, k2, wec_factor)
