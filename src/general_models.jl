@@ -271,8 +271,8 @@ function tilt_added_turbulence_intensity(u_i, w_i, I_i, v_i, turb_v_i, turb_w_i)
     # Convert ambient TI to TKE
     k = ((u_i*I_i)^2)/(2/3)
     u_term = sqrt(2*k)
-    v_term = sqrt(v_i + turb_v_i)
-    w_term = sqrt(w_i + turb_w_i)
+    v_term = v_i + turb_v_i
+    w_term = w_i + turb_w_i
 
     # Compute new TKE
     k_total = 0.5 * (u_term^2 + v_term^2 + w_term^2)
@@ -310,21 +310,23 @@ function wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, h
     HH = hub_height
     ai = axial_induction
     avgW = W
-
+    # print("avgW: ", avgW, "\n")
     # flow parameters
     Uinf = U_inf_initial
+    # print("U_inf_initial: ", U_inf_initial)
+    # print("U_inf: ", U_inf)
 
     # epsilon gain
     eps_gain = 0.2
     eps = eps_gain * D
 
     # find velocity at top and bottom of rotor swept area
-    print("HH: ", HH, "\n")
-    print("D: ", D, "\n")
+    # print("HH: ", HH, "\n")
+    # print("D: ", D, "\n")
     vel_top = ((HH+D/2)/HH)^0.12
     vel_bottom = ((HH-D/2)/HH)^0.12
-    print("vel_top: ", vel_top, "\n")
-    print("vel_bottom: ", vel_bottom, "\n")
+    # print("vel_top: ", vel_top, "\n")
+    # print("vel_bottom: ", vel_bottom, "\n")
 
     # find Gamma at the top and bottom of the rotor swept area
     # Gamma_top = gamma(D, vel_top, Uinf, cT)
@@ -335,6 +337,7 @@ function wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, h
     # Use turbine average velocity to find Gamma due to wake rotation
     turbine_average_velocity = U_inf
     Gamma_wake_rotation = 0.25*2.0*pi*D*(ai-ai^2)*turbine_average_velocity/TSR           # why in FLORIS do they multiply this by 0.25*2?
+    # Gamma_wake_rotation = pi*D*(ai-ai^2)*turbine_average_velocity/TSR
 
     ### Calculate the spanwise and vertical velocities induced by tilt ###
     # top vortex
@@ -355,8 +358,11 @@ function wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, h
     core_shape = 1 - exp(-r_center/(eps^2))
     w_center = ((-1*Gamma_wake_rotation*deltay)/(2*pi*r_center))*core_shape
 
+    # print("deltay: ", deltay, "\n")
+    # print("Gamma_wake_rotation: ", Gamma_wake_rotation, "\n")
     val = 2*(avgW-w_center)/(w_top+w_bot)           # why is this multiplied by 2?
-
+    # val = (avgW-w_center)/(w_top+w_bot)
+    # print("val: ", val, "\n")
     # cap the added_tilt to be between -45 and 45
     if val > 1.0
         val = 1.0
@@ -364,9 +370,10 @@ function wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, h
         val = -1.0
     end
 
-    print("val: ", val, "\n")
+    # print("val: ", val, "\n")
     added_tilt = 0.5*asin(val)              # why is this multiplied by 0.5?
 
+    # added_tilt = asin(val) 
     return added_tilt
 end
 
@@ -413,6 +420,10 @@ function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, 
     wakedeficitmodel = model_set.wake_deficit_model
     wakedeflectionmodel = model_set.wake_deflection_model
     wakecombinationmodel = model_set.wake_combination_model
+
+    # The streamwise vertical and horizonal velocities must be found for each turbine
+    # There is the effect of a turbine on itself
+    # There is the effect of upstream turbines on a downstream turbine
     
     # extract flow information
     wind_speed = wind_resource.wind_speeds[wind_farm_state_id]
@@ -441,6 +452,8 @@ function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, 
     V = 0.0
     W = 0.0
 
+    # print("NEW TURBINE", downwind_turbine_id, "\n")
+
     # loop through all turbines
     for u=1:nturbines
 
@@ -448,12 +461,33 @@ function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, 
         upwind_turb_id = Int(sorted_turbine_index[u])
 
         # don't allow turbine to impact itself
-        if upwind_turb_id == downwind_turbine_id; continue; end
+        # currently the code may be calculating the added vorticity from upstream
+        # turbines, but it should also calculate the W and V at the turbine itself
+        # if upwind_turb_id == downwind_turbine_id; continue; end
 
         # downstream distance between upstream turbine and point
         x = locx - turbine_x[upwind_turb_id]
 
         # check turbine relative locations
+        # include if statement here for when we are looking at most upstream turbine
+        # find W for this turbine to be updated ouside this point_velocity_tilt
+        # Since Ct, ai, and ti aren't updated until dV is found, the v_wake and w_wake
+        # of a turbine on itself will need to be found now that we are looking at a new
+        # turbine
+        # print("V_sorted before: ", V_sorted, "\n")
+        if upwind_turb_id == downwind_turbine_id-1
+            dx = 0.0
+            dy = 0.0
+            v_wake, w_wake = calculate_transverse_velocity(wtvelocities[upwind_turb_id], wind_speed, dx, dy, locz, rotor_diameter[upwind_turb_id], 
+            hub_height[upwind_turb_id], turbine_tilt[upwind_turb_id], turbine_ct[upwind_turb_id], TSR, turbine_ai[upwind_turb_id])
+            
+            ### SOMETHING IS WRONG HERE ###
+            ### SHOULDN'T BE JUST ADDING, NEED TO TAKE AVERAGE OF V_WAKE OVER ROTOR POINTS ###
+            V_sorted[upwind_turb_id] = (V_sorted[upwind_turb_id] + v_wake)/2
+            W_sorted[upwind_turb_id] = (W_sorted[upwind_turb_id] + w_wake)/2
+        end
+        # print("V_sorted after: ", V_sorted)
+
         if x > 1E-6
             # skip this loop if it would include a turbine's impact on itself)
             if upwind_turb_id==downwind_turbine_id; continue; end
@@ -464,18 +498,38 @@ function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, 
 
             # find the added tilt angle due to the vortices
             # TODO: update wtvelocities and turbine tilt after all the comparisons
+            # print("W_sorted: ", W_sorted, "\n")
+            # Something is wrong with W_sorted not being updated correctly
+            # This should be W_sorted from the upstream turbine to the downwind_turbine_id
+            # This means that outside of this if statement W from the upstream turbine to all
+            # downstream turbines should be calculated and updated in W_sorted.
+
+
+            # Acutally since FLOWFarm steps through a sorted list of three turbines
+            # and then compares only effects of upstream turbine on the turbine of interest
+            # we can compute w and v in a seperate for loop before this for loop and 
+            # use that to find the added_tilt. This computed w and v would go in the _gauss_yaw_potential_core
+            # of W_sorted.
+
+            # Remember that this is the added_tilt in the upwind_turb_id
+            # That means we only need W of the upstream turbines, not the downstream turbine (turbine being looked at)
+            # This means that the W for the most upstream turbine should be non-zero
+
             added_tilt = wake_added_tilt(wtvelocities[upwind_turb_id], W_sorted[upwind_turb_id], wind_speed, deltay, 
             locz, rotor_diameter[upwind_turb_id], hub_height[upwind_turb_id], turbine_ct[upwind_turb_id], TSR, turbine_ai[upwind_turb_id])
+            
+            
 
-            print("added tilt")
-            print(added_tilt)
-
-            turbine_tilt[upwind_turb_id] += added_tilt
-
+            # added_tilt only applies to calculating the wake deflection, no velocity deficit
+            # the added ti and actual tilt angle are what are used to find the added wake recovery
+            # in the velocity deficit equation. Therefore, set the added_tilt as a seperate variable.
+            effective_tilt = deepcopy(turbine_tilt)
+            effective_tilt[upwind_turb_id] = turbine_tilt[upwind_turb_id] + added_tilt
+            # turbine_tilt[upwind_turb_id] += added_tilt
             # calculate wake deflection of the current wake at the point of interest
             horizontal_deflection = 0.0
 
-            vertical_deflection = wake_deflection_model(locx, locy, locz, turbine_x, turbine_tilt, turbine_ct,
+            vertical_deflection = wake_deflection_model(locx, locy, locz, turbine_x, effective_tilt, turbine_ct,
             upwind_turb_id, rotor_diameter, turbine_local_ti, wakedeflectionmodel)
 
             # find the vertical and horizontal spanwise velocities
@@ -492,15 +546,16 @@ function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, 
             v_wake, w_wake = calculate_transverse_velocity(wtvelocities[upwind_turb_id], wind_speed, dx, dy, locz, rotor_diameter[upwind_turb_id], 
             hub_height[upwind_turb_id], turbine_tilt[upwind_turb_id], turbine_ct[upwind_turb_id], TSR, turbine_ai[upwind_turb_id])
 
-            print("v_wake: ", v_wake, "\n")
-            print("w_wake: ", w_wake, "\n")
+            # print("v_wake: ", v_wake, "\n")
+            # print("w_wake: ", w_wake, "\n")
             V += v_wake
             W += w_wake
-
+            # print("W: ", W, "\n")
             # find the TI mixing induced by the tilt
+            # Instead of v_wake, w_wake, this should be W_sorted[upwind_turb_id] and V_sorted[upwind_turb_id]
             I_mixing = tilt_added_turbulence_intensity(wtvelocities[upwind_turb_id], W_sorted[upwind_turb_id], turbine_local_ti[upwind_turb_id], 
             V_sorted[upwind_turb_id], v_wake, w_wake)
-            print("I_mixing: ", I_mixing, "\n")
+            # print("I_mixing: ", I_mixing, "\n")
 
             # What to set gch_gain to?
             gch_gain = 2
@@ -527,8 +582,11 @@ function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, 
     else
         point_velocity_out = adjust_for_wind_shear(locz, point_velocity, reference_height, ground_height, wind_resource.wind_shear_model)        
     end
-
-    return point_velocity_out, turbine_tilt, W, V
+    
+    # this will return W and V at the turbine being looked at
+    # so that it can be updated when it is being looked at as an upstream
+    # turbine
+    return point_velocity_out, W_sorted, V_sorted
 
 end
 
@@ -714,12 +772,33 @@ function turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, 
         wind_turbine_velocity = 0.0
 
         # initialize vertical and horizontal spanwise velocity to zero
-        W_wake = 0.0
-        V_wake = 0.0
+        W_wake = zeros(arr_type, n_turbines)
+        V_wake = zeros(arr_type, n_turbines)
 
         # initialize adjusted tilt to zero
-        Tilt = zeros(arr_type, n_turbines)
+        # Tilt = zeros(arr_type, n_turbines)
         # turbine_velocities[downwind_turbine_id] = 0.0
+
+        # Calculate initial Ct, ai, and ti for most upstream turbine because
+        # these values are needed in finding W and V in point_velocity_tilt
+        # if d == 1
+
+        #     ##### IS THE TURBINE TILT HERE THE EFFECTIVE TILT OR NORMAL TILT?   ######
+        #     ##### PRETTY SURE THE EFFECTIVE TILT IS ONLY USED IN DEFLECTION CALC #####
+        #     velocities = wind_resource.wind_speeds[wind_farm_state_id]
+        #     # update thrust coefficient for downstream turbine
+        #     turbine_ct[downwind_turbine_id] = calculate_ct(velocities[downwind_turbine_id], ct_model[downwind_turbine_id])
+
+        #     # update axial induction for downstream turbine
+        #     turbine_ai[downwind_turbine_id] = _ct_to_axial_ind_func(turbine_ct[downwind_turbine_id], turbine_tilt[downwind_turbine_id])
+
+        #     # get local turbulence intensity for this wind state
+        #     ambient_ti = wind_resource.ambient_tis[wind_farm_state_id]
+            
+        #     # update local turbulence intensity for downstream turbine
+        #     turbine_local_ti[downwind_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_tilt, turbine_local_ti, sorted_turbine_index,
+        #                         velocities, turbine_ct, turbine_tilt, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=1E-6)
+        # end
 
         # loop over all rotor sample points to approximate the effective inflow velocity
         for p=1:n_rotor_sample_points
@@ -734,7 +813,7 @@ function turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, 
             locz = turbine_z[downwind_turbine_id] .+ hub_height[downwind_turbine_id] .+ local_rotor_sample_point_z*cos(turbine_tilt[downwind_turbine_id])
 
             # calculate the velocity at given point
-            point_velocity_with_shear, tilt_adjusted, W_adjusted, V_adjusted = point_velocity_tilt(locx, locy, locz, turbine_x, 
+            point_velocity_with_shear, W_adjusted, V_adjusted = point_velocity_tilt(locx, locy, locz, turbine_x, 
                                     turbine_y, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
                                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, turbine_velocities,
                                     W_sorted, V_sorted, wind_resource, model_set,
@@ -743,11 +822,11 @@ function turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, 
             # add sample point velocity to turbine velocity to be averaged later
             wind_turbine_velocity += point_velocity_with_shear
             # do the same with vertical and horizontal spanwise velocities and tilt
-            print("W_adjusted: ", W_adjusted)
-            print("W_wake: ", W_wake)
-            W_wake += W_adjusted
-            V_wake += V_adjusted
-            Tilt .+= tilt_adjusted
+            # print("W_adjusted: ", W_adjusted)
+            # print("W_wake: ", W_wake)
+            W_wake .+= W_adjusted
+            V_wake .+= V_adjusted
+            # Tilt .+= tilt_adjusted
 
 
         end
@@ -756,16 +835,18 @@ function turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, 
         wind_turbine_velocity /= n_rotor_sample_points
         W_wake /= n_rotor_sample_points
         V_wake /= n_rotor_sample_points
-        Tilt /= n_rotor_sample_points
+        # Tilt /= n_rotor_sample_points
 
         turbine_velocities[downwind_turbine_id] = wind_turbine_velocity
 
-        # update tilt of upstream turbines
-        turbine_tilt = Tilt
+        # update tilt of upstream/all turbines
+        # turbine_tilt = Tilt
 
         # update vertical and horizontal spanwise velocities for downwind turbine
-        W_sorted[downwind_turbine_id] = W_wake
-        V_sorted[downwind_turbine_id] = V_wake
+        W_sorted = W_wake
+        V_sorted = V_wake
+        # print("W_sorted_out: ", W_sorted, "\n")
+        # print("V_sorted_out: ", V_sorted, "\n")
 
         # update thrust coefficient for downstream turbine
         turbine_ct[downwind_turbine_id] = calculate_ct(turbine_velocities[downwind_turbine_id], ct_model[downwind_turbine_id])
@@ -1042,7 +1123,7 @@ function calculate_flow_field_tilt(xrange, yrange, zrange,
                 locz = zrange[zi]
                 locx, locy = rotate_to_wind_direction(locx, locy, wind_resource.wind_directions[wind_farm_state_id])
 
-                point_velocities[zi, yi, xi], Tilt, W, V = point_velocity_tilt(locx, locy, locz, rot_tx, rot_ty, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
+                point_velocities[zi, yi, xi], W, V = point_velocity_tilt(locx, locy, locz, rot_tx, rot_ty, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities, W_sorted, V_sorted,
                     wind_resource, model_set,
                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=0)

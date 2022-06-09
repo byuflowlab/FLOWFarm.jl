@@ -206,8 +206,16 @@ function wake_deflection_model(locx, locy, locz, turbine_x, turbine_tilt, turbin
     theta0 = _bpa_theta_0(tilt, ct)
 
     # [1] eqn 7.4
+    # print("ti: ", ti, "\n")
+    # print("bs: ", bs, "\n")
+    # print("tilt: ", tilt, "\n")
+    # print("diam: ", diam, "\n")
     x0 = _gauss_yaw_potential_core(diam, tilt, ct, as, ti, bs)
 
+    # print("ct: ", ct, "\n")
+    # print("ky: ", ky, "\n")
+    # print("tilt: ", tilt, "\n")
+    # print("xo: ", x0, "\n")
     # calculate the discontinuity point of the gauss yaw model 
     xd = _gauss_yaw_discontinuity(diam, x0, ky, kz, tilt, ct)
     
