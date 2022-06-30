@@ -36,7 +36,7 @@ struct GaussTiltDeflection{TF} <: AbstractWakeDeflectionModel
     alpha_star::TF
     beta_star::TF
 end
-GaussTiltDeflection() = GaussTiltDeflection(0.022, 0.0175, 2.32, 0.154)
+GaussTiltDeflection() = GaussTiltDeflection(0.38, 0.004, 0.58, 0.077)
 
 """
     GaussYawDeflectionVariableSpread(alpha_star, beta_star, k1, k2, wec_factor)

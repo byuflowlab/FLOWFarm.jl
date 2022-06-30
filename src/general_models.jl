@@ -170,15 +170,25 @@ function calculate_transverse_velocity(U_i, U_inf, dx, dy, z, rotor_diameter, HH
     eps_gain = 0.2
     eps = eps_gain * D
 
+    # Setting yaw to zero, still need to create way to combine tilt and yaw
+    yaw = 0
+
     # find velocity at top and bottom of rotor swept area
     vel_top = ((HH+D/2)/HH)^0.12
     vel_bottom = ((HH-D/2)/HH)^0.12
 
     # find Gamma at the top and bottom of the rotor swept area
+    # Gamma top and bottom may only be for yaw, tilt is gamma left and right
     # Gamma_top = gamma(D, vel_top, Uinf, cT)
-    Gamma_top = sin(tilt)*cos(tilt)*(pi/8)*D*Uinf*cT*vel_top                # why do we use Uinf here, should we use U_inf?
+    Gamma_top = sin(yaw)*cos(yaw)*(pi/8)*D*Uinf*cT*vel_top                # why do we use Uinf here, should we use U_inf?
     # Gamma_bot = -1*gamma(D, vel_bottom, Uinf, cT)
-    Gamma_bot = sin(tilt)*cos(tilt)*(pi/8)*D*Uinf*cT*vel_bottom*-1.0            # does Ct already contain cos(tilt)? yes
+    Gamma_bot = sin(yaw)*cos(yaw)*(pi/8)*D*Uinf*cT*vel_bottom*-1.0            # does Ct already contain cos(tilt)? yes
+
+
+    # Does this need to be multiplied by Uinf????
+    Gamma_left = sin(tilt)*cos(tilt)*(pi/8)*D*Uinf*cT                       # why do we use Uinf here, should we use U_inf?
+    # Gamma_bot = -1*gamma(D, vel_bottom, Uinf, cT)
+    Gamma_right = sin(tilt)*cos(tilt)*(pi/8)*D*Uinf*cT*-1.0                   # does Ct already contain cos(tilt)? yes
 
     turbine_average_velocity = U_i
 
@@ -190,7 +200,7 @@ function calculate_transverse_velocity(U_i, U_inf, dx, dy, z, rotor_diameter, HH
     lambda = D/8.0
     kappa = 0.41
     lm = (kappa*z)/(1+(kappa*z/lambda))
-    # TODO: assign dudz_initial as an input, how to calculate this????
+    ### TODO: assign dudz_initial as an input, how to calculate this????  ###
     dudz = abs(Uinf*(vel_top-vel_bottom))/(D)
     turbulent_visc = (lm^2)*abs(dudz)
 
@@ -210,42 +220,79 @@ function calculate_transverse_velocity(U_i, U_inf, dx, dy, z, rotor_diameter, HH
     v_2 = ((Gamma_bot*dz_bot)/(2*pi*r_bot))*core_shape*decay
     w_2 = ((-1*Gamma_bot*dy)/(2*pi*r_bot))*core_shape*decay
 
+    # left vortex
+    dz_left = z - HH
+    dy_left = dy-(D/2)
+    r_l = dy_left^2 + dz_left^2
+    core_shape = 1-exp(-r_l/(eps^2))     
+    v_3 = ((Gamma_left*dz_left)/(2*pi*r_l))*core_shape*decay
+    w_3 = ((-1*Gamma_left*dy_left)/(2*pi*r_l))*core_shape*decay
+
+    # right vortex
+    dz_right = z - HH
+    dy_right = dy+(D/2)
+    r_r = dy_right^2 + dz_right^2
+    core_shape = 1-exp(-r_r/(eps^2))     
+    v_4 = ((Gamma_right*dz_right)/(2*pi*r_r))*core_shape*decay
+    w_4 = ((-1*Gamma_right*dy_right)/(2*pi*r_r))*core_shape*decay
+
     # wake rotation vortex
     dz_center = z - HH
     r_center = dy^2 + dz_center^2
     core_shape = 1 - exp(-r_center/(eps^2))
-    v_3 = ((Gamma_wr*dz_center)/(2*pi*r_center))*core_shape*decay
-    w_3 = ((-1*Gamma_wr*dy)/(2*pi*r_center))*core_shape*decay
+    v_5 = ((Gamma_wr*dz_center)/(2*pi*r_center))*core_shape*decay
+    w_5 = ((-1*Gamma_wr*dy)/(2*pi*r_center))*core_shape*decay
 
     ### Boundary condition - ground mirror vortex
     # top vortex
     dz_top = z + (HH+D/2)             
     r_top = dy^2 + dz_top^2             
     core_shape = 1-exp(-r_top/(eps^2))          
-    v_4 = ((Gamma_top*dz_top)/(2*pi*r_top))*core_shape*decay
-    w_4 = ((-1*Gamma_top*dy)/(2*pi*r_top))*core_shape*decay
+    v_6 = ((-1*Gamma_top*dz_top)/(2*pi*r_top))*core_shape*decay
+    w_6 = ((Gamma_top*dy)/(2*pi*r_top))*core_shape*decay
 
     # bottom vortex
     dz_bot = z + (HH - D/2)
     r_bot = dy^2 + dz_bot^2
     core_shape = 1-exp(-r_bot/(eps^2))
-    v_5 = ((Gamma_bot*dz_bot)/(2*pi*r_bot))*core_shape*decay
-    w_5 = ((-1*Gamma_bot*dy)/(2*pi*r_bot))*core_shape*decay
+    v_7 = ((-1*Gamma_bot*dz_bot)/(2*pi*r_bot))*core_shape*decay
+    w_7 = ((Gamma_bot*dy)/(2*pi*r_bot))*core_shape*decay
 
     # wake rotation vortex
     dz_center = z + HH
     r_center = dy^2 + dz_center^2
     core_shape = 1 - exp(-r_center/(eps^2))
-    v_6 = ((Gamma_wr*dz_center)/(2*pi*r_center))*core_shape*decay
-    w_6 = ((-1*Gamma_wr*dy)/(2*pi*r_center))*core_shape*decay
+    v_8 = ((-1*Gamma_wr*dz_center)/(2*pi*r_center))*core_shape*decay
+    w_8 = ((Gamma_wr*dy)/(2*pi*r_center))*core_shape*decay
+
+    # left vortex
+    dz_left = z + HH
+    dy_left = dy-(D/2)
+    r_l = dy_left^2 + dz_left^2
+    core_shape = 1-exp(-r_l/(eps^2))     
+    v_9 = ((-1*Gamma_left*dz_left)/(2*pi*r_l))*core_shape*decay
+    w_9 = ((Gamma_left*dy_left)/(2*pi*r_l))*core_shape*decay
+
+    # right vortex
+    dz_right = z + HH
+    dy_right = dy+(D/2)
+    r_r = dy_right^2 + dz_right^2
+    core_shape = 1-exp(-r_r/(eps^2))     
+    v_10 = ((-1*Gamma_right*dz_right)/(2*pi*r_r))*core_shape*decay
+    w_10 = ((Gamma_right*dy_right)/(2*pi*r_r))*core_shape*decay
 
     # total spanwise velocities
-    V = v_1 + v_2 + v_3 + v_4 + v_5 + v_6
-    W = w_1 + w_2 + w_3 + w_4 + w_5 + w_6
+    V = v_1 + v_2 + v_3 + v_4 + v_5 + v_6 + v_7 + v_8 + v_9 + v_10
+    W = w_1 + w_2 + w_3 + w_4 + w_5 + w_6 + w_7 + w_8 + w_9 + w_10
 
     if dx < 0.0
         V = 0
         W = 0
+    end
+
+    # Why can't W be negative?
+    if W < 0
+        W = 0 
     end
 
     return V, W
@@ -286,6 +333,7 @@ function tilt_added_turbulence_intensity(u_i, w_i, I_i, v_i, turb_v_i, turb_w_i)
     return I_mixing
 end
 
+# git push origin HEAD
 """
     wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, hub_height, 
     cT, TSR, axial_induction)
@@ -308,6 +356,7 @@ function wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, h
     # turbine parameters
     D = rotor_diameter
     HH = hub_height
+    
     ai = axial_induction
     avgW = W
     # print("avgW: ", avgW, "\n")
@@ -320,58 +369,135 @@ function wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, h
     eps_gain = 0.2
     eps = eps_gain * D
 
-    # find velocity at top and bottom of rotor swept area
-    # print("HH: ", HH, "\n")
-    # print("D: ", D, "\n")
-    vel_top = ((HH+D/2)/HH)^0.12
-    vel_bottom = ((HH-D/2)/HH)^0.12
-    # print("vel_top: ", vel_top, "\n")
-    # print("vel_bottom: ", vel_bottom, "\n")
+    # # find velocity at top and bottom of rotor swept area for yaw
+    # vel_top = ((HH+D/2)/HH)^0.12
+    # vel_bottom = ((HH-D/2)/HH)^0.12
 
-    # find Gamma at the top and bottom of the rotor swept area
-    # Gamma_top = gamma(D, vel_top, Uinf, cT)
-    Gamma_top = (pi/8)*D*Uinf*cT*vel_top                # why do we use Uinf here, should we use U_inf?
-    # Gamma_bot = -1*gamma(D, vel_bottom, Uinf, cT)
-    Gamma_bot = (pi/8)*D*Uinf*cT*vel_bottom*-1.0
+    # Define range of test values for tilt
+    tilt = -45.0:0.1:45
+    tilt = tilt.*pi/180
+    minTilt = 0.000001
+    target_tilt_index = -10000.0
+    for i=1:length(tilt)
+        Gamma_left = (pi/8)*D*Uinf*cT*sin(tilt[i])*cos(tilt[i])
+        Gamma_right = (pi/8)*D*Uinf*cT*sin(tilt[i])*cos(tilt[i])*-1
 
-    # Use turbine average velocity to find Gamma due to wake rotation
-    turbine_average_velocity = U_inf
-    Gamma_wake_rotation = 0.25*2.0*pi*D*(ai-ai^2)*turbine_average_velocity/TSR           # why in FLORIS do they multiply this by 0.25*2?
-    # Gamma_wake_rotation = pi*D*(ai-ai^2)*turbine_average_velocity/TSR
+        # Use turbine average velocity to find Gamma due to wake rotation
+        turbine_average_velocity = U_inf
+        Gamma_wake_rotation = 0.25*2.0*pi*D*(ai-ai^2)*turbine_average_velocity/TSR
 
-    ### Calculate the spanwise and vertical velocities induced by tilt ###
-    # top vortex
-    dz_top = z_i - (HH+D/2)             
-    r_top = deltay^2 + dz_top^2             
-    core_shape = 1-exp(-r_top/(eps^2))          
-    w_top = ((-1*Gamma_top*deltay)/(2*pi*r_top))*core_shape
+        # Left vortex
+        dz_left = z_i- HH
+        dy_left = deltay-(D/2)
+        r_l = dy_left^2 + dz_left^2
+        core_shape = 1-exp(-r_l/(eps^2))     
+        w_left = ((-1*Gamma_left*dy_left)/(2*pi*r_l))*core_shape
 
-    # bottom vortex
-    dz_bot = z_i - (HH - D/2)
-    r_bot = deltay^2 + dz_bot^2
-    core_shape = 1-exp(-r_bot/(eps^2))
-    w_bot = ((-1*Gamma_bot*deltay)/(2*pi*r_bot))*core_shape
+        # right vortex
+        dz_right = z_i - HH
+        dy_right = deltay+(D/2)
+        r_r = dy_right^2 + dz_right^2
+        core_shape = 1-exp(-r_r/(eps^2))     
+        w_right = ((-1*Gamma_right*dy_right)/(2*pi*r_r))*core_shape
 
-    # wake rotation vortex
-    dz_center = z_i - HH
-    r_center = deltay^2 + dz_center^2
-    core_shape = 1 - exp(-r_center/(eps^2))
-    w_center = ((-1*Gamma_wake_rotation*deltay)/(2*pi*r_center))*core_shape
+        # wake rotation vortex
+        dz_center = z_i - HH
+        r_center = deltay^2 + dz_center^2
+        core_shape = 1 - exp(-r_center/(eps^2))
+        w_center = ((-1*Gamma_wake_rotation*deltay)/(2*pi*r_center))*core_shape
 
-    # print("deltay: ", deltay, "\n")
-    # print("Gamma_wake_rotation: ", Gamma_wake_rotation, "\n")
-    val = 2*(avgW-w_center)/(w_top+w_bot)           # why is this multiplied by 2?
-    # val = (avgW-w_center)/(w_top+w_bot)
-    # print("val: ", val, "\n")
-    # cap the added_tilt to be between -45 and 45
-    if val > 1.0
-        val = 1.0
-    elseif val < -1.0
-        val = -1.0
+        ### Boundary condition - ground mirror vortex
+        # Left vortex
+        dz_left = z_i + HH
+        dy_left = deltay-(D/2)
+        r_l = dy_left^2 + dz_left^2
+        core_shape = 1-exp(-r_l/(eps^2))     
+        w_left_g = ((Gamma_left*dy_left)/(2*pi*r_l))*core_shape
+
+        # right vortex
+        dz_right = z_i + HH
+        dy_right = deltay+(D/2)
+        r_r = dy_right^2 + dz_right^2
+        core_shape = 1-exp(-r_r/(eps^2))     
+        w_right_g = ((Gamma_right*dy_right)/(2*pi*r_r))*core_shape
+
+        # wake rotation vortex
+        dz_center = z_i + HH
+        r_center = deltay^2 + dz_center^2
+        core_shape = 1 - exp(-r_center/(eps^2))
+        w_center_g = ((Gamma_wake_rotation*deltay)/(2*pi*r_center))*core_shape
+
+        W_eff = w_left+w_right+w_center + w_left_g+w_right_g+w_center_g
+        # W_eff = w_left+w_right+w_center 
+        
+        tmp = abs(avgW - 2*W_eff)
+        if tmp < minTilt
+            target_tilt_index = i
+            # print("tilt[i]: ", tilt[i], "\n")
+        end
     end
 
-    # print("val: ", val, "\n")
-    added_tilt = 0.5*asin(val)              # why is this multiplied by 0.5?
+    if target_tilt_index == -10000.0
+        # print("Error: no effective tilt found, setting it to 0")
+        added_tilt = 0.0
+    else
+        added_tilt = tilt[target_tilt_index]
+    end
+
+    
+    # # # find Gamma at the top and bottom of the rotor swept area
+    # # # Gamma_top = gamma(D, vel_top, Uinf, cT)
+    # # Gamma_top = (pi/8)*D*Uinf*cT*vel_top*sin(tilt)*cos(tilt)                # why do we use Uinf here, should we use U_inf?
+    # # # Gamma_bot = -1*gamma(D, vel_bottom, Uinf, cT)
+    # # Gamma_bot = (pi/8)*D*Uinf*cT*vel_bottom*-1.0*sin(tilt)*cos(tilt)
+
+    # Gamma_left = (pi/8)*D*Uinf*cT*sin(tilt)*cos(tilt)
+    # Gamma_right = (pi/8)*D*Uinf*cT*sin(tilt)*cos(tilt)*-1
+
+    # # Use turbine average velocity to find Gamma due to wake rotation
+    # turbine_average_velocity = U_inf
+    # Gamma_wake_rotation = 0.25*2.0*pi*D*(ai-ai^2)*turbine_average_velocity/TSR           # why in FLORIS do they multiply this by 0.25*2?
+    # # Gamma_wake_rotation = pi*D*(ai-ai^2)*turbine_average_velocity/TSR
+
+    # ### Calculate the spanwise and vertical velocities induced by tilt ###
+    # # top vortex
+    # dz_top = z_i - (HH+D/2)             
+    # r_top = deltay^2 + dz_top^2             
+    # core_shape = 1-exp(-r_top/(eps^2))          
+    # w_top = ((-1*Gamma_top*deltay)/(2*pi*r_top))*core_shape
+    # # w_top = ((Gamma_top*deltay)/(2*pi*r_top))*core_shape
+
+
+    # # bottom vortex
+    # dz_bot = z_i - (HH - D/2)
+    # r_bot = deltay^2 + dz_bot^2
+    # core_shape = 1-exp(-r_bot/(eps^2))
+    # w_bot = ((-1*Gamma_bot*deltay)/(2*pi*r_bot))*core_shape
+    # # w_bot = ((Gamma_bot*deltay)/(2*pi*r_bot))*core_shape
+
+
+    # # wake rotation vortex
+    # dz_center = z_i - HH
+    # r_center = deltay^2 + dz_center^2
+    # core_shape = 1 - exp(-r_center/(eps^2))
+    # # w_center = ((-1*Gamma_wake_rotation*deltay)/(2*pi*r_center))*core_shape
+    # w_center = ((Gamma_wake_rotation*deltay)/(2*pi*r_center))*core_shape
+
+
+    # # print("deltay: ", deltay, "\n")
+    # # print("Gamma_wake_rotation: ", Gamma_wake_rotation, "\n")
+    # val = 2*(avgW-w_center)/(w_top+w_bot)           # why is this multiplied by 2?
+    # # val = (avgW-w_center)/(w_top+w_bot)
+    # # print("val: ", val, "\n")
+    # # cap the added_tilt to be between -45 and 45, otherwise asin() will through an error
+    # if val > 1.0
+    #     val = 1.0
+    # elseif val < -1.0
+    #     val = -1.0
+    # end
+
+    # # print("val: ", val, "\n")
+    # added_tilt = 0.5*asin(val)              # why is this multiplied by 0.5?
 
     # added_tilt = asin(val) 
     return added_tilt
@@ -380,7 +506,7 @@ end
 """
     point_velocity_tilt(loc, turbine_x, turbine_y, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities, W_sorted, V_sorted,
-    wind_resource, model_set::AbstractModelSet;
+    wind_resource, nrotorpoints, model_set::AbstractModelSet;
     wind_farm_state_id=1, downwind_turbine_id=0)
 
 Calculates the wind speed at a given point for a given state (with tilt)
@@ -411,10 +537,11 @@ Calculates the wind speed at a given point for a given state (with tilt)
     Defaults to 1
 - `downwind_turbine_id::Int`: index of wind turbine of interest (if any). If not a point for
     calculating effective wind speed of a turbine, then provide 0 (default)
+- `nrotorpoints::Int`: number of rotor points used to evaluate wind speed in rotor swept area
 """
 function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities, W_sorted, V_sorted,
-                    wind_resource, model_set::AbstractModelSet;
+                    wind_resource, nrotorpoints, model_set::AbstractModelSet;
                     wind_farm_state_id=1, downwind_turbine_id=0)
 
     wakedeficitmodel = model_set.wake_deficit_model
@@ -483,8 +610,10 @@ function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, 
             
             ### SOMETHING IS WRONG HERE ###
             ### SHOULDN'T BE JUST ADDING, NEED TO TAKE AVERAGE OF V_WAKE OVER ROTOR POINTS ###
-            V_sorted[upwind_turb_id] = (V_sorted[upwind_turb_id] + v_wake)/2
-            W_sorted[upwind_turb_id] = (W_sorted[upwind_turb_id] + w_wake)/2
+            V_sorted[upwind_turb_id] = ((V_sorted[upwind_turb_id]*nrotorpoints) + v_wake)/(nrotorpoints + 1)
+            W_sorted[upwind_turb_id] = ((W_sorted[upwind_turb_id]*nrotorpoints) + w_wake)/(nrotorpoints + 1)
+            print("V_sorted: ", V_sorted[upwind_turb_id])
+            print("W_sorted: ", W_sorted[upwind_turb_id])
         end
         # print("V_sorted after: ", V_sorted)
 
@@ -536,7 +665,6 @@ function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, 
             # Why is the adjusted turbulence not calculated before vertical_deflection is calculated???
                     # Potential reason is that the added_tilt accounts for the added deflection
             
-
             # Does TSR need to be updated based on new velocities?
             # This v_wake and w_wake are the vertical and horizontal spanwise velocities
             # induced on the turbine of interest by the upstream turbines
@@ -816,7 +944,7 @@ function turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, 
             point_velocity_with_shear, W_adjusted, V_adjusted = point_velocity_tilt(locx, locy, locz, turbine_x, 
                                     turbine_y, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
                                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, turbine_velocities,
-                                    W_sorted, V_sorted, wind_resource, model_set,
+                                    W_sorted, V_sorted, wind_resource, n_rotor_sample_points, model_set,
                                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=downwind_turbine_id)
 
             # add sample point velocity to turbine velocity to be averaged later
@@ -1114,6 +1242,9 @@ function calculate_flow_field_tilt(xrange, yrange, zrange,
 
     # sort the turbines
     sorted_turbine_index = sortperm(rot_tx)
+
+    # variable not used
+    nrotorsamplepoints = 1
     
     for zi in 1:zlen
         for yi in 1:ylen
@@ -1125,9 +1256,10 @@ function calculate_flow_field_tilt(xrange, yrange, zrange,
 
                 point_velocities[zi, yi, xi], W, V = point_velocity_tilt(locx, locy, locz, rot_tx, rot_ty, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities, W_sorted, V_sorted,
-                    wind_resource, model_set,
+                    wind_resource, nrotorsamplepoints, model_set,
                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=0)
-
+                ### W_sorted and V_sorted would change here because we are looking at spaced between turbines
+                ### instead of just turbines.
                     # point_velocity_tilt(locx, locy, locz, turbine_x, 
                     #                 turbine_y, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
                     #                 rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, turbine_velocities,
