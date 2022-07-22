@@ -140,7 +140,7 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
 end
 
 """
-    calculate_transverse_velocity(U_i, U_inf, dx, dy, z, rotor_diameter, HH, tilt, ct, TSR, turbine_ai)
+    calculate_transverse_velocity(U_i, U_inf, dx, dy, z, rotor_diameter, HH, tilt, ct, TSR, turbine_ai, shearexponent)
 
 Calculates the vertical and horizontal spanwise velocities induced by upstream turbines on
 the downstream turbine being looked at
@@ -155,9 +155,10 @@ the downstream turbine being looked at
 - `hub_height::Float`: hub height of turbine being compared to
 - `cT::Float`: coefficient of thrust for turbine being compared to
 - `axial_induction::Float`: axial induction factor for turbine being compared to
+- `shearexponent::Float`: exponent used for determing ambient wind speed at different heights
 """
 
-function calculate_transverse_velocity(U_i, U_inf, dx, dy, z, rotor_diameter, HH, tilt, cT, TSR, turbine_ai)
+function calculate_transverse_velocity(U_i, U_inf, dx, dy, z, rotor_diameter, HH, tilt, cT, TSR, turbine_ai, shearexponent)
 
     # turbine parameters
     D = rotor_diameter
@@ -174,8 +175,8 @@ function calculate_transverse_velocity(U_i, U_inf, dx, dy, z, rotor_diameter, HH
     yaw = 0
 
     # find velocity at top and bottom of rotor swept area
-    vel_top = ((HH+D/2)/HH)^0.12
-    vel_bottom = ((HH-D/2)/HH)^0.12
+    vel_top = ((HH+D/2)/HH)^shearexponent
+    vel_bottom = ((HH-D/2)/HH)^shearexponent
 
     # find Gamma at the top and bottom of the rotor swept area
     # Gamma top and bottom may only be for yaw, tilt is gamma left and right
@@ -333,7 +334,195 @@ function tilt_added_turbulence_intensity(u_i, w_i, I_i, v_i, turb_v_i, turb_w_i)
     return I_mixing
 end
 
-# git push origin HEAD
+"""
+    brent(f, a, b; args=(), atol=2e-12, rtol=4*eps(), maxiter=100)
+1D root finding using Brent's method.  Based off the brentq implementation in scipy.
+**Arguments**
+- `f`: scalar function, that optionally takes additional arguments
+- `a`::Float, b::Float`: bracketing interval for a root - sign changes sign between: (f(a) * f(b) < 0)
+- `args::Tuple`: tuple of additional arguments to pass to f
+- `atol::Float`: absolute tolerance (positive) for root
+- `rtol::Float`: relative tolerance for root
+- `maxiter::Int`: maximum number of iterations allowed
+**Returns**
+- `xstar::Float`: a root of f
+- `info::Tuple`: A named tuple containing:
+    - `iter::Int`: number of iterations
+    - 'fcalls::Int`: number of function calls
+    - 'flag::String`: a convergence/error message.
+"""
+function brent(f, a, b; args=(), atol=2e-12, rtol=4*eps(), maxiter=100)
+
+    xpre = a; xcur = b
+    # xblk = 0.0; fblk = 0.0; spre = 0.0; scur = 0.0
+    error_num = "INPROGRESS"
+
+    fpre = f(xpre, args...)
+    fcur = f(xcur, args...)
+
+    xblk = zero(fpre); fblk = zero(fpre); spre = zero(fpre); scur = zero(fpre)
+    funcalls = 2
+    iterations = 0
+    
+    if fpre*fcur > 0
+        error_num = "SIGNERR"
+        return 0.0, (iter=iterations, fcalls=funcalls, flag=error_num)
+    end
+    if fpre == zero(fpre)
+        error_num = "CONVERGED"
+        return xpre, (iter=iterations, fcalls=funcalls, flag=error_num)
+    end
+    if fcur == zero(fcur)
+        error_num = "CONVERGED"
+        return xcur, (iter=iterations, fcalls=funcalls, flag=error_num)
+    end
+
+    for i = 1:maxiter
+        iterations += 1
+        if fpre*fcur < 0
+            xblk = xpre
+            fblk = fpre
+            spre = scur = xcur - xpre
+        end
+        if abs(fblk) < abs(fcur)
+            xpre = xcur
+            xcur = xblk
+            xblk = xpre
+
+            fpre = fcur
+            fcur = fblk
+            fblk = fpre
+        end
+
+        delta = (atol + rtol*abs(xcur))/2
+        sbis = (xblk - xcur)/2
+        if fcur == zero(fcur) || abs(sbis) < delta
+            error_num = "CONVERGED"
+            return xcur, (iter=iterations, fcalls=funcalls, flag=error_num)
+        end
+
+        if abs(spre) > delta && abs(fcur) < abs(fpre)
+            if xpre == xblk
+                # interpolate
+                stry = -fcur*(xcur - xpre)/(fcur - fpre)
+            else
+                # extrapolate
+                dpre = (fpre - fcur)/(xpre - xcur)
+                dblk = (fblk - fcur)/(xblk - xcur)
+                stry = -fcur*(fblk*dblk - fpre*dpre)/(dblk*dpre*(fblk - fpre))
+            end
+            if 2*abs(stry) < min(abs(spre), 3*abs(sbis) - delta)
+                # good short step
+                spre = scur
+                scur = stry
+            else
+                # bisect
+                spre = sbis
+                scur = sbis
+            end
+        else 
+            # bisect
+            spre = sbis
+            scur = sbis
+        end
+
+        xpre = xcur; fpre = fcur
+        if abs(scur) > delta
+            xcur += scur
+        else
+            xcur += (sbis > 0 ? delta : -delta)
+        end
+
+        fcur = f(xcur, args...)
+        funcalls += 1
+    end
+    error_num = "CONVERR"
+    return xcur, (iter=iterations, fcalls=funcalls, flag=error_num)
+end
+
+
+"""
+    tilt_eval(tilt, args...)
+
+calculates the difference between W at the turbine and W induced by a tilt angle to find the added tilt due to secondary wake steering
+
+# Arguements
+- `tilt::Float`: tilt angle of turbine in radians
+- `args::Tuple`: tuple of additional arguments to pass to W calculations
+"""
+function tilt_eval(tilt, args...)
+
+    D = args[1]
+    Uinf = args[2]
+    cT = args[3]
+    ai = args[4]
+    TSR = args[5]
+    z_i = args[6]
+    HH = args[7]
+    deltay = args[8]
+    eps = args[9]
+    avgW = args[10]
+    U_inf = args[11]
+
+    Gamma_left = (pi/8)*D*Uinf*cT*sin(tilt)*cos(tilt)
+    Gamma_right = (pi/8)*D*Uinf*cT*sin(tilt)*cos(tilt)*-1
+
+    # Use turbine average velocity to find Gamma due to wake rotation
+    turbine_average_velocity = U_inf
+    Gamma_wake_rotation = 0.25*2.0*pi*D*(ai-ai^2)*turbine_average_velocity/TSR
+
+    # Left vortex
+    dz_left = z_i- HH
+    dy_left = deltay-(D/2)
+    r_l = dy_left^2 + dz_left^2
+    core_shape = 1-exp(-r_l/(eps^2))     
+    w_left = ((-1*Gamma_left*dy_left)/(2*pi*r_l))*core_shape
+
+    # right vortex
+    dz_right = z_i - HH
+    dy_right = deltay+(D/2)
+    r_r = dy_right^2 + dz_right^2
+    core_shape = 1-exp(-r_r/(eps^2))     
+    w_right = ((-1*Gamma_right*dy_right)/(2*pi*r_r))*core_shape
+
+    # wake rotation vortex
+    dz_center = z_i - HH
+    r_center = deltay^2 + dz_center^2
+    core_shape = 1 - exp(-r_center/(eps^2))
+    w_center = ((-1*Gamma_wake_rotation*deltay)/(2*pi*r_center))*core_shape
+
+    ### Boundary condition - ground mirror vortex
+    # Left vortex
+    dz_left = z_i + HH
+    dy_left = deltay-(D/2)
+    r_l = dy_left^2 + dz_left^2
+    core_shape = 1-exp(-r_l/(eps^2))     
+    w_left_g = ((Gamma_left*dy_left)/(2*pi*r_l))*core_shape
+
+    # right vortex
+    dz_right = z_i + HH
+    dy_right = deltay+(D/2)
+    r_r = dy_right^2 + dz_right^2
+    core_shape = 1-exp(-r_r/(eps^2))     
+    w_right_g = ((Gamma_right*dy_right)/(2*pi*r_r))*core_shape
+
+    # wake rotation vortex
+    dz_center = z_i + HH
+    r_center = deltay^2 + dz_center^2
+    core_shape = 1 - exp(-r_center/(eps^2))
+    w_center_g = ((Gamma_wake_rotation*deltay)/(2*pi*r_center))*core_shape
+
+    W_eff = w_left+w_right+w_center + w_left_g+w_right_g+w_center_g
+    # W_eff = w_left+w_right
+    # W_eff = w_left+w_right + w_left_g+w_right_g
+    
+    residual = (avgW - 2*W_eff)
+    # print("residual: ", residual, "\n")
+
+    return residual
+end
+
+
 """
     wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, hub_height, 
     cT, TSR, axial_induction)
@@ -373,78 +562,83 @@ function wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, h
     # vel_top = ((HH+D/2)/HH)^0.12
     # vel_bottom = ((HH-D/2)/HH)^0.12
 
-    # Define range of test values for tilt
-    tilt = -45.0:0.1:45
-    tilt = tilt.*pi/180
-    minTilt = 0.000001
-    target_tilt_index = -10000.0
-    for i=1:length(tilt)
-        Gamma_left = (pi/8)*D*Uinf*cT*sin(tilt[i])*cos(tilt[i])
-        Gamma_right = (pi/8)*D*Uinf*cT*sin(tilt[i])*cos(tilt[i])*-1
-
-        # Use turbine average velocity to find Gamma due to wake rotation
-        turbine_average_velocity = U_inf
-        Gamma_wake_rotation = 0.25*2.0*pi*D*(ai-ai^2)*turbine_average_velocity/TSR
-
-        # Left vortex
-        dz_left = z_i- HH
-        dy_left = deltay-(D/2)
-        r_l = dy_left^2 + dz_left^2
-        core_shape = 1-exp(-r_l/(eps^2))     
-        w_left = ((-1*Gamma_left*dy_left)/(2*pi*r_l))*core_shape
-
-        # right vortex
-        dz_right = z_i - HH
-        dy_right = deltay+(D/2)
-        r_r = dy_right^2 + dz_right^2
-        core_shape = 1-exp(-r_r/(eps^2))     
-        w_right = ((-1*Gamma_right*dy_right)/(2*pi*r_r))*core_shape
-
-        # wake rotation vortex
-        dz_center = z_i - HH
-        r_center = deltay^2 + dz_center^2
-        core_shape = 1 - exp(-r_center/(eps^2))
-        w_center = ((-1*Gamma_wake_rotation*deltay)/(2*pi*r_center))*core_shape
-
-        ### Boundary condition - ground mirror vortex
-        # Left vortex
-        dz_left = z_i + HH
-        dy_left = deltay-(D/2)
-        r_l = dy_left^2 + dz_left^2
-        core_shape = 1-exp(-r_l/(eps^2))     
-        w_left_g = ((Gamma_left*dy_left)/(2*pi*r_l))*core_shape
-
-        # right vortex
-        dz_right = z_i + HH
-        dy_right = deltay+(D/2)
-        r_r = dy_right^2 + dz_right^2
-        core_shape = 1-exp(-r_r/(eps^2))     
-        w_right_g = ((Gamma_right*dy_right)/(2*pi*r_r))*core_shape
-
-        # wake rotation vortex
-        dz_center = z_i + HH
-        r_center = deltay^2 + dz_center^2
-        core_shape = 1 - exp(-r_center/(eps^2))
-        w_center_g = ((Gamma_wake_rotation*deltay)/(2*pi*r_center))*core_shape
-
-        W_eff = w_left+w_right+w_center + w_left_g+w_right_g+w_center_g
-        # W_eff = w_left+w_right+w_center 
-        
-        tmp = abs(avgW - 2*W_eff)
-        if tmp < minTilt
-            target_tilt_index = i
-            # print("tilt[i]: ", tilt[i], "\n")
-        end
-    end
-
-    if target_tilt_index == -10000.0
-        # print("Error: no effective tilt found, setting it to 0")
-        added_tilt = 0.0
-    else
-        added_tilt = tilt[target_tilt_index]
-    end
-
     
+
+    # findzeros(tilt_eval, -45*pi/180, 45*pi/180)
+    added_tilt, info = brent(tilt_eval, -45.0*pi/180, 45.0*pi/180, atol=0.00000000001, args=(D, Uinf, cT, ai, TSR, z_i, HH, deltay, eps, avgW, U_inf))
+    # print("info: ", info, "\n")
+    # # Define range of test values for tilt
+    # tilt = -45.0:0.1:45
+    # tilt = tilt.*pi/180
+    # minTilt = 0.001
+    # target_tilt_index = -10000.0
+    # for i=1:length(tilt)
+    #     Gamma_left = (pi/8)*D*Uinf*cT*sin(tilt[i])*cos(tilt[i])
+    #     Gamma_right = (pi/8)*D*Uinf*cT*sin(tilt[i])*cos(tilt[i])*-1
+
+    #     # Use turbine average velocity to find Gamma due to wake rotation
+    #     turbine_average_velocity = U_inf
+    #     Gamma_wake_rotation = 0.25*2.0*pi*D*(ai-ai^2)*turbine_average_velocity/TSR
+
+    #     # Left vortex
+    #     dz_left = z_i- HH
+    #     dy_left = deltay-(D/2)
+    #     r_l = dy_left^2 + dz_left^2
+    #     core_shape = 1-exp(-r_l/(eps^2))     
+    #     w_left = ((-1*Gamma_left*dy_left)/(2*pi*r_l))*core_shape
+
+    #     # right vortex
+    #     dz_right = z_i - HH
+    #     dy_right = deltay+(D/2)
+    #     r_r = dy_right^2 + dz_right^2
+    #     core_shape = 1-exp(-r_r/(eps^2))     
+    #     w_right = ((-1*Gamma_right*dy_right)/(2*pi*r_r))*core_shape
+
+    #     # wake rotation vortex
+    #     dz_center = z_i - HH
+    #     r_center = deltay^2 + dz_center^2
+    #     core_shape = 1 - exp(-r_center/(eps^2))
+    #     w_center = ((-1*Gamma_wake_rotation*deltay)/(2*pi*r_center))*core_shape
+
+    #     ### Boundary condition - ground mirror vortex
+    #     # Left vortex
+    #     dz_left = z_i + HH
+    #     dy_left = deltay-(D/2)
+    #     r_l = dy_left^2 + dz_left^2
+    #     core_shape = 1-exp(-r_l/(eps^2))     
+    #     w_left_g = ((Gamma_left*dy_left)/(2*pi*r_l))*core_shape
+
+    #     # right vortex
+    #     dz_right = z_i + HH
+    #     dy_right = deltay+(D/2)
+    #     r_r = dy_right^2 + dz_right^2
+    #     core_shape = 1-exp(-r_r/(eps^2))     
+    #     w_right_g = ((Gamma_right*dy_right)/(2*pi*r_r))*core_shape
+
+    #     # wake rotation vortex
+    #     dz_center = z_i + HH
+    #     r_center = deltay^2 + dz_center^2
+    #     core_shape = 1 - exp(-r_center/(eps^2))
+    #     w_center_g = ((Gamma_wake_rotation*deltay)/(2*pi*r_center))*core_shape
+
+    #     W_eff = w_left+w_right+w_center + w_left_g+w_right_g+w_center_g
+    #     # W_eff = w_left+w_right+w_center 
+        
+    #     tmp = abs(avgW - W_eff)
+    #     if tmp < minTilt
+    #         target_tilt_index = i
+    #         # print("tilt[i]: ", tilt[i], "\n")
+    #     end
+    # end
+
+    # if target_tilt_index == -10000.0
+    #     # print("Error: no effective tilt found, setting it to 0")
+    #     added_tilt = 0.0
+    # else
+    #     added_tilt = tilt[target_tilt_index]
+    # end
+
+    # print("added_tilt: ", added_tilt, "\n")
     # # # find Gamma at the top and bottom of the rotor swept area
     # # # Gamma_top = gamma(D, vel_top, Uinf, cT)
     # # Gamma_top = (pi/8)*D*Uinf*cT*vel_top*sin(tilt)*cos(tilt)                # why do we use Uinf here, should we use U_inf?
@@ -531,6 +725,7 @@ Calculates the wind speed at a given point for a given state (with tilt)
 - `wtvelocities::Array{TF,nTurbines}`: effective inflow wind speed for given state
 - `W_sorted::Array{TF,nTurbines}`: vertical spanwise velocities for each turbine
 - `V_sorted::Array{TF,nTurbines}`: horizontal spanwise velocities for each turbine
+- `shearexponent::Float`: shearexponent for determing wind speed at different heights
 - `wind_resource::DiscretizedWindResource`: contains wind resource discreption (directions,
     speeds, frequencies, etc)
 - `wind_farm_state_id::Int`: index to correct state to use from wind resource provided.
@@ -540,7 +735,7 @@ Calculates the wind speed at a given point for a given state (with tilt)
 - `nrotorpoints::Int`: number of rotor points used to evaluate wind speed in rotor swept area
 """
 function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
-                    rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities, W_sorted, V_sorted,
+                    rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities, W_sorted, V_sorted, shearexponent,
                     wind_resource, nrotorpoints, model_set::AbstractModelSet;
                     wind_farm_state_id=1, downwind_turbine_id=0)
 
@@ -606,7 +801,7 @@ function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, 
             dx = 0.0
             dy = 0.0
             v_wake, w_wake = calculate_transverse_velocity(wtvelocities[upwind_turb_id], wind_speed, dx, dy, locz, rotor_diameter[upwind_turb_id], 
-            hub_height[upwind_turb_id], turbine_tilt[upwind_turb_id], turbine_ct[upwind_turb_id], TSR, turbine_ai[upwind_turb_id])
+            hub_height[upwind_turb_id], turbine_tilt[upwind_turb_id], turbine_ct[upwind_turb_id], TSR, turbine_ai[upwind_turb_id], shearexponent)
             
             ### SOMETHING IS WRONG HERE ###
             ### SHOULDN'T BE JUST ADDING, NEED TO TAKE AVERAGE OF V_WAKE OVER ROTOR POINTS ###
@@ -672,7 +867,7 @@ function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, 
             dy = deltay
 
             v_wake, w_wake = calculate_transverse_velocity(wtvelocities[upwind_turb_id], wind_speed, dx, dy, locz, rotor_diameter[upwind_turb_id], 
-            hub_height[upwind_turb_id], turbine_tilt[upwind_turb_id], turbine_ct[upwind_turb_id], TSR, turbine_ai[upwind_turb_id])
+            hub_height[upwind_turb_id], turbine_tilt[upwind_turb_id], turbine_ct[upwind_turb_id], TSR, turbine_ai[upwind_turb_id], shearexponent)
 
             # print("v_wake: ", v_wake, "\n")
             # print("w_wake: ", w_wake, "\n")
@@ -837,7 +1032,7 @@ end
 
 """
     turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_tilt, TSR,
-    sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+    sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource, shearexponnent,
     model_set::AbstractModelSet; wind_farm_state_id=1)
 
 Calculates the wind speed at a given point for a given state
@@ -867,9 +1062,10 @@ Calculates the wind speed at a given point for a given state
 - `model_set::AbstractModelSet`: defines wake-realated models to be used in analysis
 - `wind_farm_state_id::Int`: index to correct state to use from wind resource provided.
     Defaults to 1
+- `shearexponent::Float`: used to determine wind speed at different height using wind power law
 """
 function turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_tilt, TSR,
-                    sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+                    sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource, shearexponent,
                     model_set::AbstractModelSet; wind_farm_state_id=1, velocity_only=true)
     
     # get number of turbines and rotor sample point
@@ -944,7 +1140,7 @@ function turbine_velocities_one_direction_tilt(turbine_x, turbine_y, turbine_z, 
             point_velocity_with_shear, W_adjusted, V_adjusted = point_velocity_tilt(locx, locy, locz, turbine_x, 
                                     turbine_y, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
                                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, turbine_velocities,
-                                    W_sorted, V_sorted, wind_resource, n_rotor_sample_points, model_set,
+                                    W_sorted, V_sorted, shearexponent, wind_resource, n_rotor_sample_points, model_set,
                                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=downwind_turbine_id)
 
             # add sample point velocity to turbine velocity to be averaged later
@@ -1223,12 +1419,13 @@ Generates a flow field for a given state and cross section
     frequencies, etc)
 - `wind_farm_state_id::Int`: index to correct state to use from wind resource provided.
     Defaults to 1
+- `shearexponent::Float`: exponent used in wind power law
 """
 
 function calculate_flow_field_tilt(xrange, yrange, zrange,
     model_set::AbstractModelSet, turbine_x, turbine_y, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
-    wind_resource, W_sorted, V_sorted; wind_farm_state_id=1)
+    wind_resource, W_sorted, V_sorted, shearexponent; wind_farm_state_id=1)
 
     xlen = length(xrange)
     ylen = length(yrange)
@@ -1255,7 +1452,7 @@ function calculate_flow_field_tilt(xrange, yrange, zrange,
                 locx, locy = rotate_to_wind_direction(locx, locy, wind_resource.wind_directions[wind_farm_state_id])
 
                 point_velocities[zi, yi, xi], W, V = point_velocity_tilt(locx, locy, locz, rot_tx, rot_ty, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
-                    rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities, W_sorted, V_sorted,
+                    rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities, W_sorted, V_sorted, shearexponent,
                     wind_resource, nrotorsamplepoints, model_set,
                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=0)
                 ### W_sorted and V_sorted would change here because we are looking at spaced between turbines
@@ -1287,7 +1484,7 @@ end
 function calculate_flow_field_tilt(xrange, yrange, zrange,
     model_set::AbstractModelSet, turbine_x, turbine_y, turbine_z, turbine_tilt,
     rotor_diameter, hub_height, ct_models, TSR, rotor_sample_points_y, rotor_sample_points_z,
-    wind_resource; wind_farm_state_id=1)
+    wind_resource, shearexponent; wind_farm_state_id=1)
 
     # rotate to direction frame for velocity calculations
     rot_tx, rot_ty = rotate_to_wind_direction(turbine_x, turbine_y, wind_resource.wind_directions[wind_farm_state_id])
@@ -1296,13 +1493,13 @@ function calculate_flow_field_tilt(xrange, yrange, zrange,
     sorted_turbine_index = sortperm(rot_tx)
 
     turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti, W_sorted, V_sorted, turbine_tilt = turbine_velocities_one_direction_tilt(rot_tx, rot_ty, turbine_z, rotor_diameter, hub_height, turbine_tilt, TSR,
-    sorted_turbine_index, ct_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+    sorted_turbine_index, ct_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource, shearexponent,
     model_set, wind_farm_state_id=wind_farm_state_id, velocity_only=false)
 
     return calculate_flow_field_tilt(xrange, yrange, zrange,
         model_set, turbine_x, turbine_y, turbine_z, turbine_tilt, TSR, turbine_ct, turbine_ai,
         rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, turbine_velocities,
-        wind_resource, W_sorted, V_sorted, wind_farm_state_id=wind_farm_state_id)
+        wind_resource, W_sorted, V_sorted, shearexponent, wind_farm_state_id=wind_farm_state_id)
 
 end
 
