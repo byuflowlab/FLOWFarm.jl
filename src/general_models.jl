@@ -175,8 +175,10 @@ function calculate_transverse_velocity(U_i, U_inf, dx, dy, z, rotor_diameter, HH
     yaw = 0
 
     # find velocity at top and bottom of rotor swept area
+    # HH needs to be the flowfield specified height
     vel_top = ((HH+D/2)/HH)^shearexponent
     vel_bottom = ((HH-D/2)/HH)^shearexponent
+    print("HH: ", HH)
 
     # find Gamma at the top and bottom of the rotor swept area
     # Gamma top and bottom may only be for yaw, tilt is gamma left and right
@@ -194,6 +196,8 @@ function calculate_transverse_velocity(U_i, U_inf, dx, dy, z, rotor_diameter, HH
     turbine_average_velocity = U_i
 
     Gamma_wr = 2*0.25*pi*D*(ai-ai^2)*turbine_average_velocity/TSR
+    print("D: ", D, "\n")
+    print("TSR: ", D, "\n")
 
     ### compute the spanwise and vertical velocities induced by tilt
 
@@ -203,6 +207,9 @@ function calculate_transverse_velocity(U_i, U_inf, dx, dy, z, rotor_diameter, HH
     lm = (kappa*z)/(1+(kappa*z/lambda))
     ### TODO: assign dudz_initial as an input, how to calculate this????  ###
     dudz = abs(Uinf*(vel_top-vel_bottom))/(D)
+    print("dudz_full: ", dudz, "\n")
+    dudz = abs(Uinf*(vel_top-1))/(D/2)
+    print("dudz_half: ", dudz, "\n")
     turbulent_visc = (lm^2)*abs(dudz)
 
     decay = (eps^2)/((4*turbulent_visc*dx/Uinf) + eps^2)
@@ -464,53 +471,80 @@ function tilt_eval(tilt, args...)
     avgW = args[10]
     U_inf = args[11]
 
-    Gamma_left = (pi/8)*D*Uinf*cT*sin(tilt)*cos(tilt)
-    Gamma_right = (pi/8)*D*Uinf*cT*sin(tilt)*cos(tilt)*-1
+    shearexponent = args[12]
+    dx = args[13]
+
+
+    # Gamma_left = (pi/8)*D*Uinf*cT*sin(tilt)*cos(tilt)
+    # Gamma_right = (pi/8)*D*Uinf*cT*sin(tilt)*cos(tilt)*-1
+
+    # FLORIS coding
+    Gamma_left = (pi/8)*D*Uinf*Uinf*cT*sin(tilt)*cos(tilt)
+    Gamma_right = (pi/8)*D*Uinf*Uinf*cT*sin(tilt)*cos(tilt)*-1
 
     # Use turbine average velocity to find Gamma due to wake rotation
     turbine_average_velocity = U_inf
     Gamma_wake_rotation = 0.25*2.0*pi*D*(ai-ai^2)*turbine_average_velocity/TSR
 
+    # # Without a direct derivation need to find decay as well # #39
+    # find velocity at top and bottom of rotor swept area
+    # HH needs to be the flowfield specified height
+    vel_top = ((HH+D/2)/HH)^shearexponent
+    vel_bottom = ((HH-D/2)/HH)^shearexponent
+    # epsilon gain
+    eps_gain = 0.2
+    eps = eps_gain * D
+    # decay the vortices as they move downstream using mixing length
+    lambda = D/8.0
+    kappa = 0.41
+    lm = (kappa*z_i)/(1+(kappa*z_i/lambda))
+    ### TODO: assign dudz_initial as an input, how to calculate this????  ###
+    dudz = abs(Uinf*(vel_top-vel_bottom))/(D)
+    dudz = abs(Uinf*(vel_top-1))/(D/2)
+    turbulent_visc = (lm^2)*abs(dudz)
+
+    decay = (eps^2)/((4*turbulent_visc*dx/Uinf) + eps^2)
     # Left vortex
     dz_left = z_i- HH
     dy_left = deltay-(D/2)
     r_l = dy_left^2 + dz_left^2
     core_shape = 1-exp(-r_l/(eps^2))     
-    w_left = ((-1*Gamma_left*dy_left)/(2*pi*r_l))*core_shape
+    w_left = ((-1*Gamma_left*dy_left)/(2*pi*r_l))*core_shape*decay
 
     # right vortex
     dz_right = z_i - HH
     dy_right = deltay+(D/2)
     r_r = dy_right^2 + dz_right^2
     core_shape = 1-exp(-r_r/(eps^2))     
-    w_right = ((-1*Gamma_right*dy_right)/(2*pi*r_r))*core_shape
+    w_right = ((-1*Gamma_right*dy_right)/(2*pi*r_r))*core_shape*decay
 
     # wake rotation vortex
     dz_center = z_i - HH
     r_center = deltay^2 + dz_center^2
     core_shape = 1 - exp(-r_center/(eps^2))
-    w_center = ((-1*Gamma_wake_rotation*deltay)/(2*pi*r_center))*core_shape
+    w_center = ((-1*Gamma_wake_rotation*deltay)/(2*pi*r_center))*core_shape*decay
 
     ### Boundary condition - ground mirror vortex
+    
     # Left vortex
     dz_left = z_i + HH
     dy_left = deltay-(D/2)
     r_l = dy_left^2 + dz_left^2
     core_shape = 1-exp(-r_l/(eps^2))     
-    w_left_g = ((Gamma_left*dy_left)/(2*pi*r_l))*core_shape
+    w_left_g = ((Gamma_left*dy_left)/(2*pi*r_l))*core_shape*decay
 
     # right vortex
     dz_right = z_i + HH
     dy_right = deltay+(D/2)
     r_r = dy_right^2 + dz_right^2
     core_shape = 1-exp(-r_r/(eps^2))     
-    w_right_g = ((Gamma_right*dy_right)/(2*pi*r_r))*core_shape
+    w_right_g = ((Gamma_right*dy_right)/(2*pi*r_r))*core_shape*decay
 
     # wake rotation vortex
     dz_center = z_i + HH
     r_center = deltay^2 + dz_center^2
     core_shape = 1 - exp(-r_center/(eps^2))
-    w_center_g = ((Gamma_wake_rotation*deltay)/(2*pi*r_center))*core_shape
+    w_center_g = ((Gamma_wake_rotation*deltay)/(2*pi*r_center))*core_shape*decay
 
     W_eff = w_left+w_right+w_center + w_left_g+w_right_g+w_center_g
     # W_eff = w_left+w_right
@@ -525,7 +559,7 @@ end
 
 """
     wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, hub_height, 
-    cT, TSR, axial_induction)
+    cT, TSR, axial_induction, shearexponent, dx)
 
 Calculates the added tilt due to secondary wake steering
 
@@ -539,8 +573,10 @@ Calculates the added tilt due to secondary wake steering
 - `hub_height::Float`: hub height of turbine being compared to
 - `cT::Float`: coefficient of thrust for turbine being compared to
 - `axial_induction::Float`: axial induction factor for turbine being compared to
+- `shearexponent::Float`: shearexonent for wind shear
+- `dx::Float`: downstream distance between turbine of interest and turbine being compared to
 """
-function wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, hub_height, cT, TSR, axial_induction)
+function wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, hub_height, cT, TSR, axial_induction, shearexponent, dx)
 
     # turbine parameters
     D = rotor_diameter
@@ -565,7 +601,7 @@ function wake_added_tilt(U_inf, W, U_inf_initial, deltay, z_i, rotor_diameter, h
     
 
     # findzeros(tilt_eval, -45*pi/180, 45*pi/180)
-    added_tilt, info = brent(tilt_eval, -45.0*pi/180, 45.0*pi/180, atol=0.00000000001, args=(D, Uinf, cT, ai, TSR, z_i, HH, deltay, eps, avgW, U_inf))
+    added_tilt, info = brent(tilt_eval, -45.0*pi/180, 45.0*pi/180, atol=0.00000000001, args=(D, Uinf, cT, ai, TSR, z_i, HH, deltay, eps, avgW, U_inf, shearexponent, dx))
     # print("info: ", info, "\n")
     # # Define range of test values for tilt
     # tilt = -45.0:0.1:45
@@ -819,6 +855,7 @@ function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, 
             # find variables for wake_added_tilt function
             # spanwise distance between upstream turbine and point
             deltay = locy-turbine_y[upwind_turb_id]
+            dx = locx - turbine_x[upwind_turb_id]
 
             # find the added tilt angle due to the vortices
             # TODO: update wtvelocities and turbine tilt after all the comparisons
@@ -840,7 +877,7 @@ function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, 
             # This means that the W for the most upstream turbine should be non-zero
 
             added_tilt = wake_added_tilt(wtvelocities[upwind_turb_id], W_sorted[upwind_turb_id], wind_speed, deltay, 
-            locz, rotor_diameter[upwind_turb_id], hub_height[upwind_turb_id], turbine_ct[upwind_turb_id], TSR, turbine_ai[upwind_turb_id])
+            locz, rotor_diameter[upwind_turb_id], hub_height[upwind_turb_id], turbine_ct[upwind_turb_id], TSR, turbine_ai[upwind_turb_id], shearexponent,dx)
             
             
 
@@ -863,7 +900,6 @@ function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, 
             # Does TSR need to be updated based on new velocities?
             # This v_wake and w_wake are the vertical and horizontal spanwise velocities
             # induced on the turbine of interest by the upstream turbines
-            dx = locx - turbine_x[upwind_turb_id]
             dy = deltay
 
             v_wake, w_wake = calculate_transverse_velocity(wtvelocities[upwind_turb_id], wind_speed, dx, dy, locz, rotor_diameter[upwind_turb_id], 
