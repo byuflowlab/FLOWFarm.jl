@@ -653,7 +653,7 @@ sample is requested, it will be at the hub location. Otherwise, the points will 
 using the sunflower packcing algorithm.
 
 # Arguments
-- `nsamplepoints::Int`: controlls how many sample points to generate
+- `nsamplepoints::Int`: controls how many sample points to generate
 - `alpha::Float`: Controls smoothness of the sunflower algorithm boundary. alpha=0 is the standard "jagged edge" sunflower algoirthm and
     alpha=1 results in a smooth boundary.
 - `pradius::Float`: the percent of the rotor radius to use in generating initial point grid 

@@ -323,7 +323,7 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
         end
 
         # loop over all turbines (n)
-            for n=1:n_turbines
+        for n=1:n_turbines
             current_turbine_id = Int(sorted_turbine_index[n])
             x_n = turbine_x[current_turbine_id]
             y_n = turbine_y[current_turbine_id]
@@ -370,7 +370,6 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
 
                     dy = deflections[current_turbine_id,downwind_turbine_id]
                     sigma_n = sigma2[current_turbine_id,downwind_turbine_id]
-
                     sum_C = 0.0
 
                     @simd for i = 1:n-1
