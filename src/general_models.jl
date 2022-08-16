@@ -322,6 +322,8 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
             zPos[i] = turbine_z[i] + hub_height[i]
         end
 
+        C_temp = zeros(arr_type,n_rotor_sample_points)
+
         # loop over all turbines (n)
         for n=1:n_turbines
             current_turbine_id = Int(sorted_turbine_index[n])
@@ -343,7 +345,7 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
             turbine_local_ti[current_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
                                             turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=current_turbine_id, tol=1E-6)
 
-            for d = n+1:n_turbines
+            for d = n:n_turbines
                 downwind_turbine_id = Int(sorted_turbine_index[d])
                 for p = 1:n_rotor_sample_points
                     # scale rotor sample point coordinate by rotor diameter (in rotor hub ref. frame)
@@ -372,7 +374,7 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
                     sigma_n = sigma2[current_turbine_id,downwind_turbine_id]
                     sum_C = 0.0
 
-                    @simd for i = 1:n-1
+                    @simd for i = 1:n
                         other_turbine_id = Int(sorted_turbine_index[i])
                         y_i = turbine_y[other_turbine_id]
                         z_i = zPos[other_turbine_id]
@@ -390,9 +392,13 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
                     if d == n+1
                         point_velocities[downwind_turbine_id,p] = U_inf - deficits[downwind_turbine_id,p]
                     end
-                    if p == 1
-                        C[current_turbine_id,downwind_turbine_id] = C_point
+                    C_temp[p] = C_point
+                    C_avg = 0
+                    for s = 1:p
+                        C_avg += C_temp[s]
                     end
+                    C_avg /= p
+                    C[current_turbine_id,downwind_turbine_id] = C_avg
                 end
             end
         end
