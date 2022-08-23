@@ -597,7 +597,7 @@ function sunflower_points(n; alpha=0.0)
 
     b = round(alpha*sqrt(n)) # number of boundary points
 
-    phi = (sqrt(5.0) + 1.0)/2.0  # golden ratio
+    phi = (sqrt(5.0) + 1.0)/2.0  # golden ratio: (fraction a circle spanned by the golden angle = 1/(golden ratio)^2)
 
     for k in 1:n
         r = radius(k, n, b)
