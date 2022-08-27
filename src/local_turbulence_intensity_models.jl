@@ -39,7 +39,7 @@ Calculate local turbulence intensity using the model presented in Qian and
 Ishihara (2018)
 
 """
-struct LocalTIModelQianTI{TF} <: AbstractLocalTurbulenceIntensityModel
+struct LocalTIModelQianTI{} <: AbstractLocalTurbulenceIntensityModel
 
 end
 
@@ -382,7 +382,7 @@ with modification to account for yaw coming from Qian 2018 from Energies doi:10.
 function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
                     turbine_inflow_velocities, turbine_ct, ti_model::LocalTIModelQianTI; turbine_id=1, tol=1E-6)
 
-    num_upstream_turbines = 0 ###### DONT FORGET TO ADD 1 WHEN DIVIDING
+    num_upstream_turbines = 0
     nturbines = length(turbine_x)
     x_loc = turbine_x[turbine_id]
     y_loc = turbine_y[turbine_id]
@@ -400,8 +400,8 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
 
         # get modified ct from Qian 2018 Energies
         ct = turbine_ct[upstream_turbine] * cos(yaw)^3
-        Ia = turbine_local_ti[upstream_turbine]
-        # Ia = ambient_ti
+        # Ia = turbine_local_ti[upstream_turbine]
+        Ia = ambient_ti
 
         # get downstream distance between turbines
         dx = x_loc - turbine_x[upstream_turbine]
