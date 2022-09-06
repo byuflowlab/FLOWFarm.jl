@@ -388,6 +388,7 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
     z_loc = hub_height[turbine_id]
 
     intensity = 0
+    num_upstream = 1
 
     for i = 1:nturbines
         # get index of upstream turbine
@@ -399,7 +400,6 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
 
         # get modified ct from Qian 2018 Energies
         ct = turbine_ct[upstream_turbine] * cos(yaw)^3
-        Ia = ambient_ti
 
         # get downstream distance between turbines
         dx = x_loc - turbine_x[upstream_turbine]
@@ -431,13 +431,16 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
             if dz >= 0 || hub_height[upstream_turbine] == 0 #to avoid divide by zero
                 delta = 0
             else
-                delta = Ia * sin(pi*(-dz/hub_height[upstream_turbine]))^2
+                delta = ambient_ti * sin(pi*(-dz/hub_height[upstream_turbine]))^2
             end
             intensity += (1 / (d + e*dx/D + f*(1+dx/D)^-2)) * (k1*exp(-((r-D/2)^2/(2*sigma^2))) + k2*exp(-((r+D/2)^2/(2*sigma^2)))) - delta
+            num_upstream += 1
+        else
+            break
         end
     end
 
-    intensity = ambient_ti + intensity
+    intensity = ambient_ti + intensity/num_upstream
 
     turbine_local_ti[turbine_id] = intensity
 
