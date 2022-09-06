@@ -2487,38 +2487,32 @@ using FiniteDiff
 
         end
 
-        # @testset "Gaussian TI" begin TODO: get this TI model and tests working
+        @testset "Local TI Model Gaussian TI" begin
 
-        #         include("model_sets/model_set_5.jl")
-        #         ambient_ti = 0.137
+            atol = 1E-2
 
-        #         x = [2.959e-2,            2.219e-1,            4.290e-1,            6.805e-1,
-        #         9.467e-1,            1.287e+0,            1.701e+0,            2.101e+0,
-        #         2.441e+0,            2.811e+0,            3.092e+0,            3.388e+0,
-        #         3.683e+0,            3.979e+0,            4.364e+0,            4.852e+0,
-        #         5.237e+0,            5.740e+0,            6.139e+0,            6.686e+0,
-        #         7.411e+0,            8.166e+0,            8.861e+0,            9.408e+0,
-        #         9.970e+0] .* rotor_diameter
+            # load model set
+            include("model_sets/model_set_5.jl")
 
-        #         """paper data from "A new Gaussian-based analytical wake model for wind turbines
-        #         considering ambiend turbulence intensities and thrust coefficient effects" by Ishihara and
-        #         Qian"""
-        #         paper_data = [1.625e-1, 1.841e-1, 2.023e-1, 2.114e-1, 2.149e-1, 2.149e-1, 2.081e-1, 1.991e-1,
-        #             1.900e-1, 1.821e-1, 1.753e-1, 1.697e-1, 1.629e-1, 1.573e-1, 1.505e-1, 1.426e-1,
-        #             1.370e-1, 1.302e-1, 1.234e-1, 1.189e-1, 1.111e-1, 1.032e-1, 9.760e-2, 9.425e-2,
-        #             9.090e-2]
+            # load data for comparison
+            qian = readdlm("./inputfiles/Qian2018.csv",',',skipstart=1)
 
-        #         TI = zeros(length(x))
-        #         for i = 1:length(x)
-        #                 loc = [x[i],0.0,hub_height+rotor_diameter/2.0]
-        #                 TI[i] = ff.GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, sorted_turbine_index, ambient_ti; div_sigma=2.5, div_ti=1.2)
-        #         end
+            hub_height[2] = rotor_diameter[2]/2 + hub_height[2]
+            turbine_ct = zeros(length(turbine_x)) .+ 0.81
 
-        #         tol = 1E-2
-        #         @test TI.-ambient_ti ≈ paper_data atol=tol
+            x_loc = qian[:,1] * rotor_diameter[1]
 
-        # end
+            turbine_inflow_velocities = zeros(length(turbine_x)) .+ 15
 
+            TI = zeros(length(x_loc))
+
+            for i = 1:length(x_loc)
+                TI[i] = ff.calculate_local_ti([0.0, x_loc[i]], turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_index,
+                            turbine_inflow_velocities, turbine_ct, ti_model; turbine_id=2, tol=1E-16)
+            end
+
+            @test TI .- .137 ≈ qian[:,2] atol=atol
+        end
     end
 
     @testset "General Models" begin
