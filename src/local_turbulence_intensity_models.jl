@@ -33,13 +33,13 @@ LocalTIModelMaxTI(x, y) = LocalTIModelMaxTI(x, y, 0.3837, 0.003678)
 LocalTIModelMaxTI() = LocalTIModelMaxTI(2.32, 0.154, 0.3837, 0.003678)
 
 """
-    LocalTIModelQianTI()
+    LocalTIModelGaussTI()
 
 Calculate local turbulence intensity using the model presented in Qian and 
 Ishihara (2018)
 
 """
-struct LocalTIModelQianTI{} <: AbstractLocalTurbulenceIntensityModel
+struct LocalTIModelGaussTI{} <: AbstractLocalTurbulenceIntensityModel
 
 end
 
@@ -356,7 +356,7 @@ end
 
 """
     calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelQianTI; turbine_id=1, tol=1E-6)
+    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelGaussTI; turbine_id=1, tol=1E-6)
 
 Returns local turbulence intensity calculated using methods in Qian 2018 from the Journal of Wind Energy https://doi.org/10.1016/j.jweia.2018.04.010
 with modification to account for yaw coming from Qian 2018 from Energies doi:10.3390/en11030665
@@ -375,14 +375,13 @@ with modification to account for yaw coming from Qian 2018 from Energies doi:10.
     global reference frame
 - `turbine_inflow_velcities::Array{Float,nTurbines}`: effective inflow wind speed at each turbine for given state
 - `turbine_ct::Array{Float,nTurbines}`: thrust coefficient of each turbine for the given state
-- `ti_model::LocalTIModelQianTI`: contains a struct defining the desired turbulence intensity model
+- `ti_model::LocalTIModelGaussTI`: contains a struct defining the desired turbulence intensity model
 - `turbine_id::Int`: index of wind turbine of interest. Provide 1 as default.
 - `tol::Float`: How far upstream a turbine should be before being included in TI calculations
 """
 function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                    turbine_inflow_velocities, turbine_ct, ti_model::LocalTIModelQianTI; turbine_id=1, tol=1E-6)
+                    turbine_inflow_velocities, turbine_ct, ti_model::LocalTIModelGaussTI; turbine_id=1, tol=1E-6)
 
-    num_upstream_turbines = 0
     nturbines = length(turbine_x)
     x_loc = turbine_x[turbine_id]
     y_loc = turbine_y[turbine_id]
@@ -396,11 +395,10 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
 
         # put yaw in counter-clockwise notation as descirbed in Qian 2018 from Energies
         yaw = turbine_yaw[upstream_turbine]
-        yaw = -yaw
+        yaw *= -1
 
         # get modified ct from Qian 2018 Energies
         ct = turbine_ct[upstream_turbine] * cos(yaw)^3
-        # Ia = turbine_local_ti[upstream_turbine]
         Ia = ambient_ti
 
         # get downstream distance between turbines
@@ -417,16 +415,16 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
 
             # calculate constants
             k_star = 0.11 * ct^1.07 * Ia^0.20
-            epsilon = 0.23 * ct^-0.25 * Ia^0.17
-            d = 2.3 * ct^-1.2
+            epsilon = 0.23 * ct^(-0.25) * Ia^0.17
+            d = 2.3 * ct^(-1.2)
             e = Ia^0.1
-            f = 0.7 * ct^-3.2 * Ia^-0.45
+            f = 0.7 * ct^(-3.2) * Ia^(-0.45)
             k1 = 1
             k2 = 0
             D = rotor_diameter[upstream_turbine]
             if r/D <= 0.5
-                k1 = cos(pi/2 * (r/D - 0.5))^2
-                k2 = cos(pi/2 * (r/D + 0.5))^2
+                k1 = (cos(pi/2 * (r/D - 0.5)))^2
+                k2 = (cos(pi/2 * (r/D + 0.5)))^2
             end
             sigma = k_star * dx + epsilon * D
             
@@ -435,14 +433,11 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
             else
                 delta = Ia * sin(pi*(-dz/hub_height[upstream_turbine]))^2
             end
-            num_upstream_turbines += 1
-            intensity += (1 / (d + e*dx/D + f*(1+dx/D)^-2) * (k1*exp(-(r-D/2)^2/(2*sigma^2)) + k2*exp(-(r+D/2)^2/(2*sigma^2))) - delta) + Ia
-        else
-            break
+            intensity += (1 / (d + e*dx/D + f*(1+dx/D)^-2)) * (k1*exp(-((r-D/2)^2/(2*sigma^2))) + k2*exp(-((r+D/2)^2/(2*sigma^2)))) - delta
         end
     end
 
-    intensity /= num_upstream_turbines + 1
+    intensity = ambient_ti + intensity
 
     turbine_local_ti[turbine_id] = intensity
 

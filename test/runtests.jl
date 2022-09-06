@@ -1272,7 +1272,6 @@ using FiniteDiff
 
     end
 
-
     @testset "Thrust Coefficient Models" begin
 
         @testset "Constant Thrust Coefficent Model" begin
