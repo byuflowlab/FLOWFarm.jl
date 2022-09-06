@@ -389,6 +389,7 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
 
     intensity = 0
     num_upstream = 1
+    Ia = ambient_ti
 
     for i = 1:nturbines
         # get index of upstream turbine
@@ -431,7 +432,7 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
             if dz >= 0 || hub_height[upstream_turbine] == 0 #to avoid divide by zero
                 delta = 0
             else
-                delta = ambient_ti * sin(pi*(-dz/hub_height[upstream_turbine]))^2
+                delta = Ia * sin(pi*(-dz/hub_height[upstream_turbine]))^2
             end
             intensity += (1 / (d + e*dx/D + f*(1+dx/D)^-2)) * (k1*exp(-((r-D/2)^2/(2*sigma^2))) + k2*exp(-((r+D/2)^2/(2*sigma^2)))) - delta
             num_upstream += 1
