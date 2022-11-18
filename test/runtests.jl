@@ -34,6 +34,27 @@ using FiniteDiff
 
         end
 
+        @testset "_gauss_yaw_spread_interpolated" begin
+            dt = 80.0
+            k = 0.03
+            dx = 100
+            x0 = 320
+            yaw = 0
+            xd = 150
+
+            # sigma interpolation is true
+            # Interpolate to set interpolated dx value between x0 and xd where equations are all defined
+            dx_interpolate = xd+((x0-xd)/(x0))*(dx)
+            # From Bastankhah and Porte-Agel 2016 eqn 7.2
+            sigma = k*(dx_interpolate - x0) + dt*cos(yaw)/sqrt(8.0)
+            @test ff._gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd) ≈ sigma
+
+            # sigma if interpolation is false
+            # if dx is less than xd use xd as the distance so sigma is defined
+            sigma = k*(xd - x0) + dt*cos(yaw)/sqrt(8.0)
+            @test ff._gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd, interpolate=false) ≈ sigma
+        end
+
         @testset "Coordinate rotation" begin
             atol = 1E-15
 
