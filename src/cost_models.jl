@@ -48,7 +48,7 @@ function cost_of_energy(rotor_diameter, hub_height, rated_power, AEP, Cost::Leve
 
     PlantKW = sum(rated_power) # Combines total Wind Farm Capacity
 
-    Mass = 0
+    Mass = 0.0
     for i = 1:nturbines
         swept_area = pi*(rotor_diameter[i]/2)^2
         Mass += .2694*hub_height[i]*swept_area + 1779.3
