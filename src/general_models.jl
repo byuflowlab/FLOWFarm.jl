@@ -178,7 +178,6 @@ function calculate_transverse_velocity(U_i, U_inf, dx, dy, z, rotor_diameter, HH
     # HH needs to be the flowfield specified height
     vel_top = ((HH+D/2)/HH)^shearexponent
     vel_bottom = ((HH-D/2)/HH)^shearexponent
-    print("HH: ", HH)
 
     # find Gamma at the top and bottom of the rotor swept area
     # Gamma top and bottom may only be for yaw, tilt is gamma left and right
@@ -196,8 +195,6 @@ function calculate_transverse_velocity(U_i, U_inf, dx, dy, z, rotor_diameter, HH
     turbine_average_velocity = U_i
 
     Gamma_wr = 2*0.25*pi*D*(ai-ai^2)*turbine_average_velocity/TSR
-    print("D: ", D, "\n")
-    print("TSR: ", D, "\n")
 
     ### compute the spanwise and vertical velocities induced by tilt
 
@@ -207,9 +204,7 @@ function calculate_transverse_velocity(U_i, U_inf, dx, dy, z, rotor_diameter, HH
     lm = (kappa*z)/(1+(kappa*z/lambda))
     ### TODO: assign dudz_initial as an input, how to calculate this????  ###
     dudz = abs(Uinf*(vel_top-vel_bottom))/(D)
-    print("dudz_full: ", dudz, "\n")
     dudz = abs(Uinf*(vel_top-1))/(D/2)
-    print("dudz_half: ", dudz, "\n")
     turbulent_visc = (lm^2)*abs(dudz)
 
     decay = (eps^2)/((4*turbulent_visc*dx/Uinf) + eps^2)
@@ -841,10 +836,11 @@ function point_velocity_tilt(locx, locy, locz, turbine_x, turbine_y, turbine_z, 
             
             ### SOMETHING IS WRONG HERE ###
             ### SHOULDN'T BE JUST ADDING, NEED TO TAKE AVERAGE OF V_WAKE OVER ROTOR POINTS ###
+            ### RESOLVED ###
             V_sorted[upwind_turb_id] = ((V_sorted[upwind_turb_id]*nrotorpoints) + v_wake)/(nrotorpoints + 1)
             W_sorted[upwind_turb_id] = ((W_sorted[upwind_turb_id]*nrotorpoints) + w_wake)/(nrotorpoints + 1)
-            print("V_sorted: ", V_sorted[upwind_turb_id])
-            print("W_sorted: ", W_sorted[upwind_turb_id])
+            # print("V_sorted: ", V_sorted[upwind_turb_id])
+            # print("W_sorted: ", W_sorted[upwind_turb_id])
         end
         # print("V_sorted after: ", V_sorted)
 
