@@ -1,5 +1,5 @@
 using SNOW
-using Snopt
+# using Snopt
 using DelimitedFiles 
 using PyPlot
 # using Distrib@uted
