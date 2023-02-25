@@ -2351,6 +2351,24 @@ using FiniteDiff
             @test loss0 < loss1
 
         end
+
+        @testset "Cumulative Curl Model" begin
+
+            include("./model_sets/model_set_CumulativeCurl.jl")
+
+            # These speeds come from the exact same senario run in FLORIS
+            floris_speeds = [4.47782564 4.22203667 4.87630822 7.24928086 5.3327349 7.24928086 4.87630822 4.10768106 5.89349064 6.30625438 7.79997475 7.99694765 8. 8. 8. 7.99694765 7.79997475 6.30625438 5.89349064 4.02800927 4.13783708 5.85694226 7.80549692 5.84344344 7.98537599 8. 8. 8. 8. 8. 8. 8. 8. 7.98537599 5.84344344 7.80549692 5.85694226 4.13783708]
+
+            rot_x, rot_y = ff.rotate_to_wind_direction(turbine_x, turbine_y, wind_resource.wind_directions[1])
+            sorted_turbine_index = sortperm(rot_x)
+
+            U = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+            sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+            model_set)
+
+            @test U == flrois_speeds tol=1E-6
+
+        end
     end
 
     @testset "Local Turbulence Intensity Models" begin

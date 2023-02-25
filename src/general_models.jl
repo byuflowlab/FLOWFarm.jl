@@ -140,7 +140,7 @@ end
     model_set::AbstractModelSet; wind_farm_state_id::Int=1, velocity_only::Bool=true, turbine_velocities=nothing,
     turbine_ct=nothing, turbine_ai=nothing, turbine_local_ti=nothing)
 
-Calculates the wind speeds for the farm
+Calculates the wind speeds for the farm with the Cumulative Curl model as defined in https://doi.org/10.5194/wes-2022-17
 
 # Arguments
 - `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the state 
@@ -334,18 +334,18 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
             # update current turbine velocity from sample points
             tot = 0
             for t = 1:n_rotor_sample_points
-                tot += point_velocities[current_turbine_id,t]
+                tot += (point_velocities[current_turbine_id,t]^3)
             end
-            turbine_velocities[current_turbine_id] = tot / n_rotor_sample_points
+            turbine_velocities[current_turbine_id] = cbrt((tot / n_rotor_sample_points))
 
             # update coefficient of thrust for current turbine
             turbine_ct[current_turbine_id] = calculate_ct(turbine_velocities[current_turbine_id], ct_model[current_turbine_id])
 
             # update local TI for current turbine
             turbine_local_ti[current_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                                            turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=current_turbine_id, tol=1E-6)
+                                            turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=current_turbine_id, tol=1E-6)                     
 
-            for d = n:n_turbines
+            for d = n+1:n_turbines
                 downwind_turbine_id = Int(sorted_turbine_index[d])
                 for p = 1:n_rotor_sample_points
                     # scale rotor sample point coordinate by rotor diameter (in rotor hub ref. frame)
@@ -357,7 +357,7 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
                     y = turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y*cos(turbine_yaw[downwind_turbine_id])
                     z = zPos[downwind_turbine_id] + local_rotor_sample_point_z
 
-                    @fastmath x_tilde_n = (x - x_n) / rotor_diameter[current_turbine_id]
+                    @fastmath x_tilde_n = abs(x - x_n) / rotor_diameter[current_turbine_id]
                     @fastmath m = a_f*exp(b_f*x_tilde_n)+c_f
                     @fastmath a1 = 2^(2/m - 1)
                     @fastmath a2 = a1^2
@@ -374,14 +374,14 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
                     sigma_n = sigma2[current_turbine_id,downwind_turbine_id]
                     sum_C = 0.0
 
-                    @simd for i = 1:n
+                    for i = 1:n-1
                         other_turbine_id = Int(sorted_turbine_index[i])
                         y_i = turbine_y[other_turbine_id]
                         z_i = zPos[other_turbine_id]
-                        sigma_i = sigma2[other_turbine_id,current_turbine_id]
-                        dy_i = deflections[other_turbine_id,current_turbine_id]
+                        sigma_i = sigma2[other_turbine_id,downwind_turbine_id]
+                        dy_i = deflections[other_turbine_id,downwind_turbine_id]
                         @fastmath lambda_n_i = sigma_n/(sigma_n+sigma_i) * exp(-((y_n-y_i-dy_i)^2 + (z_n-z_i)^2)/(2.0*(sigma_n+sigma_i)))
-                        @fastmath sum_C += lambda_n_i * C[other_turbine_id,current_turbine_id]
+                        @fastmath sum_C += lambda_n_i * C[other_turbine_id,downwind_turbine_id]
                     end
 
                     @fastmath calc = max(0.0,a2 - (m*turbine_ct[current_turbine_id]*cos(turbine_yaw[current_turbine_id]))/(16.0*gamma(2/m)*(sigma_n^(2/m))*(1-sum_C/U_inf)^2))
@@ -398,6 +398,7 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
                         C_avg += C_temp[s]
                     end
                     C_avg /= p
+
                     C[current_turbine_id,downwind_turbine_id] = C_avg
                 end
             end
@@ -407,10 +408,11 @@ end
 
 # Helper function for turbine_velocities_one_direction_CC!
 function wake_expansion(Ct,TI,x_tilde,model)
-    @fastmath beta = 0.5*(1.0+sqrt(1.0-Ct))/(sqrt(1.0-Ct))
+    @fastmath beta = 0.5*(1.0+sqrt(1.0-Ct))/sqrt(1.0-Ct)
     epsilon = (model.c_s1*Ct+model.c_s2)*sqrt(beta)
     k = model.a_s*TI+model.b_s
     sigma = k*x_tilde+epsilon
+
     return sigma^2
 end
 
