@@ -1272,7 +1272,6 @@ using FiniteDiff
 
     end
 
-
     @testset "Thrust Coefficient Models" begin
 
         @testset "Constant Thrust Coefficent Model" begin
@@ -2352,6 +2351,25 @@ using FiniteDiff
             @test loss0 < loss1
 
         end
+
+        @testset "Cumulative Curl Model" begin
+
+            include("./model_sets/model_set_CumulativeCurl.jl")
+
+            # These speeds come from the exact same senario run in FLORIS
+            floris_speeds = [4.47782564 4.22203667 4.87630822 7.24928086 5.3327349 7.24928086 4.87630822 4.10768106 5.89349064 6.30625438 7.79997475 7.99694765 8. 8. 8. 7.99694765 7.79997475 6.30625438 5.89349064 4.02800927 4.13783708 5.85694226 7.80549692 5.84344344 7.98537599 8. 8. 8. 8. 8. 8. 8. 8. 7.98537599 5.84344344 7.80549692 5.85694226 4.13783708]
+
+            rot_x, rot_y = ff.rotate_to_wind_direction(turbine_x, turbine_y, windresource.wind_directions[1])
+            sorted_turbine_index = sortperm(rot_x)
+
+            U = ff.turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+            sorted_turbine_index, ct_models, rotor_points_y, rotor_points_z, windresource,
+            model_set)
+            
+
+            @test U ≈ transpose(floris_speeds) atol=2E-4
+
+        end
     end
 
     @testset "Local Turbulence Intensity Models" begin
@@ -2399,12 +2417,11 @@ using FiniteDiff
 
             atol = 1E-2
 
-
             # load model set
             include("./model_sets/model_set_4.jl")
 
             # calculate turbine inflow velocities
-            turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+            turbine_inflow_velocities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
             sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, windresource,
             model_set, velocity_only=false)
 
@@ -2413,33 +2430,33 @@ using FiniteDiff
 
             # freestream
             ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-            turbine_inflow_velcities, turbine_ct, localtimodel, turbine_id=(1+ 4*10), tol=1E-6)
-            @test ti_dst  == data[1,2]
+            turbine_inflow_velocities, turbine_ct, localtimodel, turbine_id=(1+ 4*10), tol=1E-6)
+            @test ti_dst == data[1,2]
 
             # row 2
             ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-            turbine_inflow_velcities, turbine_ct, localtimodel, turbine_id=(2+ 4*10), tol=1E-6)
-            @test ti_dst  ≈ data[2,2] atol=atol
+            turbine_inflow_velocities, turbine_ct, localtimodel, turbine_id=(2+ 4*10), tol=1E-6)
+            @test ti_dst ≈ data[2,2] atol=atol
 
             # row 3
             ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-            turbine_inflow_velcities, turbine_ct, localtimodel, turbine_id=(3+ 4*10), tol=1E-6)
-            @test ti_dst  ≈ data[3,2] atol=atol
+            turbine_inflow_velocities, turbine_ct, localtimodel, turbine_id=(3+ 4*10), tol=1E-6)
+            @test ti_dst ≈ data[3,2] atol=atol
 
             # row 4
             ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-            turbine_inflow_velcities, turbine_ct, localtimodel, turbine_id=(4+ 4*10), tol=1E-6)
-            @test ti_dst  ≈ data[4,2] atol=atol
+            turbine_inflow_velocities, turbine_ct, localtimodel, turbine_id=(4+ 4*10), tol=1E-6)
+            @test ti_dst ≈ data[4,2] atol=atol
 
             # row 5
             ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-            turbine_inflow_velcities, turbine_ct, localtimodel, turbine_id=(5+ 4*10), tol=1E-6)
-            @test ti_dst  ≈ data[5,2] atol=atol
+            turbine_inflow_velocities, turbine_ct, localtimodel, turbine_id=(5+ 4*10), tol=1E-6)
+            @test ti_dst ≈ data[5,2] atol=atol
 
             # row 6
             ti_dst = ff.calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-            turbine_inflow_velcities, turbine_ct, localtimodel, turbine_id=(6+ 4*10), tol=1E-6)
-            @test ti_dst  ≈ data[6,2] atol=atol
+            turbine_inflow_velocities, turbine_ct, localtimodel, turbine_id=(6+ 4*10), tol=1E-6)
+            @test ti_dst ≈ data[6,2] atol=atol
 
         end
 
@@ -2488,38 +2505,32 @@ using FiniteDiff
 
         end
 
-        # @testset "Gaussian TI" begin TODO: get this TI model and tests working
+        @testset "Local TI Model Gaussian TI" begin
 
-        #         include("model_sets/model_set_5.jl")
-        #         ambient_ti = 0.137
+            atol = 1E-2
 
-        #         x = [2.959e-2,            2.219e-1,            4.290e-1,            6.805e-1,
-        #         9.467e-1,            1.287e+0,            1.701e+0,            2.101e+0,
-        #         2.441e+0,            2.811e+0,            3.092e+0,            3.388e+0,
-        #         3.683e+0,            3.979e+0,            4.364e+0,            4.852e+0,
-        #         5.237e+0,            5.740e+0,            6.139e+0,            6.686e+0,
-        #         7.411e+0,            8.166e+0,            8.861e+0,            9.408e+0,
-        #         9.970e+0] .* rotor_diameter
+            # load model set
+            include("model_sets/model_set_5.jl")
 
-        #         """paper data from "A new Gaussian-based analytical wake model for wind turbines
-        #         considering ambiend turbulence intensities and thrust coefficient effects" by Ishihara and
-        #         Qian"""
-        #         paper_data = [1.625e-1, 1.841e-1, 2.023e-1, 2.114e-1, 2.149e-1, 2.149e-1, 2.081e-1, 1.991e-1,
-        #             1.900e-1, 1.821e-1, 1.753e-1, 1.697e-1, 1.629e-1, 1.573e-1, 1.505e-1, 1.426e-1,
-        #             1.370e-1, 1.302e-1, 1.234e-1, 1.189e-1, 1.111e-1, 1.032e-1, 9.760e-2, 9.425e-2,
-        #             9.090e-2]
+            # load data for comparison
+            qian = readdlm("./inputfiles/Qian2018.csv",',',skipstart=1)
 
-        #         TI = zeros(length(x))
-        #         for i = 1:length(x)
-        #                 loc = [x[i],0.0,hub_height+rotor_diameter/2.0]
-        #                 TI[i] = ff.GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbine_ct, sorted_turbine_index, ambient_ti; div_sigma=2.5, div_ti=1.2)
-        #         end
+            hub_height[2] = rotor_diameter[2]/2 + hub_height[2]
+            turbine_ct = zeros(length(turbine_x)) .+ 0.81
 
-        #         tol = 1E-2
-        #         @test TI.-ambient_ti ≈ paper_data atol=tol
+            x_loc = qian[:,1] * rotor_diameter[1]
 
-        # end
+            turbine_inflow_velocities = zeros(length(turbine_x)) .+ 15
 
+            TI = zeros(length(x_loc))
+
+            for i = 1:length(x_loc)
+                TI[i] = ff.calculate_local_ti([0.0, x_loc[i]], turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_index,
+                            turbine_inflow_velocities, turbine_ct, ti_model; turbine_id=2, tol=1E-16)
+            end
+
+            @test TI .- .137 ≈ qian[:,2] atol=atol
+        end
     end
 
     @testset "General Models" begin
