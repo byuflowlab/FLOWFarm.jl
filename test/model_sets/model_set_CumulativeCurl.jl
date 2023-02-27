@@ -1,7 +1,7 @@
-import FLOWFarm; const ff = FLOWFarm
 
-# set initial turbine x and y locations
 diam = 126.0
+# set initial turbine x and y locations
+println(pwd())
 data = readdlm("inputfiles/layout_38turb_round.txt",  ' ', skipstart=1)
 turbine_x = data[:, 1].*diam
 nturbines = length(turbine_x)
@@ -10,12 +10,6 @@ turbine_z = zeros(nturbines)
 
 turbine_x = turbine_x .- turbine_x[1]
 turbine_y = turbine_y .- turbine_y[1]
-
-# calculate the number of turbines
-nturbines = length(turbine_x)
-
-# set turbine base heights
-turbine_z = zeros(nturbines) .+ 0.0
 
 # set turbine yaw values
 turbine_yaw = zeros(nturbines)
@@ -32,7 +26,6 @@ generator_efficiency = zeros(nturbines) .+ 1.0
 # rotor swept area sample points (normalized by rotor radius)
 nrotorpoints = 3
 rotor_points_y, rotor_points_z = ff.rotor_sample_points(nrotorpoints, method="grid", pradius=0.5)
-
 # set flow parameters
 winddirections = [270.0*pi/180]
 windspeeds = [8.0]
@@ -71,9 +64,6 @@ end
 
 # initialize wind shear model
 wind_shear_model = ff.PowerLawWindShear(shearexponent)
-
-# get sorted indecies 
-sorted_turbine_index = sortperm(turbine_x)
 
 # initialize the wind resource definition
 windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, measurementheight, air_density, ambient_tis, wind_shear_model)

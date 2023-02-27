@@ -266,11 +266,6 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
 
     end
 
-    # if turbine_id == 10
-    #     println("output")
-    #     println(ambient_ti, " ", turbine_ct[turbine_id], " ", turbine_x[turbine_id], " ", rotor_diameter[turbine_id], " ", hub_height[turbine_id], " ",700, " ", ti_dst)
-    # end
-
     return ti_dst
 
 end
