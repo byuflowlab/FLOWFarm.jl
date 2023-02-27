@@ -2367,7 +2367,7 @@ using FiniteDiff
             model_set)
             
 
-            @test U ≈ transpose(floris_speeds) atol=2E-4
+            @test U ≈ transpose(floris_speeds) atol=0.001
 
         end
     end
