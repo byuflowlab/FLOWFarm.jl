@@ -144,8 +144,9 @@ Container for parameters related to the Cumulative Curl model used in FLORIS v3 
 - `a_f::Float`: Default value is 3.11
 - `b_f::Float`: Default value is -0.68
 - `c_f::Float`: Default value is 2.41
+- 'wec_factor': paramter for the wake expansion continuation Default is [1.0]
 """
-struct CumulativeCurl{TF} <: AbstractWakeDeficitModel
+struct CumulativeCurl{TF,ATF} <: AbstractWakeDeficitModel
     a_s::TF
     b_s::TF
     c_s1::TF
@@ -153,8 +154,9 @@ struct CumulativeCurl{TF} <: AbstractWakeDeficitModel
     a_f::TF
     b_f::TF
     c_f::TF
+    wec_factor::ATF
 end
-CumulativeCurl() = CumulativeCurl(0.179367259, 0.0118889215, 0.0563691592, 0.13290157, 3.11, -0.68, 2.41)
+CumulativeCurl() = CumulativeCurl(0.179367259, 0.0118889215, 0.0563691592, 0.13290157, 3.11, -0.68, 2.41, [1.0])
 
 """
     wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::JensenTopHat)
