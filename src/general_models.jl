@@ -195,7 +195,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         end
     end
 
-    if typeof(model_set.wake_deficit_model) == CumulativeCurl{Float64}
+    if typeof(model_set.wake_deficit_model) == CumulativeCurl{Float64,Vector{Float64}}
         turbine_velocities_one_direction_CC!(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
         sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
         model_set, turbine_velocities,

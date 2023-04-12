@@ -2365,7 +2365,6 @@ using FiniteDiff
             U = ff.turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
             sorted_turbine_index, ct_models, rotor_points_y, rotor_points_z, windresource,
             model_set)
-            
 
             @test U ≈ transpose(floris_speeds) atol=0.001
 
