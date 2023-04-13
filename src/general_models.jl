@@ -357,6 +357,18 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
                     y = turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y*cos(turbine_yaw[downwind_turbine_id])
                     z = zPos[downwind_turbine_id] + local_rotor_sample_point_z
 
+                    # find order for wind shear and deficit calculations
+                    shear_order = wind_resource.wind_shear_model.shear_order
+                    # adjust wind speed for wind shear
+                    if shear_order == "nothing"
+                        wind_speed_internal = wind_speed
+                    elseif shear_order == "first"
+                        wind_speed_internal = adjust_for_wind_shear(z, wind_resource.wind_speeds[wind_farm_state_id], wind_resource.measurement_heights[wind_farm_state_id], wind_resource.wind_shear_model.ground_height, wind_resource.wind_shear_model)
+                    else
+                        wind_speed_internal = wind_speed
+                    end
+
+                    # CC model
                     @fastmath x_tilde_n = abs(x - x_n) / rotor_diameter[current_turbine_id]
                     @fastmath m = a_f*exp(b_f*x_tilde_n)+c_f
                     @fastmath a1 = 2^(2/m - 1)
@@ -391,6 +403,16 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
                     @fastmath deficits[downwind_turbine_id,p] += velDef * turbine_velocities[current_turbine_id]
                     if d == n+1
                         point_velocities[downwind_turbine_id,p] = U_inf - deficits[downwind_turbine_id,p]
+                        # find order for wind shear and deficit calculations
+                        shear_order = wind_resource.wind_shear_model.shear_order
+                        # adjust wind speed for wind shear
+                        if shear_order == "nothing"
+                            point_velocities[downwind_turbine_id,p] = point_velocities[downwind_turbine_id,p]
+                        elseif shear_order == "first"
+                            point_velocities[downwind_turbine_id,p] = point_velocities[downwind_turbine_id,p]
+                        else
+                            point_velocities[downwind_turbine_id,p] = adjust_for_wind_shear(z, point_velocities[downwind_turbine_id,p], wind_resource.measurement_heights[wind_farm_state_id], wind_resource.wind_shear_model.ground_height, wind_resource.wind_shear_model)
+                        end
                     end
                     C_temp[p] = C_point
                     C_avg = 0
