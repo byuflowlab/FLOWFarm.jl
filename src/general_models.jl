@@ -140,8 +140,6 @@ end
     model_set::AbstractModelSet; wind_farm_state_id::Int=1, velocity_only::Bool=true, turbine_velocities=nothing,
     turbine_ct=nothing, turbine_ai=nothing, turbine_local_ti=nothing)
 
-Calculates the wind speeds for the farm with the Cumulative Curl model as defined in https://doi.org/10.5194/wes-2022-17
-
 # Arguments
 - `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the state 
     reference frame
@@ -282,6 +280,7 @@ function turbine_velocities_one_direction!(turbine_x::Vector{T0}, turbine_y::Vec
 
 end
 
+# Calculates the wind speeds for the farm with the Cumulative Curl model as defined in https://doi.org/10.5194/wes-2022-17
 function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::Vector{T1}, turbine_z::Vector{T2}, rotor_diameter::Vector{T3}, hub_height::Vector{T4}, turbine_yaw::Vector{T5},
     sorted_turbine_index::Vector{Int}, ct_model::Vector{<:AbstractThrustCoefficientModel}, rotor_sample_points_y::Vector{T6}, rotor_sample_points_z::Vector{T6}, wind_resource,
     model_set::AbstractModelSet, turbine_velocities::Vector{T7},
