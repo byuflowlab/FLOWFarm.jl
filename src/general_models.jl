@@ -314,6 +314,7 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
         a_f = model_set.wake_deficit_model.a_f
         b_f = model_set.wake_deficit_model.b_f
         c_f = model_set.wake_deficit_model.c_f
+        wec_factor = model_set.wake_deficit_model.wec_factor[1]
 
         zPos = zeros(n_turbines)
 
@@ -397,8 +398,8 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
 
                     @fastmath calc = max(0.0,a2 - (m*turbine_ct[current_turbine_id]*cos(turbine_yaw[current_turbine_id]))/(16.0*gamma(2/m)*(sigma_n^(2/m))*(1-sum_C/U_inf)^2))
                     @fastmath C_point = (1-sum_C/U_inf) * (a1-sqrt(calc))
-                    @fastmath r_tilde = sqrt((y-y_n-dy)^2 + (z-z_n)^2)/rotor_diameter[current_turbine_id]
-                    @fastmath velDef = C_point*exp(-1 * (r_tilde^m)/(2.0*sigma_n))
+                    @fastmath r_tilde = (sqrt((y-y_n-dy)^2 + (z-z_n)^2)/rotor_diameter[current_turbine_id])
+                    @fastmath velDef = C_point*exp(-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor))
                     @fastmath deficits[downwind_turbine_id,p] += velDef * turbine_velocities[current_turbine_id]
                     if d == n+1
                         point_velocities[downwind_turbine_id,p] = U_inf - deficits[downwind_turbine_id,p]
@@ -431,7 +432,7 @@ end
 function wake_expansion(Ct,TI,x_tilde,model)
     @fastmath beta = 0.5*(1.0+sqrt(1.0-Ct))/sqrt(1.0-Ct)
     epsilon = (model.c_s1*Ct+model.c_s2)*sqrt(beta)
-    k = model.a_s*TI+model.b_s
+    k = (model.a_s*TI+model.b_s)
     sigma = k*x_tilde+epsilon
 
     return sigma^2
