@@ -39,6 +39,7 @@ ambient_tis = zeros(nstates) .+ ambient_ti
 measurementheight = zeros(nstates) .+ hub_height[1]
 
 # load power curve
+#This input file is not smooth but it matches FLORIS for comparison purposes
 powerdata = readdlm("inputfiles/NREL5MWCPCT_FLORIS_V3.csv",',',skipstart=1)
 velpoints = powerdata[:,1]
 powerpoints = powerdata[:,2]
