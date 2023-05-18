@@ -396,7 +396,7 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
                         @fastmath sum_C += lambda_n_i * C[other_turbine_id,downwind_turbine_id]
                     end
 
-                    @fastmath calc = max(0.0,a2 - (m*turbine_ct[current_turbine_id]*cos(turbine_yaw[current_turbine_id]))/(16.0*gamma(2/m)*(sigma_n^(2/m))*(1-sum_C/U_inf)^2))
+                    @fastmath calc = a2 - (m*turbine_ct[current_turbine_id]*cos(turbine_yaw[current_turbine_id]))/(16.0*gamma(2/m)*(sigma_n^(2/m))*(1-sum_C/U_inf)^2)
                     @fastmath C_point = (1-sum_C/U_inf) * (a1-sqrt(calc))
                     @fastmath r_tilde = (sqrt((y-y_n-dy)^2 + (z-z_n)^2)/rotor_diameter[current_turbine_id])
                     @fastmath velDef = C_point*exp(-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor))
