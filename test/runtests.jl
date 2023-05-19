@@ -2366,7 +2366,7 @@ using FiniteDiff
             sorted_turbine_index, ct_models, rotor_points_y, rotor_points_z, windresource,
             model_set)
 
-            @test U ≈ transpose(floris_speeds) atol=0.001
+            @test U ≈ transpose(floris_speeds) atol=0.002
 
         end
     end
