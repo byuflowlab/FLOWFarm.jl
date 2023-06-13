@@ -66,7 +66,7 @@ end
 GaussOriginal() = GaussOriginal(0.075)
 
 """
-    GaussYaw(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+    GaussYaw(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star, interpolation)
 
 Container for parameters related to the Gaussian deficit model with yaw presented by Bastankhah and Porte-Agel 2016
 
@@ -75,19 +75,23 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 - `vertical_spread_rate::Float`: parameter controlling the vertical spread of the deficit model. Default value is 0.022.
 - `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
+- `interpolation::Bool`: boolean stating if the the near wake should be interpolated. Default value is true.
 """
-struct GaussYaw{TF, ATF} <: AbstractWakeDeficitModel
+struct GaussYaw{TF, ATF, BO} <: AbstractWakeDeficitModel
     horizontal_spread_rate::TF
     vertical_spread_rate::TF
     alpha_star::TF
     beta_star::TF
     wec_factor::ATF
+    interpolate_sigma::BO
 end
-GaussYaw() = GaussYaw(0.022, 0.022, 2.32, 0.154, [1.0])
-GaussYaw(a, b, c, d) = GaussYaw(a, b, c, d, [1.0])
+GaussYaw() = GaussYaw(0.022, 0.022, 2.32, 0.154, [1.0], true)
+GaussYaw(interp) = GaussYaw(0.022, 0.022, 2.32, 0.154, [1.0], interp)
+GaussYaw(a, b, c, d) = GaussYaw(a, b, c, d, [1.0], true)
+GaussYaw(a, b, c, d, interp) = GaussYaw(a, b, c, d, [1.0], interp)
 
 """
-    GaussYawVariableSpread(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+    GaussYawVariableSpread(turbulence_intensity, horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star, interpolation)
 
 Container for parameters related to the Gaussian deficit model with yaw presented by Bastankhah and Porte-Agel 2016
     and the farm model presented by Niayifar and Porte-Agel in 2016.
@@ -95,17 +99,21 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 # Arguments
 - `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
+- `interpolation::Bool`: boolean stating if the the near wake should be interpolated. Default value is true.
 """
-struct GaussYawVariableSpread{TF, ATF} <: AbstractWakeDeficitModel
+struct GaussYawVariableSpread{TF, ATF, BO} <: AbstractWakeDeficitModel
     alpha_star::TF
     beta_star::TF
     k1::TF
     k2::TF
     wec_factor::ATF
+    interpolate_sigma::BO
 end
-GaussYawVariableSpread() = GaussYawVariableSpread(2.32, 0.154, 0.3837, 0.003678, [1.0])
-GaussYawVariableSpread(x, y, z) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, z)
-GaussYawVariableSpread(x, y) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, [1.0])
+GaussYawVariableSpread() = GaussYawVariableSpread(2.32, 0.154, 0.3837, 0.003678, [1.0], true)
+GaussYawVariableSpread(interp) = GaussYawVariableSpread(2.32, 0.154, 0.3837, 0.003678, [1.0], interp)
+GaussYawVariableSpread(x, y, z) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, z, true)
+GaussYawVariableSpread(x, y, z, interp) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, z, interp)
+GaussYawVariableSpread(x, y) = GaussYawVariableSpread(x, y, 0.3837, 0.003678, [1.0], true)
 
 """
     GaussSimple(k, wec_factor)
@@ -122,6 +130,33 @@ struct GaussSimple{TF, ATF} <: AbstractWakeDeficitModel
 end
 GaussSimple(k) = GaussSimple(k, [1.0])
 GaussSimple() = GaussSimple(0.0324555, [1.0])
+
+"""
+    CumulativeCurl(a_s, b_s, c_s1, c_s2, a_f, b_f, c_f)
+
+Container for parameters related to the Cumulative Curl model used in FLORIS v3 as shown in Bay 2022 (https://doi.org/10.5194/wes-2022-17)
+
+# Arguments
+- `a_s::Float`: parameter relating turbulence intensity to wake spread. Default value is 0.179367259
+- `b_s::Float`: parameter controlling the default wake spread. Default value is 0.0118889215
+- `c_s1::Float`: parameter relating Ct to initial wake width. Default value is 0.0563691592
+- `c_s2::Float`: parameter affecting initial wake width. Default value is 0.13290157
+- `a_f::Float`: Default value is 3.11
+- `b_f::Float`: Default value is -0.68
+- `c_f::Float`: Default value is 2.41
+- 'wec_factor': paramter for the wake expansion continuation Default is [1.0]
+"""
+struct CumulativeCurl{TF,ATF} <: AbstractWakeDeficitModel
+    a_s::TF
+    b_s::TF
+    c_s1::TF
+    c_s2::TF
+    a_f::TF
+    b_f::TF
+    c_f::TF
+    wec_factor::ATF
+end
+CumulativeCurl() = CumulativeCurl(0.179367259, 0.0118889215, 0.0563691592, 0.13290157, 3.11, -0.68, 2.41, [1.0])
 
 """
     wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::JensenTopHat)
@@ -505,13 +540,22 @@ Helper function for wake_deficit_model when using the GaussYaw model. Computes t
 with an interpolation on the near wake. 
 
 """
-function _gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd)
+function _gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd; interpolate=true)
     # calculate wake spread
-    if dx > xd # far wake 
-        sigma = _gauss_yaw_spread(dt, k, dx, x0, yaw)
 
-    else # linear interpolation in the near wakes
-        sigma = _gauss_yaw_spread(dt, k, xd, x0, yaw)
+    if interpolate
+        if dx > x0 # far wake 
+            sigma = _gauss_yaw_spread(dt, k, dx, x0, yaw)
+        else # linear interpolation in the near wakes
+            dx_interpolate = xd+((x0-xd)/(x0))*(dx)
+            sigma = _gauss_yaw_spread(dt, k, dx_interpolate, x0, yaw)
+        end
+    else
+        if dx > xd # far wake 
+            sigma = _gauss_yaw_spread(dt, k, dx, x0, yaw)
+        else # use sigma at xd for undefined values
+            sigma = _gauss_yaw_spread(dt, k, xd, x0, yaw)
+        end
     end
 
     return sigma
@@ -715,3 +759,33 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     return loss
 
 end
+
+# """
+#     wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::JensenTopHat)
+
+# Computes the wake deficit using the Cumulative Curl model, from the paper:
+# "Addressing deep array effects and impacts to wake steering with the cumulative-curl wake model" by Bay, Christopher (2022) (https://doi.org/10.5194/wes-2022-17)
+
+# # Arguments
+# - `locx::Float`: x coordinate where wind speed is calculated 
+# - `locy::Float`: y coordinate where wind speed is calculated
+# - `locz::Float`: z coordinate where wind speed is calculated
+# - `turbine_x::Array(Float)`: vector containing x coordinates for all turbines in farm
+# - `turbine_y::Array(Float)`: vector containing y coordinates for all turbines in farm
+# - `turbine_z::Array(Float)`: vector containing z coordinates for all turbines in farm
+# - `deflection_y::Float`: deflection in the y direction of downstream wake 
+# - `deflection_z::Float`: deflection in the z direction of downstream wake 
+# - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
+# - `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
+# - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
+# - `rotor_diameter::Array(Float)`: vector containing rotor diameters for all turbines in farm
+# - `turbine_ai::Array(Float)`: vector containing initial velocity deficits for all turbines in farm
+# - `turbine_local_ti::Array(Float)`: vector containing local turbulence intensities for all turbines in farm
+# - `turbine_ct::Array(Float)`: vector containing thrust coefficients for all turbines in farm
+# - `turbine_yaw::Array(Float)`: vector containing the yaw angle? for all turbines in farm
+# - `model::CumulativeCurl`: indicates the wake model in use
+
+# """
+# function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::CumulativeCurl)
+#     # extract model properties
+# end

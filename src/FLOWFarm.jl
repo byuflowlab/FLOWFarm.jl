@@ -14,6 +14,7 @@ using YAML
 using XLSX
 using DataFrames
 using CSV
+using SpecialFunctions
 
 include("io.jl")
 include("utilities.jl")

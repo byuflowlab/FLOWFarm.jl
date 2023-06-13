@@ -72,7 +72,7 @@ windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobab
 k = 0.0324555
 wakedeficitmodel = ff.GaussSimple(k)
 
-wakedeflectionmodel = ff.JiminezYawDeflection()
+wakedeflectionmodel = ff.NoYawDeflection()
 wakecombinationmodel = ff.SumOfSquaresFreestreamSuperposition()
 localtimodel = ff.LocalTIModelNoLocalTI()
 

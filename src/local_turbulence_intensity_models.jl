@@ -33,6 +33,17 @@ LocalTIModelMaxTI(x, y) = LocalTIModelMaxTI(x, y, 0.3837, 0.003678)
 LocalTIModelMaxTI() = LocalTIModelMaxTI(2.32, 0.154, 0.3837, 0.003678)
 
 """
+    LocalTIModelGaussTI()
+
+Calculate local turbulence intensity using the model presented in Qian and 
+Ishihara (2018)
+
+"""
+struct LocalTIModelGaussTI{} <: AbstractLocalTurbulenceIntensityModel
+
+end
+
+"""
     calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
     turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelNoLocalTI; turbine_id=1, tol=1E-6)
 
@@ -255,11 +266,6 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
 
     end
 
-    # if turbine_id == 10
-    #     println("output")
-    #     println(ambient_ti, " ", turbine_ct[turbine_id], " ", turbine_x[turbine_id], " ", rotor_diameter[turbine_id], " ", hub_height[turbine_id], " ",700, " ", ti_dst)
-    # end
-
     return ti_dst
 
 end
@@ -341,6 +347,96 @@ function GaussianTI(loc,turbine_x, turbine_y, rotor_diameter, hub_height, turbin
         end
     end
     return ambient_ti + added_ti
+end
+
+"""
+    calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+    turbine_inflow_velcities, turbine_ct, ti_model::LocalTIModelGaussTI; turbine_id=1, tol=1E-6)
+
+Returns local turbulence intensity calculated using methods in Qian 2018 from the Journal of Wind Energy https://doi.org/10.1016/j.jweia.2018.04.010
+with modification to account for yaw coming from Qian 2018 from Energies doi:10.3390/en11030665
+
+# Arguments
+- `turbine_x::Array{Float,nTurbines}`: turbine wind direction locations in the wind direction 
+    reference frame
+- `turbine_y::Array{Float,nTurbines}`: turbine cross wind locations in the wind direction 
+    reference frame
+- `ambient_ti::Float`: ambient turbulence intensity
+- `rotor_diameter::Array{Float,nTurbines}`: rotor diameters of all turbines
+- `hub_height::Array{Float,nTurbines}`: hub heights of all turbines relative to the ground
+- `turbine_yaw::Array{Float,nTurbines}`: yaw of all turbines for the current wind state in radians
+- `turbine_local_ti::Array{Float,nTurbines}`: local turbulence intensity of all turbines for the current wind state`
+- `sorted_turbine_index::Array{Float,nTurbines}`: turbine north-south locations in the 
+    global reference frame
+- `turbine_inflow_velcities::Array{Float,nTurbines}`: effective inflow wind speed at each turbine for given state
+- `turbine_ct::Array{Float,nTurbines}`: thrust coefficient of each turbine for the given state
+- `ti_model::LocalTIModelGaussTI`: contains a struct defining the desired turbulence intensity model
+- `turbine_id::Int`: index of wind turbine of interest. Provide 1 as default.
+- `tol::Float`: How far upstream a turbine should be before being included in TI calculations
+"""
+function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                    turbine_inflow_velocities, turbine_ct, ti_model::LocalTIModelGaussTI; turbine_id=1, tol=1E-6)
+
+    nturbines = length(turbine_x)
+    x_loc = turbine_x[turbine_id]
+    y_loc = turbine_y[turbine_id]
+    z_loc = hub_height[turbine_id]
+
+    intensity = 0
+    Ia = ambient_ti
+
+    for i = 1:nturbines
+        # get index of upstream turbine
+        upstream_turbine = sorted_turbine_index[i]
+
+        # put yaw in counter-clockwise notation as descirbed in Qian 2018 from Energies
+        yaw = turbine_yaw[upstream_turbine]
+        yaw *= -1
+
+        # get modified ct from Qian 2018 Energies
+        ct = turbine_ct[upstream_turbine] * cos(yaw)^3
+
+        # get downstream distance between turbines
+        dx = x_loc - turbine_x[upstream_turbine]
+
+        if dx > tol
+            dy = y_loc - turbine_y[upstream_turbine]
+            dz = z_loc - hub_height[upstream_turbine]
+
+            # Modifications for yaw
+            theta_0 = 0.3 * yaw/cos(yaw) * (1 - sqrt(1 - ct))
+            yd = theta_0 * dx
+            r = sqrt(dz^2 + (dy + yd)^2)
+
+            # calculate constants
+            k_star = 0.11 * ct^1.07 * Ia^0.20
+            epsilon = 0.23 * ct^(-0.25) * Ia^0.17
+            d = 2.3 * ct^(-1.2)
+            e = Ia^0.1
+            f = 0.7 * ct^(-3.2) * Ia^(-0.45)
+            k1 = 1
+            k2 = 0
+            D = rotor_diameter[upstream_turbine]
+            if r/D <= 0.5
+                k1 = (cos(pi/2 * (r/D - 0.5)))^2
+                k2 = (cos(pi/2 * (r/D + 0.5)))^2
+            end
+            sigma = k_star * dx + epsilon * D
+            
+            if dz >= 0 || hub_height[upstream_turbine] == 0 #to avoid divide by zero
+                delta = 0
+            else
+                delta = Ia * sin(pi*(-dz/hub_height[upstream_turbine]))^2
+            end
+            intensity += ((1 / (d + e*dx/D + f*(1+dx/D)^-2)) * (k1*exp(-((r-D/2)^2/(2*sigma^2))) + k2*exp(-((r+D/2)^2/(2*sigma^2)))) - delta)^10
+        else
+            break
+        end
+    end
+
+    turbine_local_ti[turbine_id] = intensity^(1/10) + ambient_ti
+
+    return turbine_local_ti[turbine_id]
 end
 
 

@@ -1,6 +1,7 @@
 import FLOWFarm; const ff = FLOWFarm
 
 rotor_diameter = 80.0
+diam = 80.0
 hub_height = 70.0
 yaw = 0.0
 
