@@ -597,7 +597,7 @@ function sunflower_points(n; alpha=0.0)
 
     b = round(alpha*sqrt(n)) # number of boundary points
 
-    phi = (sqrt(5.0) + 1.0)/2.0  # golden ratio
+    phi = (sqrt(5.0) + 1.0)/2.0  # golden ratio: (fraction a circle spanned by the golden angle = 1/(golden ratio)^2)
 
     for k in 1:n
         r = radius(k, n, b)
@@ -653,7 +653,7 @@ sample is requested, it will be at the hub location. Otherwise, the points will 
 using the sunflower packcing algorithm.
 
 # Arguments
-- `nsamplepoints::Int`: controlls how many sample points to generate
+- `nsamplepoints::Int`: controls how many sample points to generate
 - `alpha::Float`: Controls smoothness of the sunflower algorithm boundary. alpha=0 is the standard "jagged edge" sunflower algoirthm and
     alpha=1 results in a smooth boundary.
 - `pradius::Float`: the percent of the rotor radius to use in generating initial point grid 
