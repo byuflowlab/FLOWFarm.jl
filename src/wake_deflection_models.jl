@@ -33,6 +33,31 @@ GaussYawDeflection(a,b,c,d) = GaussYawDeflection(a, b, c, d, true)
 GaussYawDeflection(a,b,c,d,interp) = GaussYawDeflection(a, b, c, d, interp)
 
 """
+    GaussTiltDeflection(horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star, interpolation)
+
+Container for parameters related to the Gaussian deflection model presented by Bastankhah and Porte-Agel 2016
+
+# Arguments
+- `horizontal_spread_rate::Float`: parameter controlling the horizontal spread of the deficit model. Default value is 0.022.
+- `vertical_spread_rate::Float`: parameter controlling the vertical spread of the deficit model. Default value is 0.022.
+- `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
+- `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
+- `interpolation::Bool`: boolean stating if the the near wake should be interpolated. Default value is true.
+"""
+struct GaussYawDeflection{TF, BO} <: AbstractWakeDeflectionModel
+    horizontal_spread_rate::TF
+    vertical_spread_rate::TF
+    alpha_star::TF
+    beta_star::TF
+    interpolate_sigma::BO
+end
+GaussYawDeflection() = GaussYawDeflection(0.022, 0.022, 2.32, 0.154, true)
+GaussYawDeflection(interp) = GaussYawDeflection(0.022, 0.022, 2.32, 0.154, interp)
+GaussYawDeflection(a,b,c,d) = GaussYawDeflection(a, b, c, d, true)
+GaussYawDeflection(a,b,c,d,interp) = GaussYawDeflection(a, b, c, d, interp)
+
+
+"""
     GaussYawDeflectionVariableSpread(alpha_star, beta_star, k1, k2, interpolation)
 
 Container for parameters related to the Gaussian deflection model with yaw presented by Bastankhah and Porte-Agel 2016
@@ -275,6 +300,45 @@ function wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine
 
     # finally, calculate deflection
     y_deflection = _bpa_deflection(dt, ct, yaw, ky, kz, sigma_y, sigma_z, theta0, x0)
+
+    return y_deflection
+end
+
+"""
+    wake_deflection_model(locx, locy, locz, turbine_x, turbine_tilt, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::GaussYawDeflection)
+
+    Calculates the vertical deflection of the wind turbine wake using a surrogate model
+"""
+function wake_deflection_model(locx, locy, locz, turbine_x, turbine_tilt, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::GaussTiltDeflection)
+
+    dx = locx-turbine_x[turbine_id]
+    yaw = turbine_yaw[turbine_id]
+    ct = turbine_ct[turbine_id]
+    diam = rotor_diameter[turbine_id]
+    ti = turbine_local_ti[turbine_id]
+
+    as = model.alpha_star
+    bs = model.beta_star
+    ky = model.horizontal_spread_rate
+    kz = model.vertical_spread_rate
+
+    # [1] eqn 6.12
+    theta0 = _bpa_theta_0(yaw, ct)
+
+    # [1] eqn 7.4
+    x0 = _gauss_yaw_potential_core(diam, yaw, ct, as, ti, bs)
+
+    # calculate the discontinuity point of the gauss yaw model 
+    xd = _gauss_yaw_discontinuity(diam, x0, ky, kz, yaw, ct)
+    
+    # calculate horizontal wake spread (paper eq: 7.2)
+    sigmay = _gauss_yaw_spread_interpolated(diam, ky, dx, x0, yaw, xd)
+
+    # calculate vertical wake spread (paper eq: 7.2)
+    sigmaz = _gauss_yaw_spread_interpolated(diam, kz, dx, x0, 0.0, xd)
+
+    
+    y_deflection = _bpa_deflection(diam, ct, yaw, ky, kz, sigmay, sigmaz, theta0, x0)
 
     return y_deflection
 end

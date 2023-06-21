@@ -159,6 +159,53 @@ end
 CumulativeCurl() = CumulativeCurl(0.179367259, 0.0118889215, 0.0563691592, 0.13290157, 3.11, -0.68, 2.41, [1.0])
 
 """
+    GaussTilt(turbulence_intensity, horizontal_spread_rate_tilt_1, horizontal_spread_rate_tilt_2, vertical_spread_rate_tilt_upper_1, vertical_spread_rate_tilt_upper_2, vertical_spread_rate_tilt_lower_1, vertical_spread_rate_tilt_lower_2, sigma_z0_upper_1, sigma_z0_upper_2, sigma_z0_upper_3, sigma_z0_lower_1, sigma_z0_lower_2, sigma_z0_lower_3, sigma_y0_1, sigma_y0_2, sigma_y0_3)
+
+Container for parameters related to the Bastankhah Wake Model modified to include tilt
+
+# Arguments
+- `turbulence_intensity::Float`: Turbulence intensity usually set to around 0.09 (somewhat dependent on wind speed)
+- `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
+- `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
+- `horizontal_spread_rate_tilt_1::Float`: ky is a function of tilt and this is the slope of the linear fit
+- `horizontal_spread_rate_tilt_2::Float`: ky is a function if tilt and this is the intercept of the linear fit
+- `vertical_spread_rate_tilt_upper_1::Float`: slope for the linear fit for kz of the upper portion of the wake
+- `vertical_spread_rate_tilt_upper_2::Float`: intercept for the linear fit for kz of the upper portion of the wake
+- `vertical_spread_rate_tilt_lower_1::Float`: slope for the linear fit for kz of the lower portion of the wake
+- `vertical_spread_rate_tilt_lower_2::Float`: intercept for the linear fit for kz of the lower portion of the wake
+- 'sigma_z0_upper_1::Float': used to define sigma_z0 as a function of tilt angle for the upper portion of the wake
+- 'sigma_z0_upper_2::Float': used to define sigma_z0 as a function of tilt angle for the upper portion of the wake
+- 'sigma_z0_upper_3::Float': used to define sigma_z0 as a function of tilt angle for the upper portion of the wake
+- 'sigma_z0_lower_1::Float': used to define sigma_z0 as a function of tilt angle for the lower portion of the wake
+- 'sigma_z0_lower_2::Float': used to define sigma_z0 as a function of tilt angle for the lower portion of the wake
+- 'sigma_z0_lower_3::Float': used to define sigma_z0 as a function of tilt angle for the lower portion of the wake
+- 'sigma_y0_1::Float': used to define sigma_y0 as a function of tilt angle
+- 'sigma_y0_2::Float': used to define sigma_y0 as a function of tilt angle
+- 'sigma_y0_3::Float': used to define sigma_y0 as a function of tilt angle
+"""
+struct GaussTilt{TF,ATF} <: AbstractWakeDeficitModel
+    alpha_star::TF
+    beta_star::TF
+    ky1::TF
+    ky2::TF
+    kz1_up::TF
+    kz2_up::TF
+    kz1::TF
+    kz2::TF
+    sigy1::TF
+    sigy2::TF
+    sigy3::TF
+    sigz1_up::TF
+    sigz2_up::TF
+    sigz3_up::TF
+    sigz1::TF
+    sigz2::TF
+    sigz3::TF
+    wec_factor::ATF
+end
+GaussTilt() = GaussTilt(2.32, 0.154, 0.04666, 0.02229, -0.0352, 0.02071, 0.00655, 0.00029, 0.2608, -0.4913, 2.6534, 0.3536, 0.1766, -3.8565, 0.2473, -0.1921, 0.9547, [1.0])
+
+"""
     wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::JensenTopHat)
 
 Computes the wake deficit according to the original Jensen top hat wake model, from the paper:
@@ -534,6 +581,19 @@ function _gauss_yaw_spread(dt, k, dx, x0, yaw)
 end
 
 """
+    _gauss_tilt_spread(dt, k, dx, x0, sig0)
+
+Helper function for wake_deficit_model when using the modified Bastankhah Tilt model. Computes the standard deviation of the wake.
+"""
+function _gauss_tilt_spread(dt, k, dx, x0, sig0)
+    # from Bastankhah and Porte-Agel 2016 eqn 7.2
+    sigma = k*(dx - x0) + dt*sig0
+
+    return sigma
+
+end
+
+"""
     _gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw)
 
 Helper function for wake_deficit_model when using the GaussYaw model. Computes the standard deviation of the wake.
@@ -555,6 +615,34 @@ function _gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd; interpolate=true
             sigma = _gauss_yaw_spread(dt, k, dx, x0, yaw)
         else # use sigma at xd for undefined values
             sigma = _gauss_yaw_spread(dt, k, xd, x0, yaw)
+        end
+    end
+
+    return sigma
+end
+
+"""
+    _gauss_tilt_spread_interpolated(dt, k, dx, x0, sig0)
+
+Helper function for wake_deficit_model when using the Gauss Tilt model. Computes the standard deviation of the wake.
+with an interpolation on the near wake. 
+
+"""
+function _gauss_tilt_spread_interpolated(dt, k, dx, x0, sig0, xd; interpolate=true)
+    # calculate wake spread
+
+    if interpolate
+        if dx > x0 # far wake 
+            sigma = _gauss_tilt_spread(dt, k, dx, x0, sig0)
+        else # linear interpolation in the near wakes
+            dx_interpolate = xd+((x0-xd)/(x0))*(dx)
+            sigma = _gauss_tilt_spread(dt, k, dx_interpolate, x0, sig0)
+        end
+    else
+        if dx > xd # far wake 
+            sigma = _gauss_tilt_spread(dt, k, dx, x0, sig0)
+        else # use sigma at xd for undefined values
+            sigma = _gauss_tilt_spread(dt, k, xd, x0, sig0)
         end
     end
 
@@ -589,6 +677,64 @@ function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, w
         
         # calculate vertical wake spread (paper eq: 7.2)
         sigma_z = _gauss_yaw_spread_interpolated(dt, kz, dx, x0, 0.0, xd)
+
+        # calculate velocity deficit #check - infty when large input ~= 500
+        ey = exp(-0.5*(dy/(wf*sigma_y))^2)
+        ez = exp(-0.5*(dz/(wf*sigma_z))^2)
+
+        sqrtterm = 1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2))
+        if sqrtterm >= 1e-8 #check - could try increasing tolerance
+            loss = (1.0-sqrt(sqrtterm))*ey*ez
+        else
+            loss = ey*ez
+        end
+    else # loss upstream of turbine
+        loss = 0.0
+    end
+
+
+    return loss
+
+end
+
+function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky2, kz1_up, kz2_up, kz1, kz2, sigy1, sigy2, sigy3, sigz1_up, sigz2_up, sigz3_up, sigz1, sigz2, sigz3, wf)
+    
+
+    if dx > 1E-6 # loss in the wake
+
+        # println("x0 inputs:", diam, " ", yaw, " ", ct, " ", as, " ", ti, " ", bs)
+        # calculate the length of the potential core (paper eq: 7.3)
+        x0 = _gauss_yaw_potential_core(dt, tilt, ct, as, ti, bs)
+
+        if tilt > 0.0   # determine first if tilt is positive or negative
+            # determine if we are looking at upper or lower portion of wake
+
+            # Upper Portion
+            if dz > 0 # locz is above wake center
+                ky = ky1*tilt + ky2             # ky coefficient as a function of tilt
+                kz = kz1_up*tilt + kz2_up       # kz coefficient
+
+                sigy0 = (sigy1*tilt^2) + (sigy2*tilt) + sigy3               # sigma y0
+                sigz0 = (sigz1_up*tilt^2) + (sigz2_up*tilt) + sigz3_up      # sigma z0
+            # Lower Portion
+            else    # locz is below wake center
+                ky = ky1*tilt + ky2     # ky coefficient as a function of tilt
+                kz = kz1*tilt + kz2     # kz coefficient
+
+                sigy0 = (sigy1*tilt^2) + (sigy2*tilt) + sigy3       # sigma y0
+                sigz0 = (sigz1*tilt^2) + (sigz2*tilt) + sigz3       # sigma z0
+            end
+        else    # this means the tilt deflects the wake upward
+
+        end
+        # calculate the discontinuity point of the gauss tilt model (same as yaw model)
+        xd = _gauss_yaw_discontinuity(dt, x0, ky, kz, tilt, ct)
+        
+        # calculate horizontal wake spread (paper eq: 7.2)
+        sigma_y = _gauss_tilt_spread_interpolated(dt, ky, dx, x0, sigy0, xd)
+        
+        # calculate vertical wake spread (paper eq: 7.2)
+        sigma_z = _gauss_tilt_spread_interpolated(dt, kz, dx, x0, sigz0, xd)
 
         # calculate velocity deficit #check - infty when large input ~= 500
         ey = exp(-0.5*(dy/(wf*sigma_y))^2)
@@ -755,6 +901,70 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     radical = 1.0 - ct/(8.0*(sigmay^2)/(dt^2))
     exponent = -0.5*(dy/(wf*sigmay))^2
     loss = (1.0 - sqrt(radical))*exp(exponent)
+
+    return loss
+
+end
+
+"""
+    wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::GaussTilt)
+
+Computes the wake deficit at a given location using the The Gaussian wake model presented by Bastankhah and Porte-Agel in the paper: "Experimental and theoretical study of wind turbine wakes in yawed conditions" (2016)
+
+# Arguments
+- `locx::Float`: x coordinate where wind speed is calculated 
+- `locy::Float`: y coordinate where wind speed is calculated
+- `locz::Float`: z coordinate where wind speed is calculated
+- `turbine_x::Array(Float)`: vector containing x coordinates for all turbines in farm
+- `turbine_y::Array(Float)`: vector containing y coordinates for all turbines in farm
+- `turbine_z::Array(Float)`: vector containing z coordinates for all turbines in farm
+- `deflection_y::Float`: deflection in the y direction of downstream wake 
+- `deflection_z::Float`: deflection in the z direction of downstream wake 
+- `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
+- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
+- `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
+- `rotor_diameter::Array(Float)`: vector containing rotor diameters for all turbines in farm
+- `turbine_ai::Array(Float)`: vector containing initial velocity deficits for all turbines in farm
+- `turbine_local_ti::Array(Float)`: vector containing local turbulence intensities for all turbines in farm
+- `turbine_ct::Array(Float)`: vector containing thrust coefficients for all turbines in farm
+- `turbine_tilt::Array(Float)`: vector containing the tilt angles for all turbines in farm
+- `model::GaussYaw`: indicates the wake model in use
+
+"""
+function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_tilt, model::GaussTilt)
+
+    dx = locx-turbine_x[upstream_turbine_id]
+    dy = locy-(turbine_y[upstream_turbine_id]+deflection_y)
+    dz = locz-(turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
+
+    # extract turbine properties
+    dt = rotor_diameter[upstream_turbine_id]
+    tilt = turbine_tilt[upstream_turbine_id]
+    ct = turbine_ct[upstream_turbine_id]
+
+    # extract model parameters
+    # ks = model.k_star       # wake spread rate (k* in 2014 paper)
+    ti = turbine_local_ti[upstream_turbine_id]
+    as = model.alpha_star
+    bs = model.beta_star
+    ky1 = model.ky1
+    ky2 = model.ky2
+    kz1_up = model.kz1_up
+    kz2_up = model.kz2_up
+    kz1 = model.kz1
+    kz2 = model.kz2
+    sigy1 = model.sigy1
+    sigy2 = model.sigy2
+    sigy3 = model.sigy3
+    sigz1_up = model.sigz1_up
+    sigz2_up = model.sigz2_up
+    sigz3_up = model.sigz3_up
+    sigz1 = model.sigz1
+    sigz2 = model.sigz2
+    sigz3 = model.sigz3
+    wec_factor = model.wec_factor[1]
+
+    loss = _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky2, kz1_up, kz2_up, kz1, kz2, sigy1, sigy2, sigy3, sigz1_up, sigz2_up, sigz3_up, sigz1, sigz2, sigz3, wec_factor)
 
     return loss
 
