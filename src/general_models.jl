@@ -23,7 +23,7 @@ struct WindFarmModelSet{DTM,DNM,CM,TIM} <: AbstractModelSet
 end
 
 """
-    point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+    point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_tilt, turbine_ct, turbine_ai,
     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
     wind_resource, model_set::AbstractModelSet;
     wind_farm_state_id=1, downwind_turbine_id=0)
@@ -38,6 +38,8 @@ Calculates the wind speed at a given point for a given state
     reference frame
 - `turbine_z::Array{TF,nTurbines}`: turbine base height in the state reference frame
 - `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in 
+    radians
+- `turbine_tilt::Array{TF,nTurbines}`: turbine tilt for the given wind direction in 
     radians
 - `turbine_ct::Array{TF,nTurbines}`: turbine thrust coefficients for the given state
 - `turbine_ai::Array{TF,nTurbines}`: turbine axial induction for the given state
@@ -55,7 +57,7 @@ Calculates the wind speed at a given point for a given state
 - `downwind_turbine_id::Int`: index of wind turbine of interest (if any). If not a point for
     calculating effective wind speed of a turbine, then provide 0 (default)
 """
-function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_tilt, turbine_ct, turbine_ai,
                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
                     wind_resource, model_set::AbstractModelSet;
                     wind_farm_state_id=1, downwind_turbine_id=0)
@@ -102,11 +104,22 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
             # skip this loop if it would include a turbine's impact on itself)
             if upwind_turb_id==downwind_turbine_id; continue; end
 
-            # calculate wake deflection of the current wake at the point of interest
-            horizontal_deflection = wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct,
-                            upwind_turb_id, rotor_diameter, turbine_local_ti, model_set.wake_deflection_model)
+            # Check if tilt or yaw is being evaulated with
+            if mean(turbine_yaw) == 0.0;
+                vertical_deflection = wake_deflection_model(locx, locy, locz, turbine_x, turbine_tilt, turbine_ct,
+                upwind_turb_id, rotor_diameter, turbine_local_ti, model_set.wake_deflection_model)
 
-            vertical_deflection = 0.0
+                horizontal_deflection = 0.0
+
+            elseif mean(turbine_tilt) == 0.0;
+                # calculate wake deflection of the current wake at the point of interest
+                horizontal_deflection = wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct,
+                                upwind_turb_id, rotor_diameter, turbine_local_ti, model_set.wake_deflection_model)
+
+                vertical_deflection = 0.0
+            else
+                print("ERROR: This model only works for either Tilt or Yaw, not both.")
+            end
 
             # velocity difference in the wake
             deltav = wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, horizontal_deflection, vertical_deflection,
@@ -249,7 +262,7 @@ function turbine_velocities_one_direction!(turbine_x::Vector{T0}, turbine_y::Vec
             locz = turbine_z[downwind_turbine_id] .+ hub_height[downwind_turbine_id] + local_rotor_sample_point_z
 
             # calculate the velocity at given point
-            point_velocity_with_shear = point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+            point_velocity_with_shear = point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_tilt, turbine_ct, turbine_ai,
                                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, turbine_velocities,
                                     wind_resource, model_set,
                                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=downwind_turbine_id)
@@ -582,7 +595,7 @@ function calculate_flow_field(xrange, yrange, zrange,
                 locz = zrange[zi]
                 locx, locy = rotate_to_wind_direction(locx, locy, wind_resource.wind_directions[wind_farm_state_id])
 
-                point_velocities[zi, yi, xi] = point_velocity(locx, locy, locz, rot_tx, rot_ty, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+                point_velocities[zi, yi, xi] = point_velocity(locx, locy, locz, rot_tx, rot_ty, turbine_z, turbine_yaw, turbine_tilt, turbine_ct, turbine_ai,
                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
                     wind_resource, model_set,
                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=0)

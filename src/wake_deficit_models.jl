@@ -740,7 +740,7 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
         ey = exp(-0.5*(dy/(wf*sigma_y))^2)
         ez = exp(-0.5*(dz/(wf*sigma_z))^2)
 
-        sqrtterm = 1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2))
+        sqrtterm = 1.0-ct*cos(tilt)/(8.0*(sigma_y*sigma_z/dt^2))
         if sqrtterm >= 1e-8 #check - could try increasing tolerance
             loss = (1.0-sqrt(sqrtterm))*ey*ez
         else
@@ -907,7 +907,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
 end
 
 """
-    wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::GaussTilt)
+    wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_tilt, model::GaussTilt)
 
 Computes the wake deficit at a given location using the The Gaussian wake model presented by Bastankhah and Porte-Agel in the paper: "Experimental and theoretical study of wind turbine wakes in yawed conditions" (2016)
 
