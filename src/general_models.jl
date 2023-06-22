@@ -179,7 +179,7 @@ end
 - `wind_farm_state_id::Int`: index to correct state to use from wind resource provided.
     Defaults to 1
 """
-function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw, turbine_tilt,
                     sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set::AbstractModelSet; wind_farm_state_id::Int=1, velocity_only::Bool=true, turbine_velocities=nothing,
                     turbine_ct=nothing, turbine_ai=nothing, turbine_local_ti=nothing)
@@ -212,7 +212,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         model_set, turbine_velocities,
         turbine_ct, turbine_ai, turbine_local_ti; wind_farm_state_id=wind_farm_state_id, velocity_only=velocity_only)
     else
-        turbine_velocities_one_direction!(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+        turbine_velocities_one_direction!(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw, turbine_tilt,
         sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
         model_set, turbine_velocities,
         turbine_ct, turbine_ai, turbine_local_ti; wind_farm_state_id=wind_farm_state_id, velocity_only=velocity_only)
@@ -228,7 +228,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
 
 end
 
-function turbine_velocities_one_direction!(turbine_x::Vector{T0}, turbine_y::Vector{T1}, turbine_z::Vector{T2}, rotor_diameter::Vector{T3}, hub_height::Vector{T4}, turbine_yaw::Vector{T5},
+function turbine_velocities_one_direction!(turbine_x::Vector{T0}, turbine_y::Vector{T1}, turbine_z::Vector{T2}, rotor_diameter::Vector{T3}, hub_height::Vector{T4}, turbine_yaw::Vector{T5}, turbine_tilt::Vector{T5},
     sorted_turbine_index::Vector{Int}, ct_model::Vector{<:AbstractThrustCoefficientModel}, rotor_sample_points_y::Vector{T6}, rotor_sample_points_z::Vector{T6}, wind_resource,
     model_set::AbstractModelSet, turbine_velocities::Vector{T7},
     turbine_ct::Vector{T7}, turbine_ai::Vector{T7}, turbine_local_ti::Vector{T7}; wind_farm_state_id::Int=1, velocity_only::Bool=true) where {T0, T1, T2, T3, T4, T5, T6, T7}
@@ -256,10 +256,19 @@ function turbine_velocities_one_direction!(turbine_x::Vector{T0}, turbine_y::Vec
             local_rotor_sample_point_y = rotor_sample_points_y[p]*0.5*rotor_diameter[downwind_turbine_id]
             local_rotor_sample_point_z = rotor_sample_points_z[p]*0.5*rotor_diameter[downwind_turbine_id]
 
+            # put rotor sample points in wind direction coordinate system, and account for tilt
+            if mean(turbine_yaw) == 0.0
+                locx = turbine_x[downwind_turbine_id] .+ local_rotor_sample_point_*sin(turbine_yaw[downwind_turbine_id])
+                locy = turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y*cos(turbine_yaw[downwind_turbine_id])
+                locz = turbine_z[downwind_turbine_id] .+ hub_height[downwind_turbine_id] + local_rotor_sample_point_z
             # put rotor sample points in wind direction coordinate system, and account for yaw
-            locx = turbine_x[downwind_turbine_id] .+ local_rotor_sample_point_y*sin(turbine_yaw[downwind_turbine_id])
-            locy = turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y*cos(turbine_yaw[downwind_turbine_id])
-            locz = turbine_z[downwind_turbine_id] .+ hub_height[downwind_turbine_id] + local_rotor_sample_point_z
+            elseif mean(turbine_tilt) == 0.0;
+                locx = turbine_x[downwind_turbine_id] .+ local_rotor_sample_point_z*sin(turbine_tilt[downwind_turbine_id])
+                locy = turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y
+                locz = turbine_z[downwind_turbine_id] .+ hub_height[downwind_turbine_id] + local_rotor_sample_point_z*cos(turbine_tilt[downwind_turbine_id])
+            else
+                print("ERROR: This model only works for either Tilt or Yaw, not both.")
+            end
 
             # calculate the velocity at given point
             point_velocity_with_shear = point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_tilt, turbine_ct, turbine_ai,
@@ -287,8 +296,14 @@ function turbine_velocities_one_direction!(turbine_x::Vector{T0}, turbine_y::Vec
         ambient_ti = wind_resource.ambient_tis[wind_farm_state_id]
         
         # update local turbulence intensity for downstream turbine
-        turbine_local_ti[downwind_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                            turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=1E-6)
+
+        if mean(turbine_yaw) == 0.0
+            turbine_local_ti[downwind_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_tilt, turbine_local_ti, sorted_turbine_index,
+                                turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=1E-6)
+        elseif mean(turbine_tilt) == 0.0
+            turbine_local_ti[downwind_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
+                                turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=1E-6)
+        end
     end
 
 end
@@ -538,7 +553,7 @@ end
 
 """
 calculate_flow_field(xrange, yrange, zrange, model_set::AbstractModelSet, turbine_x, 
-    turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, rotor_diameter, hub_height, 
+    turbine_y, turbine_z, turbine_yaw, turbine_tilt, turbine_ct, turbine_ai, rotor_diameter, hub_height, 
     turbine_local_ti, sorted_turbine_index, wtvelocities, wind_resource; wind_farm_state_id=1)
 
 Generates a flow field for a given state and cross section
@@ -555,6 +570,8 @@ Generates a flow field for a given state and cross section
 - `turbine_z::Array{TF,nTurbines}`: turbine base height in the global reference frame
 - `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in 
     radians
+- `turbine_tilt::Array{TF,nTurbines}`: turbine tilt for the given wind direction in 
+radians
 - `turbine_ct::Array{TF,nTurbines}`: thrust coefficient of each turbine for the given state
 - `turbine_ai::Array{TF,nTurbines}`: turbine axial induction for the given state
 - `rotor_diameter::Array{TF,nTurbines}`: turbine rotor diameters
@@ -570,7 +587,7 @@ Generates a flow field for a given state and cross section
     Defaults to 1
 """
 function calculate_flow_field(xrange, yrange, zrange,
-    model_set::AbstractModelSet, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+    model_set::AbstractModelSet, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_tilt, turbine_ct, turbine_ai,
     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
     wind_resource; wind_farm_state_id=1)
 
@@ -619,7 +636,7 @@ function calculate_flow_field(xrange, yrange, zrange,
 end
 
 function calculate_flow_field(xrange, yrange, zrange,
-    model_set::AbstractModelSet, turbine_x, turbine_y, turbine_z, turbine_yaw,
+    model_set::AbstractModelSet, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_tilt,
     rotor_diameter, hub_height, ct_models, rotor_sample_points_y, rotor_sample_points_z,
     wind_resource; wind_farm_state_id=1)
 
@@ -629,12 +646,12 @@ function calculate_flow_field(xrange, yrange, zrange,
     # sort the turbines
     sorted_turbine_index = sortperm(rot_tx)
 
-    turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = turbine_velocities_one_direction(rot_tx, rot_ty, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+    turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = turbine_velocities_one_direction(rot_tx, rot_ty, turbine_z, rotor_diameter, hub_height, turbine_yaw, turbine_tilt,
     sorted_turbine_index, ct_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
     model_set, wind_farm_state_id=wind_farm_state_id, velocity_only=false)
 
     return calculate_flow_field(xrange, yrange, zrange,
-        model_set, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
+        model_set, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_tilt, turbine_ct, turbine_ai,
         rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, turbine_velocities,
         wind_resource, wind_farm_state_id=wind_farm_state_id)
 
