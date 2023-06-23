@@ -104,7 +104,7 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
             # skip this loop if it would include a turbine's impact on itself)
             if upwind_turb_id==downwind_turbine_id; continue; end
 
-            # Check if tilt or yaw is being evaulated with
+            # Check if tilt or yaw is being evaluated with
             if mean(turbine_yaw) == 0.0;
                 vertical_deflection = wake_deflection_model(locx, locy, locz, turbine_x, turbine_tilt, turbine_ct,
                 upwind_turb_id, rotor_diameter, turbine_local_ti, model_set.wake_deflection_model)
