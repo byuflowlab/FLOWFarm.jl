@@ -105,13 +105,13 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
             if upwind_turb_id==downwind_turbine_id; continue; end
 
             # Check if tilt or yaw is being evaluated with
-            if mean(turbine_yaw) == 0.0;
+            if sum(turbine_yaw) == 0.0;
                 vertical_deflection = wake_deflection_model(locx, locy, locz, turbine_x, turbine_tilt, turbine_ct,
                 upwind_turb_id, rotor_diameter, turbine_local_ti, model_set.wake_deflection_model)
 
                 horizontal_deflection = 0.0
 
-            elseif mean(turbine_tilt) == 0.0;
+            elseif sum(turbine_tilt) == 0.0;
                 # calculate wake deflection of the current wake at the point of interest
                 horizontal_deflection = wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct,
                                 upwind_turb_id, rotor_diameter, turbine_local_ti, model_set.wake_deflection_model)
@@ -257,12 +257,12 @@ function turbine_velocities_one_direction!(turbine_x::Vector{T0}, turbine_y::Vec
             local_rotor_sample_point_z = rotor_sample_points_z[p]*0.5*rotor_diameter[downwind_turbine_id]
 
             # put rotor sample points in wind direction coordinate system, and account for tilt
-            if mean(turbine_yaw) == 0.0
+            if sum(turbine_yaw) == 0.0
                 locx = turbine_x[downwind_turbine_id] .+ local_rotor_sample_point_*sin(turbine_yaw[downwind_turbine_id])
                 locy = turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y*cos(turbine_yaw[downwind_turbine_id])
                 locz = turbine_z[downwind_turbine_id] .+ hub_height[downwind_turbine_id] + local_rotor_sample_point_z
             # put rotor sample points in wind direction coordinate system, and account for yaw
-            elseif mean(turbine_tilt) == 0.0;
+            elseif sum(turbine_tilt) == 0.0;
                 locx = turbine_x[downwind_turbine_id] .+ local_rotor_sample_point_z*sin(turbine_tilt[downwind_turbine_id])
                 locy = turbine_y[downwind_turbine_id] .+ local_rotor_sample_point_y
                 locz = turbine_z[downwind_turbine_id] .+ hub_height[downwind_turbine_id] + local_rotor_sample_point_z*cos(turbine_tilt[downwind_turbine_id])
@@ -297,10 +297,10 @@ function turbine_velocities_one_direction!(turbine_x::Vector{T0}, turbine_y::Vec
         
         # update local turbulence intensity for downstream turbine
 
-        if mean(turbine_yaw) == 0.0
+        if sum(turbine_yaw) == 0.0
             turbine_local_ti[downwind_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_tilt, turbine_local_ti, sorted_turbine_index,
                                 turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=1E-6)
-        elseif mean(turbine_tilt) == 0.0
+        elseif sum(turbine_tilt) == 0.0
             turbine_local_ti[downwind_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
                                 turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=1E-6)
         end

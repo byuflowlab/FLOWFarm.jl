@@ -419,11 +419,11 @@ function calculate_state_turbine_powers(turbine_x, turbine_y, turbine_z, rotor_d
                             sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                             model_set, wind_farm_state_id=i, velocity_only=true)
 
-        if mean(turbine_yaw) == 0.0
+        if sum(turbine_yaw) == 0.0
             # calculate wind turbine powers for given state
             wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                                 rated_power, rotor_diameter, turbine_velocities, turbine_tilt, wind_resource.air_density, power_models)
-        elseif mean(turbine_tilt) == 0.0
+        elseif sum(turbine_tilt) == 0.0
             # calculate wind turbine powers for given state
             wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                                 rated_power, rotor_diameter, turbine_velocities, turbine_yaw, wind_resource.air_density, power_models)
@@ -534,11 +534,11 @@ function calculate_state_aep(turbine_x::Vector{T0}, turbine_y::Vector{T1}, turbi
                             wind_farm_state_id=wind_farm_state_id, velocity_only=true)
         
         # Check if tilt or yaw is being evaluated with
-        if mean(turbine_yaw) == 0.0
+        if sum(turbine_yaw) == 0.0
             # calculate wind turbine powers for given state
             wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                                 rated_power, rotor_diameter, prealloc_turbine_velocities, turbine_tilt, wind_resource.air_density, power_models)
-        elseif mean(turbine_tilt) == 0.0
+        elseif sum(turbine_tilt) == 0.0
             # calculate wind turbine powers for given state
             wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                                 rated_power, rotor_diameter, prealloc_turbine_velocities, turbine_yaw, wind_resource.air_density, power_models)
@@ -573,11 +573,11 @@ function calculate_state_aep(turbine_x::Vector{T0}, turbine_y::Vector{T1}, turbi
             
             # calculate the power of the turbines at each wind speed for the given direction
             # Check if tilt or yaw is being evaluated with
-            if mean(turbine_yaw) == 0.0
+            if sum(turbine_yaw) == 0.0
                 # calculate wind turbine powers for given state
                 wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                                     rated_power, rotor_diameter, prealloc_turbine_velocities, turbine_tilt, wind_resource.air_density, power_models)
-            elseif mean(turbine_tilt) == 0.0
+            elseif sum(turbine_tilt) == 0.0
                 # calculate wind turbine powers for given state
                 wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                                     rated_power, rotor_diameter, prealloc_turbine_velocities, turbine_yaw, wind_resource.air_density, power_models)
