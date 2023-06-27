@@ -706,6 +706,7 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
         # calculate the length of the potential core (paper eq: 7.3)
         x0 = _gauss_yaw_potential_core(dt, tilt, ct, as, ti, bs)
         print("tilt: ", tilt, "\n")
+        local ky
         if tilt > 0.0   # determine first if tilt is positive or negative
             # determine if we are looking at upper or lower portion of wake
 
