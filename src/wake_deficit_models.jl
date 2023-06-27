@@ -941,7 +941,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
 
     # extract turbine properties
     dt = rotor_diameter[upstream_turbine_id]
-    print("turbine_tilt: ", turbine_tilt, "\n")
+    # print("turbine_tilt: ", turbine_tilt, "\n")
     tilt = turbine_tilt[upstream_turbine_id]
     ct = turbine_ct[upstream_turbine_id]
 
