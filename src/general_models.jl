@@ -111,20 +111,25 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
 
                 horizontal_deflection = 0.0
 
+                # velocity difference in the wake
+                deltav = wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, horizontal_deflection, vertical_deflection,
+                upwind_turb_id, downwind_turbine_id, hub_height, rotor_diameter, turbine_ai,
+                turbine_local_ti, turbine_ct, turbine_tilt, model_set.wake_deficit_model)
+
             elseif sum(turbine_tilt) == 0.0;
                 # calculate wake deflection of the current wake at the point of interest
                 horizontal_deflection = wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct,
                                 upwind_turb_id, rotor_diameter, turbine_local_ti, model_set.wake_deflection_model)
 
                 vertical_deflection = 0.0
+
+                # velocity difference in the wake
+                deltav = wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, horizontal_deflection, vertical_deflection,
+                upwind_turb_id, downwind_turbine_id, hub_height, rotor_diameter, turbine_ai,
+                turbine_local_ti, turbine_ct, turbine_yaw, model_set.wake_deficit_model)
             else
                 print("ERROR: This model only works for either Tilt or Yaw, not both.")
             end
-
-            # velocity difference in the wake
-            deltav = wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, horizontal_deflection, vertical_deflection,
-                            upwind_turb_id, downwind_turbine_id, hub_height, rotor_diameter, turbine_ai,
-                            turbine_local_ti, turbine_ct, turbine_yaw, model_set.wake_deficit_model)
 
             # combine deficits according to selected wake combination method
             deficit_sum = wake_combination_model(deltav, wind_speed_internal, wtvelocities[upwind_turb_id], deficit_sum, model_set.wake_combination_model)
