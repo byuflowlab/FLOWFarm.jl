@@ -731,6 +731,9 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
         else    # this means the tilt deflects the wake upward
             ky = 1
         end
+        print("ky: ", ky)
+        ky = 0.1
+        print("ky: ", ky)
         # calculate the discontinuity point of the gauss tilt model (same as yaw model)
         xd = _gauss_yaw_discontinuity(dt, x0, ky, kz, tilt, ct)
         
