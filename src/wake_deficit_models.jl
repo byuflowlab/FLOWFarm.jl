@@ -699,18 +699,20 @@ end
 
 function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky2, kz1_up, kz2_up, kz1, kz2, sigy1, sigy2, sigy3, sigz1_up, sigz2_up, sigz3_up, sigz1, sigz2, sigz3, wf)
     
-
+    print("dz: ", dz, "\n")
     if dx > 1E-6 # loss in the wake
 
         # println("x0 inputs:", diam, " ", yaw, " ", ct, " ", as, " ", ti, " ", bs)
         # calculate the length of the potential core (paper eq: 7.3)
         x0 = _gauss_yaw_potential_core(dt, tilt, ct, as, ti, bs)
-
+        print("tilt: ", tilt, "\n")
         if tilt > 0.0   # determine first if tilt is positive or negative
             # determine if we are looking at upper or lower portion of wake
 
+            print("dz: ", dz, "\n")
             # Upper Portion
             if dz > 0 # locz is above wake center
+                
                 ky = ky1*tilt + ky2             # ky coefficient as a function of tilt
                 kz = kz1_up*tilt + kz2_up       # kz coefficient
 
@@ -724,6 +726,7 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
                 sigy0 = (sigy1*tilt^2) + (sigy2*tilt) + sigy3       # sigma y0
                 sigz0 = (sigz1*tilt^2) + (sigz2*tilt) + sigz3       # sigma z0
             end
+            print("ky: ", ky, "\n")
         else    # this means the tilt deflects the wake upward
 
         end
