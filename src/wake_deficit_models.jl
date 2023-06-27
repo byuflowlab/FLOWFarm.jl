@@ -709,8 +709,6 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
         ky = 0.1
         if tilt > 0.0   # determine first if tilt is positive or negative
             # determine if we are looking at upper or lower portion of wake
-
-            print("dz: ", dz, "\n")
             # Upper Portion
             if dz > 0 # locz is above wake center
                 
@@ -731,8 +729,6 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
         else    # this means the tilt deflects the wake upward
             ky = 1
         end
-        ky = 0.1
-        print("ky: ", ky)
         # calculate the discontinuity point of the gauss tilt model (same as yaw model)
         xd = _gauss_yaw_discontinuity(dt, x0, ky, kz, tilt, ct)
         
