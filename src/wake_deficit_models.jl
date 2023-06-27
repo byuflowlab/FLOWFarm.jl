@@ -731,7 +731,6 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
         else    # this means the tilt deflects the wake upward
             ky = 1
         end
-        # print("ky: ", ky)
         ky = 0.1
         print("ky: ", ky)
         # calculate the discontinuity point of the gauss tilt model (same as yaw model)
@@ -946,6 +945,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
 
     # extract turbine properties
     dt = rotor_diameter[upstream_turbine_id]
+    print("turbine_tilt: ", turbine_tilt, "\n")
     tilt = turbine_tilt[upstream_turbine_id]
     ct = turbine_ct[upstream_turbine_id]
 
