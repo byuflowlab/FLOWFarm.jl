@@ -732,7 +732,7 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
             sigy0 = 1/sqrt(8)
             sigz0 = cos(tilt)/sqrt(8)
         end
-        print("kz: ", kz, "\n")
+        # print("kz: ", kz, "\n")
         # calculate the discontinuity point of the gauss tilt model (same as yaw model)
         xd = _gauss_yaw_discontinuity(dt, x0, ky, kz, tilt, ct)
         
@@ -742,8 +742,8 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
         # calculate vertical wake spread (paper eq: 7.2)
         sigma_z = _gauss_tilt_spread_interpolated(dt, kz, dx, x0, sigz0, xd)
 
-        print("sigma_y: ", sigma_y)
-        print("sigma_z: ", sigma_z)
+        # print("sigma_y: ", sigma_y)
+        # print("sigma_z: ", sigma_z)
         # calculate velocity deficit #check - infty when large input ~= 500
         ey = exp(-0.5*(dy/(wf*sigma_y))^2)
         ez = exp(-0.5*(dz/(wf*sigma_z))^2)
@@ -974,7 +974,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     wec_factor = model.wec_factor[1]
 
     loss = _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky2, kz1_up, kz2_up, kz1, kz2, sigy1, sigy2, sigy3, sigz1_up, sigz2_up, sigz3_up, sigz1, sigz2, sigz3, wec_factor)
-    print("loss: ", loss, "\n")
+    # print("loss: ", loss, "\n")
     return loss
 
 end
