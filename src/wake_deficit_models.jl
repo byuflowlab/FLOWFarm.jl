@@ -587,7 +587,7 @@ Helper function for wake_deficit_model when using the modified Bastankhah Tilt m
 """
 function _gauss_tilt_spread(dt, k, dx, x0, sig0)
     # from Bastankhah and Porte-Agel 2016 eqn 7.2
-    sigma = k*(dx - x0) + dt*sig0
+    sigma = (k*((dx - x0)/dt) + sig0)*dt
 
     return sigma
 
@@ -729,7 +729,7 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
         else    # this means the tilt deflects the wake upward
             ky = 1
         end
-        # print("ky: ", ky, "\n")
+        print("kz: ", kz, "\n")
         # calculate the discontinuity point of the gauss tilt model (same as yaw model)
         xd = _gauss_yaw_discontinuity(dt, x0, ky, kz, tilt, ct)
         
@@ -739,6 +739,8 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
         # calculate vertical wake spread (paper eq: 7.2)
         sigma_z = _gauss_tilt_spread_interpolated(dt, kz, dx, x0, sigz0, xd)
 
+        print("sigma_y: ", sigma_y)
+        print("sigma_z: ", sigma_z)
         # calculate velocity deficit #check - infty when large input ~= 500
         ey = exp(-0.5*(dy/(wf*sigma_y))^2)
         ez = exp(-0.5*(dz/(wf*sigma_z))^2)
