@@ -330,16 +330,14 @@ end
 """
 function wake_deflection_model(locx, locy, locz, turbine_x, turbine_tilt, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::GaussTiltDeflection)
 
-    dx = locx-turbine_x[turbine_id]
+    diam = rotor_diameter[turbine_id]
+    dx = (locx-turbine_x[turbine_id])/diam
     tilt = turbine_tilt[turbine_id]
     ct = turbine_ct[turbine_id]
-    diam = rotor_diameter[turbine_id]
     ti = turbine_local_ti[turbine_id]
 
     # extract model parameters
     # ks = model.k_star       # wake spread rate (k* in 2014 paper)
-    as = model.alpha_star
-    bs = model.beta_star
     c1 = model.c1
     c2 = model.c2
     c3 = model.c3
@@ -348,7 +346,6 @@ function wake_deflection_model(locx, locy, locz, turbine_x, turbine_tilt, turbin
     c6 = model.c6
     c7 = model.c7
     c8 = model.c8
-    wec_factor = model.wec_factor[1]
 
     #### Tilt Deflection Surrogate Modeling
     #### Will be a function of tilt and downstream distance
