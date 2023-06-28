@@ -969,7 +969,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     wec_factor = model.wec_factor[1]
 
     loss = _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky2, kz1_up, kz2_up, kz1, kz2, sigy1, sigy2, sigy3, sigz1_up, sigz2_up, sigz3_up, sigz1, sigz2, sigz3, wec_factor)
-
+    print("loss: ", loss, "\n")
     return loss
 
 end
