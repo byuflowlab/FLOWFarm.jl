@@ -207,8 +207,6 @@ struct GaussTilt{TF,ATF,BO} <: AbstractWakeDeficitModel
 end
 GaussTilt() = GaussTilt(2.32, 0.154, 0.04666, 0.02229, -0.0352, 0.02071, 0.00655, 0.00029, 0.2608, -0.4913, 2.6534, 0.3536, 0.1766, -3.8565, 0.2473, -0.1921, 0.9547, [1.0], true)
 GaussTilt(interp) = GaussTilt(2.32, 0.154, 0.04666, 0.02229, -0.0352, 0.02071, 0.00655, 0.00029, 0.2608, -0.4913, 2.6534, 0.3536, 0.1766, -3.8565, 0.2473, -0.1921, 0.9547, [1.0], interp)
-GaussTilt(alpha, beta, ky1, ky2, kz1_up, kz2_up, kz1, kz2, sigy1, sigy2, sigy3, sigz1_up, sigz2_up, sigz3_up, sigz1, sigz2, sigz3, [1.0], interp) = GaussTilt(alpha, beta, ky1, ky2, kz1_up, kz2_up, kz1, kz2, sigy1, sigy2, sigy3, sigz1_up, sigz2_up, sigz3_up, sigz1, sigz2, sigz3, [1.0], interp)
-GaussTilt(alpha, beta, ky1, ky2, kz1_up, kz2_up, kz1, kz2, sigy1, sigy2, sigy3, sigz1_up, sigz2_up, sigz3_up, sigz1, sigz2, sigz3, [1.0]) = GaussTilt(alpha, beta, ky1, ky2, kz1_up, kz2_up, kz1, kz2, sigy1, sigy2, sigy3, sigz1_up, sigz2_up, sigz3_up, sigz1, sigz2, sigz3, [1.0], true)
 
 """
     wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::JensenTopHat)
