@@ -159,7 +159,7 @@ end
 CumulativeCurl() = CumulativeCurl(0.179367259, 0.0118889215, 0.0563691592, 0.13290157, 3.11, -0.68, 2.41, [1.0])
 
 """
-    GaussTilt(turbulence_intensity, horizontal_spread_rate_tilt_1, horizontal_spread_rate_tilt_2, vertical_spread_rate_tilt_upper_1, vertical_spread_rate_tilt_upper_2, vertical_spread_rate_tilt_lower_1, vertical_spread_rate_tilt_lower_2, sigma_z0_upper_1, sigma_z0_upper_2, sigma_z0_upper_3, sigma_z0_lower_1, sigma_z0_lower_2, sigma_z0_lower_3, sigma_y0_1, sigma_y0_2, sigma_y0_3)
+    GaussTilt(turbulence_intensity, horizontal_spread_rate_tilt_1, horizontal_spread_rate_tilt_2, vertical_spread_rate_tilt_upper_1, vertical_spread_rate_tilt_upper_2, vertical_spread_rate_tilt_lower_1, vertical_spread_rate_tilt_lower_2, sigma_z0_upper_1, sigma_z0_upper_2, sigma_z0_upper_3, sigma_z0_lower_1, sigma_z0_lower_2, sigma_z0_lower_3, sigma_y0_1, sigma_y0_2, sigma_y0_3, interpolation)
 
 Container for parameters related to the Bastankhah Wake Model modified to include tilt
 
@@ -182,8 +182,9 @@ Container for parameters related to the Bastankhah Wake Model modified to includ
 - 'sigma_y0_1::Float': used to define sigma_y0 as a function of tilt angle
 - 'sigma_y0_2::Float': used to define sigma_y0 as a function of tilt angle
 - 'sigma_y0_3::Float': used to define sigma_y0 as a function of tilt angle
+- `interpolation::Bool`: boolean stating if the the near wake should be interpolated. Default value is true.
 """
-struct GaussTilt{TF,ATF} <: AbstractWakeDeficitModel
+struct GaussTilt{TF,ATF,BO} <: AbstractWakeDeficitModel
     alpha_star::TF
     beta_star::TF
     ky1::TF
@@ -202,8 +203,12 @@ struct GaussTilt{TF,ATF} <: AbstractWakeDeficitModel
     sigz2::TF
     sigz3::TF
     wec_factor::ATF
+    interpolate_sigma::BO
 end
-GaussTilt() = GaussTilt(2.32, 0.154, 0.04666, 0.02229, -0.0352, 0.02071, 0.00655, 0.00029, 0.2608, -0.4913, 2.6534, 0.3536, 0.1766, -3.8565, 0.2473, -0.1921, 0.9547, [1.0])
+GaussTilt() = GaussTilt(2.32, 0.154, 0.04666, 0.02229, -0.0352, 0.02071, 0.00655, 0.00029, 0.2608, -0.4913, 2.6534, 0.3536, 0.1766, -3.8565, 0.2473, -0.1921, 0.9547, [1.0], true)
+GaussTilt(interp) = GaussTilt(2.32, 0.154, 0.04666, 0.02229, -0.0352, 0.02071, 0.00655, 0.00029, 0.2608, -0.4913, 2.6534, 0.3536, 0.1766, -3.8565, 0.2473, -0.1921, 0.9547, [1.0], interp)
+GaussTilt(alpha, beta, ky1, ky2, kz1_up, kz2_up, kz1, kz2, sigy1, sigy2, sigy3, sigz1_up, sigz2_up, sigz3_up, sigz1, sigz2, sigz3, [1.0], interp) = GaussTilt(alpha, beta, ky1, ky2, kz1_up, kz2_up, kz1, kz2, sigy1, sigy2, sigy3, sigz1_up, sigz2_up, sigz3_up, sigz1, sigz2, sigz3, [1.0], interp)
+GaussTilt(alpha, beta, ky1, ky2, kz1_up, kz2_up, kz1, kz2, sigy1, sigy2, sigy3, sigz1_up, sigz2_up, sigz3_up, sigz1, sigz2, sigz3, [1.0]) = GaussTilt(alpha, beta, ky1, ky2, kz1_up, kz2_up, kz1, kz2, sigy1, sigy2, sigy3, sigz1_up, sigz2_up, sigz3_up, sigz1, sigz2, sigz3, [1.0], true)
 
 """
     wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::JensenTopHat)
@@ -587,7 +592,7 @@ Helper function for wake_deficit_model when using the modified Bastankhah Tilt m
 """
 function _gauss_tilt_spread(dt, k, dx, x0, sig0)
     # from Bastankhah and Porte-Agel 2016 eqn 7.2
-    sigma = (k*((dx - x0)/dt) + sig0)*dt
+    sigma = k*(dx - x0) + sig0*dt
 
     return sigma
 
@@ -715,15 +720,15 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
                 ky = ky1*tilt + ky2             # ky coefficient as a function of tilt
                 kz = kz1_up*tilt + kz2_up       # kz coefficient
 
-                sigy0 = (sigy1*tilt^2) + (sigy2*tilt) + sigy3               # sigma y0
-                sigz0 = (sigz1_up*tilt^2) + (sigz2_up*tilt) + sigz3_up      # sigma z0
+                sigy0 = (sigy3*tilt^2) + (sigy2*tilt) + sigy1               # sigma y0
+                sigz0 = (sigz3_up*tilt^2) + (sigz2_up*tilt) + sigz1_up      # sigma z0
             # Lower Portion
             else    # locz is below wake center
                 ky = ky1*tilt + ky2     # ky coefficient as a function of tilt
                 kz = kz1*tilt + kz2     # kz coefficient
 
-                sigy0 = (sigy1*tilt^2) + (sigy2*tilt) + sigy3       # sigma y0
-                sigz0 = (sigz1*tilt^2) + (sigz2*tilt) + sigz3       # sigma z0
+                sigy0 = (sigy3*tilt^2) + (sigy2*tilt) + sigy1       # sigma y0
+                sigz0 = (sigz3*tilt^2) + (sigz2*tilt) + sigz1       # sigma z0
             end
             # print("ky: ", ky, "\n")
         else    # this means the tilt deflects the wake upward
