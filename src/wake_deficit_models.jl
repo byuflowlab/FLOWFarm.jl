@@ -753,6 +753,7 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
         if xd > xd_other
             xd = xd_other
         end
+        print("xd: ", xd, "\n")
         
         # calculate horizontal wake spread (paper eq: 7.2)
         sigma_y = _gauss_tilt_spread_interpolated(dt, ky, dx, x0, sigy0, xd)
