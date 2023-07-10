@@ -718,12 +718,18 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
                 ky = ky1*tilt + ky2             # ky coefficient as a function of tilt
                 kz = kz1_up*tilt + kz2_up       # kz coefficient
 
+                ky_other = ky                   # for comparing discontinuity points
+                kz_other = kz1*tilt + kz2 
+
                 sigy0 = (sigy3*tilt^2) + (sigy2*tilt) + sigy1               # sigma y0
                 sigz0 = (sigz3_up*tilt^2) + (sigz2_up*tilt) + sigz1_up      # sigma z0
             # Lower Portion
             else    # locz is below wake center
                 ky = ky1*tilt + ky2     # ky coefficient as a function of tilt
                 kz = kz1*tilt + kz2     # kz coefficient
+
+                ky_other = ky                   # for comparing discontinuity points
+                kz_other = kz1_up*tilt + kz2_up  
 
                 sigy0 = (sigy3*tilt^2) + (sigy2*tilt) + sigy1       # sigma y0
                 sigz0 = (sigz3*tilt^2) + (sigz2*tilt) + sigz1       # sigma z0
@@ -738,6 +744,13 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
         # print("kz: ", kz, "\n")
         # calculate the discontinuity point of the gauss tilt model (same as yaw model)
         xd = _gauss_yaw_discontinuity(dt, x0, ky, kz, tilt, ct)
+        xd_other = _gauss_yaw_discontinuity(dt, x0, ky_other, kz_other, tilt, ct)
+
+        # since it is a piecewise gaussian fit, we will choose the discontinuity point
+        # that is closer to the rotor
+        if xd > xd_other
+            xd = xd_other
+        end
         
         # calculate horizontal wake spread (paper eq: 7.2)
         sigma_y = _gauss_tilt_spread_interpolated(dt, ky, dx, x0, sigy0, xd)
