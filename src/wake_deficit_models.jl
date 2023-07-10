@@ -748,6 +748,8 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
 
         # since it is a piecewise gaussian fit, we will choose the discontinuity point
         # that is closer to the rotor
+        print("xd: ", xd, "\n")
+        print("xd_other: ", xd_other, "\n")
         if xd > xd_other
             xd = xd_other
         end
