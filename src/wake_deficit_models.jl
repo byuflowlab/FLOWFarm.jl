@@ -607,6 +607,7 @@ function _gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd; interpolate=true
     # calculate wake spread
 
     if interpolate
+        print("HERE")
         if dx > x0 # far wake 
             sigma = _gauss_yaw_spread(dt, k, dx, x0, yaw)
         else # linear interpolation in the near wakes
