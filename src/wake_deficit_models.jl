@@ -755,7 +755,12 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
             xd = xd_other
             xd_new = xd
         end
-        print("xd_new: ", xd_new)
+
+        if xd_new > 0
+            
+            print("xd_new: ", xd_new)
+
+        end
         
         
         # calculate horizontal wake spread (paper eq: 7.2)
