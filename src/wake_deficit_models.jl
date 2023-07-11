@@ -750,20 +750,14 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
 
         # since it is a piecewise gaussian fit, we will choose the discontinuity point
         # that is closer to the rotor
-        xd_new = 0
         if xd > xd_other
             xd = xd_other
-            xd_new = xd
         end
-
-        if xd_new > 213.1
-            
-            print("xd_new: ", xd_new)
-
-        end
-        
         
         # calculate horizontal wake spread (paper eq: 7.2)
+        if xd > 213.1
+            print("xd: ", xd, "\n")
+        end
         sigma_y = _gauss_tilt_spread_interpolated(dt, ky, dx, x0, sigy0, xd)
         
         # calculate vertical wake spread (paper eq: 7.2)
