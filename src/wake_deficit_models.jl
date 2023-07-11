@@ -758,7 +758,7 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
         if xd > 213.1
             print("xd: ", xd, "\n")
         end
-        print(xd)
+      
         sigma_y = _gauss_tilt_spread_interpolated(dt, ky, dx, x0, sigy0, xd)
         
         # calculate vertical wake spread (paper eq: 7.2)
