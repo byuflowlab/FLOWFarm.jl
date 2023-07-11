@@ -756,7 +756,7 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
             xd_new = xd
         end
 
-        if xd_new > 0
+        if xd_new > 213.1
             
             print("xd_new: ", xd_new)
 
