@@ -590,7 +590,9 @@ Helper function for wake_deficit_model when using the modified Bastankhah Tilt m
 """
 function _gauss_tilt_spread(dt, k, dx, x0, sig0)
     # from Bastankhah and Porte-Agel 2016 eqn 7.2
-    sigma = k*(dx - x0) + sig0*dt
+    # sigma = k*(dx - x0) + sig0*dt
+    sigma = k*(dx) + sig0*dt
+    # shouldn't this not be -x0? shouldn't it just be dx?
 
     return sigma
 
@@ -607,7 +609,6 @@ function _gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd; interpolate=true
     # calculate wake spread
 
     if interpolate
-        print("HERE")
         if dx > x0 # far wake 
             sigma = _gauss_yaw_spread(dt, k, dx, x0, yaw)
         else # linear interpolation in the near wakes
@@ -749,11 +750,12 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
 
         # since it is a piecewise gaussian fit, we will choose the discontinuity point
         # that is closer to the rotor
-        
+        xd_new = 0
         if xd > xd_other
             xd = xd_other
-            print("XOOO: ", x0, "\n")
+            xd_new = xd
         end
+        print("xd_new: ", xd_new)
         
         
         # calculate horizontal wake spread (paper eq: 7.2)
