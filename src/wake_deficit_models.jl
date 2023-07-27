@@ -205,8 +205,8 @@ struct GaussTilt{TF,ATF,BO} <: AbstractWakeDeficitModel
     wec_factor::ATF
     interpolate_sigma::BO
 end
-GaussTilt() = GaussTilt(2.32, 0.154, 0.04666, 0.02229, -0.0352, 0.02071, 0.00655, 0.00029, 0.2608, -0.4913, 2.6534, 0.3536, 0.1766, -3.8565, 0.2473, -0.1921, 0.9547, [1.0], true)
-GaussTilt(interp) = GaussTilt(2.32, 0.154, 0.04666, 0.02229, -0.0352, 0.02071, 0.00655, 0.00029, 0.2608, -0.4913, 2.6534, 0.3536, 0.1766, -3.8565, 0.2473, -0.1921, 0.9547, [1.0], interp)
+GaussTilt() = GaussTilt(2.32, 0.154, 0.0479, 0.01864, -0.00894, 0.02482, -0.02993, -0.00014, 0.2408, 0.6076, -2.5553, 0.368, -1.2621, 2.872, 0.2657, 0.0109, -0.1896, [1.0], true)
+GaussTilt(interp) = GaussTilt(2.32, 0.154, 0.0479, 0.01864, -0.00894, 0.02482, -0.02993, -0.00014, 0.2408, 0.6076, -2.5553, 0.368, -1.2621, 2.872, 0.2657, 0.0109, -0.1896, [1.0], interp)
 
 """
     wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::JensenTopHat)
@@ -645,6 +645,7 @@ function _gauss_tilt_spread_interpolated(dt, k, dx, x0, sig0, xd; interpolate=tr
         end
     else
         if dx > xd # far wake 
+            print("xd: ", xd, "\n")
             sigma = _gauss_tilt_spread(dt, k, dx, x0, sig0)
         else # use sigma at xd for undefined values
             sigma = _gauss_tilt_spread(dt, k, xd, x0, sig0)
@@ -748,16 +749,11 @@ function _gauss_tilt_model_deficit(dx, dy, dz, dt, tilt, ct, ti, as, bs, ky1, ky
         xd = _gauss_yaw_discontinuity(dt, x0, ky, kz, tilt, ct)
         xd_other = _gauss_yaw_discontinuity(dt, x0, ky_other, kz_other, tilt, ct)
 
-        # since it is a piecewise gaussian fit, we will choose the discontinuity point
-        # that is closer to the rotor
         if xd > xd_other
             xd = xd_other
         end
-        
-        # calculate horizontal wake spread (paper eq: 7.2)
-        if xd > 213.1
-            print("xd: ", xd, "\n")
-        end
+        # since it is a piecewise gaussian fit, we will choose the discontinuity point
+        # that is closer to the rotor
       
         sigma_y = _gauss_tilt_spread_interpolated(dt, ky, dx, x0, sigy0, xd)
         

@@ -65,8 +65,8 @@ struct GaussTiltDeflection{TF,ATF,BO} <: AbstractWakeDeficitModel
     wec_factor::ATF
     interpolate_sigma::BO
 end
-GaussTiltDeflection() = GaussTiltDeflection(2.32, 0.154,  3.0456559, 1.15138807, 0.0012015, -0.0201380216, -0.01298195, -0.215236376, 0.020425497, -0.38485739331, [1.0], true)
-GaussTiltDeflection(interp) = GaussTiltDeflection(2.32, 0.154,  3.0456559, 1.15138807, 0.0012015, -0.0201380216, -0.01298195, -0.215236376, 0.020425497, -0.38485739331, [1.0], interp)
+GaussTiltDeflection() = GaussTiltDeflection(2.32, 0.154,  -7.972510479017539, 2.092143807568984, 0.004089697222444943, -0.08537566133483973, 0.28396660497287435, 0.9700639525744491, 0.004475408895903041, -0.3662896180242609, [1.0], true)
+GaussTiltDeflection(interp) = GaussTiltDeflection(2.32, 0.154, -7.972510479017539, 2.092143807568984, 0.004089697222444943, -0.08537566133483973, 0.28396660497287435, 0.9700639525744491, 0.004475408895903041, -0.3662896180242609, [1.0], interp)
 GaussTiltDeflection(a,b,c,d,e,f,g,h,i,j,k) = GaussTiltDeflection(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,true)
 GaussTiltDeflection(a,b,c,d,e,f,g,h,i,j,k,interp) = GaussTiltDeflection(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,interp)
 
