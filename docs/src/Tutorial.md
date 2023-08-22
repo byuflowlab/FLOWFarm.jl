@@ -83,7 +83,7 @@ circle = matplotlib.patches.Circle((0.0, 0.0), boundaryradius, fill=false, color
 ax.add_patch(circle)
 
 # set plot limits
-ax.set(xlim=[-boundaryradius, boundaryradius].*1.01, ylim=[-boundaryradius, boundaryradius].*1.01)
+ax.set(xlim=[-boundaryradius, boundaryradius].*1.01, ylim=[-boundaryradius, boundaryradius].*1.01, aspect="equal")
 
 plt.tight_layout() # hide
 plt.savefig("initiallayout.png") # hide
@@ -107,7 +107,7 @@ rotorsamplepointsy, rotorsamplepointsz = ff.rotor_sample_points(nsamplepoints, m
 # visualize the sample points
 fig, ax = plt.subplots(1)
 ff.plotrotorsamplepoints!(ax, rotorsamplepointsy, rotorsamplepointsz)
-ax.set(xlabel="y/radius", ylabel="z/radius")
+ax.set(xlabel="y/radius", ylabel="z/radius", aspect="equal")
 plt.tight_layout() # hide
 plt.savefig("rotorsamplepoints.png") # hide
 println("") # hide
@@ -493,7 +493,7 @@ circle = matplotlib.patches.Circle((0.0, 0.0), boundaryradius, fill=false, color
 ax.add_patch(circle)
 
 # set limits on the plot region
-ax.set(xlim=[-boundaryradius, boundaryradius].*1.01, ylim=[-boundaryradius, boundaryradius].*1.01)
+ax.set(xlim=[-boundaryradius, boundaryradius].*1.01, ylim=[-boundaryradius, boundaryradius].*1.01, aspect="equal")
 
 plt.tight_layout() # hide
 plt.savefig("optlayout.png") # hide
@@ -544,7 +544,7 @@ cs = ax.contourf(xg, yg, ffvelocities[1,:,:], cmap="Blues_r")
 cbar = ax.figure.colorbar(cs, ax=ax, label="Wind Speed (m/s)", orientation="vertical")
 
 # label the axes
-ax.set(xlabel="Easting (m)", ylabel="Northing (m)")
+ax.set(xlabel="Easting (m)", ylabel="Northing (m)", aspect="equal")
 
 # add the wind farm boundary
 circle = matplotlib.patches.Circle((0.0, 0.0), boundaryradius, fill=false, color="k")
