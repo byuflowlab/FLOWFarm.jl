@@ -24,7 +24,7 @@ function turbine_spacing(turbine_x, turbine_y)
     k = 1
     for i in 1:nturbines
         for j in i+1:nturbines
-            spacing_vec[k] = norm([turbine_x[j] - turbine_x[i], turbine_y[j] - turbine_y[i]])
+            spacing_vec[k] = sqrt((turbine_x[j] - turbine_x[i])^2+(turbine_y[j] - turbine_y[i])^2)
             k += 1
         end
     end
@@ -34,7 +34,7 @@ end
 """
     circle_boundary(center,radius,turbine_x,turbine_y)
 
-calculate the distance from each turbine to a circular boundary. Negative means the
+calculate the distance squared from each turbine to a circular boundary. Negative means the
 turbine is inside the boundary
 
 # Arguments
@@ -307,7 +307,7 @@ end
 """
     ray_casting_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_y)
 
-Calculate the distance from each turbine to the nearest point on the boundary using 
+Calculate the distance from each turbine to the nearest point on the boundary using
 the ray-casting algorithm. Negative means the turbine is inside the boundary.
 
 # Arguments
@@ -346,30 +346,30 @@ function ray_casting_boundary(boundary_vertices, boundary_normals, turbine_x, tu
 
             # determine if point is contained in the polygon
             c[i] = pointinpolygon([turbine_x[i], turbine_y[i]], boundary_vertices, boundary_normals, s=s, shift=tol)
-            
+
         end
 
         return c
 
-    # multiple discrete regions with pre-defined region assignments 
+    # multiple discrete regions with pre-defined region assignments
     elseif length(regions) > 0
-        
+
         # iterate through each turbine location
         for i = 1:nturbines
 
             # determine if point is contained in the assigned polygonal region
             c[i] = pointinpolygon([turbine_x[i], turbine_y[i]], boundary_vertices[regions[i]], boundary_normals[regions[i]], s=s, shift=tol)#, turbine_to_face_distance=turbine_to_face_distance[regions[i]])
-            
+
         end
 
         return c
 
-    # multiple discrete regions without pre-defined region assignments 
+    # multiple discrete regions without pre-defined region assignments
     else
         # number of regions
         nregions = length(boundary_vertices)
 
-        # if region spec is desired, initialize vector 
+        # if region spec is desired, initialize vector
         region = zeros(Int, nturbines)
 
         # initialize turbine status vector
@@ -518,7 +518,7 @@ function VR_boundary(bndry_x_clsd, bndry_y_clsd, start_dist, turb_spacing, num_t
     # Initialize turbine locations
     turbine_x = zeros(num_turbs)
     turbine_y = zeros(num_turbs)
-    
+
     #- Figure out where the starting point should be -#
     # "leg" is distance until next placed turbine
     # "seg" is distance between boundary verticies
@@ -540,7 +540,7 @@ function VR_boundary(bndry_x_clsd, bndry_y_clsd, start_dist, turb_spacing, num_t
     percent_left_of_segment = 1 - abs((turbine_x[1] - bndry_x_clsd[curr_seg]) / (bndry_x_clsd[curr_seg+1] - bndry_x_clsd[curr_seg]))
     seg_remaining = bndry_seg_length[curr_seg] * percent_left_of_segment
     leg_remaining = turb_spacing
-    
+
     #- Place the rest of the turbines -#
     for i in 2:num_turbs    # For every turbine we have to place
         if(seg_remaining > leg_remaining)   #- If there's space on this leg to place the next turbine
@@ -560,7 +560,7 @@ function VR_boundary(bndry_x_clsd, bndry_y_clsd, start_dist, turb_spacing, num_t
         turbine_y[i] = bndry_y_clsd[curr_seg] + ((bndry_y_clsd[curr_seg+1] - bndry_y_clsd[curr_seg]) * percent_to_place)
         leg_remaining = turb_spacing  # Reset how much length till the next turbine is placed
     end
-    
+
     return turbine_x, turbine_y
 end
 
@@ -591,19 +591,19 @@ function iea37cs4BndryVRIntPM(bndry_x_clsd, bndry_y_clsd, bndry_corner_indicies,
     bndry_tot_len = sum(getPerimeterLength(bndry_x_clsd,bndry_y_clsd))
     #- Make a random starting point along the boundary -#
     start_dist = rand(Float64) * bndry_tot_len
-    #- Place the boundary turbines -# 
+    #- Place the boundary turbines -#
     turbine_x_bndry, turbine_y_bndry, num_leftover_turbs = VR_boundary_startup(bndry_x_clsd, bndry_y_clsd, start_dist, turb_min_space, num_bndry_turbs)
     #- Determine how many will be placed in the interior -#
     num_bndry_turbs = num_bndry_turbs - num_leftover_turbs
     num_interior_turbs = num_tot_turbs - num_bndry_turbs
-    
+
     # Initialize full list of turbine locations
     turbine_x = zeros(num_tot_turbs)
     turbine_y = zeros(num_tot_turbs)
     #- Fill in the ones ew've already placed along the boundary
     turbine_x[1:num_bndry_turbs] = turbine_x_bndry
     turbine_y[1:num_bndry_turbs] = turbine_y_bndry
-    
+
     #-- Initialize interior space --#w
     num_sides = length(bndry_corner_indicies)-1
     #- Get the x-values -#
@@ -637,4 +637,12 @@ function iea37cs4BndryVRIntPM(bndry_x_clsd, bndry_y_clsd, bndry_corner_indicies,
     end
 
     return turbine_x, turbine_y, num_interior_turbs
+end
+
+function calculateIdealAEP(rotor_diameter,hub_height,ct_model,generator_efficiency,cut_in_speed,cut_out_speed,rated_speed, rated_power, wind_resource, power_models, model_set::AbstractModelSet;)
+    AEP = calculate_aep([0], [0], [0], [rotor_diameter[1]],
+            [hub_height[1]], [0], [ct_model[1]], [generator_efficiency[1]], [cut_in_speed[1]],
+            [cut_out_speed[1]], [rated_speed[1]], [rated_power[1]], wind_resource, [power_models[1]], model_set) * length(rotor_diameter)
+
+    return AEP
 end

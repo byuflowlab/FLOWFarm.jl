@@ -12,15 +12,19 @@ Container for objects defining models to use in wind farm calculations
 - `wake_deflection_model::AbstractWakeDeflectionModel`: contains a struct defining the desired wake deflection model
 - `wake_combination_model::AbstractWakeCombinationModel`: contains a struct defining the desired wake combination model
 - `local_ti_model::AbstractTurbulenceIntensityModel`: contains a struct defining the desired turbulence intensity model
+- `point_velocity_average_factor::Float`: factor used to determine how point velocity is averaged across the turbine (3 would result in a cubic mean)
 """
-struct WindFarmModelSet{DTM,DNM,CM,TIM} <: AbstractModelSet
+struct WindFarmModelSet{DTM,DNM,CM,TIM,F} <: AbstractModelSet
 
     wake_deficit_model::DTM
     wake_deflection_model::DNM
     wake_combination_model::CM
     local_ti_model::TIM
+    point_velocity_average_factor::F
 
 end
+
+WindFarmModelSet(a,b,c,d) = WindFarmModelSet(a,b,c,d,1.)
 
 """
     point_velocity(loc, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
@@ -255,12 +259,14 @@ function turbine_velocities_one_direction!(turbine_x::Vector{T0}, turbine_y::Vec
                                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=downwind_turbine_id)
 
             # add sample point velocity to turbine velocity to be averaged later
-            wind_turbine_velocity += point_velocity_with_shear
+            wind_turbine_velocity += point_velocity_with_shear^model_set.point_velocity_average_factor
 
         end
 
         # final velocity calculation for downstream turbine (average equally across all points)
         wind_turbine_velocity /= n_rotor_sample_points
+
+        wind_turbine_velocity = (wind_turbine_velocity)^(1/model_set.point_velocity_average_factor)
 
         turbine_velocities[downwind_turbine_id] = deepcopy(wind_turbine_velocity)
 
