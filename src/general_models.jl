@@ -392,7 +392,7 @@ function turbine_velocities_one_direction_CC!(turbine_x::T0, turbine_y::T1, turb
                     sigma_n = sigma2[current_turbine_id,downwind_turbine_id]
                     sum_C = 0.0
 
-                    Threads.@threads for i = 1:n-1
+                    for i = 1:n-1
                         other_turbine_id = Int(sorted_turbine_index[i])
                         y_i = turbine_y[other_turbine_id]
                         z_i = zPos[other_turbine_id]
