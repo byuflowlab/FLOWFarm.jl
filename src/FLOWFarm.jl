@@ -4,6 +4,7 @@ using Geodesy: bound_thetad
 using Geodesy; const gd = Geodesy
 using ForwardDiff
 using LinearAlgebra
+using ReverseDiff
 
 # using CCBlade
 using PyPlot; const plt = PyPlot
