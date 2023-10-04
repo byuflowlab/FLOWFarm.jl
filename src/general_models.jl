@@ -375,10 +375,10 @@ function turbine_velocities_one_direction_CC!(turbine_x::T0, turbine_y::T1, turb
                     end
 
                     # CC model
-                    @fastmath x_tilde_n = abs(x - x_n) / rotor_diameter[current_turbine_id]
-                    @fastmath m = a_f*exp(b_f*x_tilde_n)+c_f
-                    @fastmath a1 = 2^(2/m - 1)
-                    @fastmath a2 = a1^2
+                    x_tilde_n = abs(x - x_n) / rotor_diameter[current_turbine_id]
+                    m = a_f*exp(b_f*x_tilde_n)+c_f
+                    a1 = 2^(2/m - 1)
+                    a2 = a1^2
 
                     if p == 1
                         if no_yaw == false
@@ -398,23 +398,21 @@ function turbine_velocities_one_direction_CC!(turbine_x::T0, turbine_y::T1, turb
                         z_i = zPos[other_turbine_id]
                         sigma_i = sigma2[other_turbine_id,downwind_turbine_id]
                         dy_i = deflections[other_turbine_id,downwind_turbine_id]
-                        @fastmath lambda_n_i = sigma_n/(sigma_n+sigma_i) * exp(-((y_n-y_i-dy_i)^2 + (z_n-z_i)^2)/(2.0*(sigma_n+sigma_i)))
-                        @fastmath sum_C += lambda_n_i * C[other_turbine_id,downwind_turbine_id]
+                        lambda_n_i = sigma_n/(sigma_n+sigma_i) * exp(-((y_n-y_i-dy_i)^2 + (z_n-z_i)^2)/(2.0*(sigma_n+sigma_i)))
+                        sum_C += lambda_n_i * C[other_turbine_id,downwind_turbine_id]
                     end
 
-                    @fastmath calc = abs_smooth(a2 - (m*turbine_ct[current_turbine_id]*cos(turbine_yaw[current_turbine_id]))/(16.0*gamma(2/m)*(sigma_n^(2/m))*(1-sum_C/U_inf)^2),0.1)
-                    @fastmath C_point = (1-sum_C/U_inf) * (a1-sqrt(calc))
-                    @fastmath r_tilde = (sqrt((y-y_n-dy)^2 + (z-z_n)^2)/rotor_diameter[current_turbine_id])
-                    @fastmath velDef = C_point*exp(-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor))
-                    @fastmath deficits[downwind_turbine_id,p] += velDef * turbine_velocities[current_turbine_id]
+                    calc = abs_smooth(a2 - (m*turbine_ct[current_turbine_id]*cos(turbine_yaw[current_turbine_id]))/(16.0*gamma(2/m)*(sigma_n^(2/m))*(1-sum_C/U_inf)^2),0.1)
+                    C_point = (1-sum_C/U_inf) * (a1-sqrt(calc))
+                    r_tilde = (sqrt((y-y_n-dy)^2 + (z-z_n)^2)/rotor_diameter[current_turbine_id])
+                    velDef = C_point*exp(-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor))
+                    deficits[downwind_turbine_id,p] += velDef * turbine_velocities[current_turbine_id]
                     if d == n+1
                         point_velocities[downwind_turbine_id,p] = U_inf - deficits[downwind_turbine_id,p]
                         # find order for wind shear and deficit calculations
                         shear_order = wind_resource.wind_shear_model.shear_order
                         # adjust wind speed for wind shear
-                        if shear_order == "nothing"
-                            point_velocities[downwind_turbine_id,p] = point_velocities[downwind_turbine_id,p]
-                        elseif shear_order == "first"
+                        if shear_order == "nothing" || shear_order == "first"
                             point_velocities[downwind_turbine_id,p] = point_velocities[downwind_turbine_id,p]
                         else
                             point_velocities[downwind_turbine_id,p] = adjust_for_wind_shear(z, point_velocities[downwind_turbine_id,p], wind_resource.measurement_heights[wind_farm_state_id], wind_resource.wind_shear_model.ground_height, wind_resource.wind_shear_model)
@@ -436,11 +434,10 @@ end
 
 # Helper function for turbine_velocities_one_direction_CC!
 function wake_expansion(Ct,TI,x_tilde,model)
-    @fastmath beta = 0.5*(1.0+sqrt(1.0-Ct))/sqrt(1.0-Ct)
+    beta = 0.5*(1.0+sqrt(1.0-Ct))/sqrt(1.0-Ct)
     epsilon = (model.c_s1*Ct+model.c_s2)*sqrt(beta)
     k = (model.a_s*TI+model.b_s)
     sigma = k*x_tilde+epsilon
-
     return sigma^2
 end
 
