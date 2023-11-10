@@ -200,11 +200,12 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
     end
 
     if using_CumulativeCurlModel
-        cumulative_curl_core_deficit = zeros(arr_type,n_turbines,n_turbines)
+        deltav_Uinf = zeros(arr_type,n_turbines,n_turbines)
+
         turbine_velocities_one_direction_CC!(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
         sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
         model_set, turbine_velocities,
-        turbine_ct, turbine_ai, turbine_local_ti, cumulative_curl_core_deficit; wind_farm_state_id=wind_farm_state_id, velocity_only=velocity_only)
+        turbine_ct, turbine_ai, turbine_local_ti, deltav_Uinf; wind_farm_state_id=wind_farm_state_id, velocity_only=velocity_only)
     else
         turbine_velocities_one_direction!(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
         sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
@@ -214,7 +215,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
 
 
     if using_sparsity
-        return turbine_velocities, cumulative_curl_core_deficit'
+        return turbine_velocities, deltav_Uinf'
     end
     if velocity_only
         return turbine_velocities
@@ -289,15 +290,6 @@ function turbine_velocities_one_direction!(turbine_x::T0, turbine_y::T1, turbine
                             turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=1E-6)
     end
 
-end
-
-# Helper function for turbine_velocities_one_direction_CC!
-function wake_expansion(Ct,TI,x_tilde,model)
-    beta = 0.5*(1.0+sqrt(1.0-Ct))/sqrt(1.0-Ct)
-    epsilon = (model.c_s1*Ct+model.c_s2)*sqrt(beta)
-    k = (model.a_s*TI+model.b_s)
-    sigma = k*x_tilde+epsilon
-    return sigma^2
 end
 
 # function turbine_velocities_one_direction(x, turbine_z, rotor_diameter, hub_height, turbine_yaw,

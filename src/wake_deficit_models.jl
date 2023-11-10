@@ -764,7 +764,7 @@ end
 function turbine_velocities_one_direction_CC!(turbine_x::T0, turbine_y::T1, turbine_z::T2, rotor_diameter::T3, hub_height::T4, turbine_yaw::T5,
     sorted_turbine_index::Vector{Int}, ct_model::Vector{ATCM}, rotor_sample_points_y::Vector{T6}, rotor_sample_points_z::Vector{T6}, wind_resource,
     model_set::AMS, turbine_velocities::Vector{T7},
-    turbine_ct::Vector{T7}, turbine_ai::Vector{T7}, turbine_local_ti::Vector{T7}, C::Matrix{T8}; wind_farm_state_id::Int=1, velocity_only::Bool=true) where {T0, T1, T2, T3, T4, T5, ATCM, T6, AMS, T7, T8}
+    turbine_ct::Vector{T7}, turbine_ai::Vector{T7}, turbine_local_ti::Vector{T7}, deltav_Uinf::Matrix{T8}; wind_farm_state_id::Int=1, velocity_only::Bool=true) where {T0, T1, T2, T3, T4, T5, ATCM, T6, AMS, T7, T8}
 
     @inbounds begin
         arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
@@ -781,13 +781,14 @@ function turbine_velocities_one_direction_CC!(turbine_x::T0, turbine_y::T1, turb
         n_turbines = length(turbine_x)
         n_rotor_sample_points = length(rotor_sample_points_y)
 
-        # C = zeros(arr_type,n_turbines,n_turbines)
+        C = zeros(arr_type,n_turbines,n_turbines)
         sigma2 = zeros(arr_type,n_turbines,n_turbines)
         deflections = zeros(arr_type,n_turbines,n_turbines)
 
         deficits = zeros(arr_type,n_turbines,n_rotor_sample_points)
         point_velocities = zeros(arr_type,n_turbines,n_rotor_sample_points)
         point_velocities .= U_inf
+        lambda = zeros(arr_type,n_turbines,n_turbines)
 
         ambient_ti = wind_resource.ambient_tis[wind_farm_state_id]
 
@@ -866,15 +867,17 @@ function turbine_velocities_one_direction_CC!(turbine_x::T0, turbine_y::T1, turb
                         z_i = turbine_z[other_turbine_id] + hub_height[other_turbine_id]
                         sigma_i = sigma2[other_turbine_id,downwind_turbine_id]
                         dy_i = deflections[other_turbine_id,downwind_turbine_id]
-                        lambda_n_i = sigma_n/(sigma_n+sigma_i) * exp(-((y_n-y_i-dy_i)^2 + (z_n-z_i)^2)/(2.0*(sigma_n+sigma_i)))
-                        sum_C += lambda_n_i * C[other_turbine_id,downwind_turbine_id]
+                        expo = -((y_n-y_i-dy_i)^2 + (z_n-z_i)^2)/(2.0*(sigma_n+sigma_i))
+                        c1 = sigma_n/(sigma_n+sigma_i)
+                        lambda[other_turbine_id,downwind_turbine_id] = c1*exp(expo)
+                        sum_C += lambda[other_turbine_id,downwind_turbine_id] * C[other_turbine_id,downwind_turbine_id]
                     end
 
                     calc = abs_smooth(a2 - (m*turbine_ct[current_turbine_id]*cos(turbine_yaw[current_turbine_id]))/(16.0*gamma(2/m)*(sigma_n^(2/m))*(1-sum_C/U_inf)^2),0.1)
                     C_point = (1-sum_C/U_inf) * (a1-sqrt(calc))
                     r_tilde = (sqrt((y-y_n-dy)^2 + (z-z_n)^2)/rotor_diameter[current_turbine_id])
-                    velDef = C_point*exp(-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor))
-                    deficits[downwind_turbine_id,p] += velDef * turbine_velocities[current_turbine_id]
+                    deltav_Uinf[current_turbine_id,downwind_turbine_id] = C_point * exp(-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor))
+                    deficits[downwind_turbine_id,p] += deltav_Uinf[current_turbine_id,downwind_turbine_id] * turbine_velocities[current_turbine_id]
                     if d == n+1
                         point_velocities[downwind_turbine_id,p] = U_inf - deficits[downwind_turbine_id,p]
                         # find order for wind shear and deficit calculations
@@ -898,4 +901,14 @@ function turbine_velocities_one_direction_CC!(turbine_x::T0, turbine_y::T1, turb
             end
         end
     end
+end
+
+
+# Helper function for turbine_velocities_one_direction_CC!
+function wake_expansion(Ct,TI,x_tilde,model)
+    beta = 0.5*(1.0+sqrt(1.0-Ct))/sqrt(1.0-Ct)
+    epsilon = (model.c_s1*Ct+model.c_s2)*sqrt(beta)
+    k = (model.a_s*TI+model.b_s)
+    sigma = k*x_tilde+epsilon
+    return sigma^2
 end
