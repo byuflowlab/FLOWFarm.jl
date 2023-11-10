@@ -61,7 +61,7 @@ Calculates the wind speed at a given point for a given state
 """
 function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
-                    wind_resource, model_set::AbstractModelSet;
+                    wind_resource, model_set::AbstractModelSet, wake_deficits, contribution_matrix, deflections;
                     wind_farm_state_id=1, downwind_turbine_id=0)
 
     # extract flow information
@@ -110,16 +110,19 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
             horizontal_deflection = wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct,
                             upwind_turb_id, rotor_diameter, turbine_local_ti, model_set.wake_deflection_model)
 
+            if !isempty(deflections)
+                deflections[upwind_turb_id, downwind_turbine_id] = horizontal_deflection
+            end
+
             vertical_deflection = 0.0
 
             # velocity difference in the wake
             deltav = wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, horizontal_deflection, vertical_deflection,
                             upwind_turb_id, downwind_turbine_id, hub_height, rotor_diameter, turbine_ai,
-                            turbine_local_ti, turbine_ct, turbine_yaw, model_set.wake_deficit_model)
+                            turbine_local_ti, turbine_ct, turbine_yaw, wake_deficits, contribution_matrix, deflections, u, wind_speed_internal, wtvelocities, sorted_turbine_index, model_set.wake_deficit_model)
 
             # combine deficits according to selected wake combination method
             deficit_sum = wake_combination_model(deltav, wind_speed_internal, wtvelocities[upwind_turb_id], deficit_sum, model_set.wake_combination_model)
-            # println(deficit_sum, " ", downwind_turbine_id, " ", upwind_turb_id)
         end
     end
 
@@ -181,9 +184,10 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
     using_CumulativeCurlModel = typeof(model_set.wake_deficit_model) == CumulativeCurl{Float64,Vector{Float64}}
 
     # initialize correct array types
-    if turbine_velocities===nothing || turbine_ai === nothing || turbine_ct === nothing || turbine_local_ti === nothing
-        arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
+    arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
                                 typeof(hub_height[1]),typeof(turbine_yaw[1]))
+
+    if turbine_velocities===nothing || turbine_ai === nothing || turbine_ct === nothing || turbine_local_ti === nothing
         # initialize arrays
         if turbine_velocities === nothing
             turbine_velocities = zeros(arr_type, n_turbines)
@@ -198,26 +202,18 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
             turbine_local_ti = zeros(arr_type, n_turbines)
         end
     end
+    wake_deficits = zeros(arr_type,n_turbines,n_turbines)
+    contribution_matrix = zeros(arr_type,n_turbines,n_turbines)
+    deflections = zeros(arr_type,n_turbines,n_turbines)
 
-    if using_CumulativeCurlModel
-        deltav_Uinf = zeros(arr_type,n_turbines,n_turbines)
-
-        turbine_velocities_one_direction_CC!(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
-        sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-        model_set, turbine_velocities,
-        turbine_ct, turbine_ai, turbine_local_ti, deltav_Uinf; wind_farm_state_id=wind_farm_state_id, velocity_only=velocity_only)
-    else
-        turbine_velocities_one_direction!(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
-        sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-        model_set, turbine_velocities,
-        turbine_ct, turbine_ai, turbine_local_ti; wind_farm_state_id=wind_farm_state_id, velocity_only=velocity_only)
-    end
-
+    turbine_velocities_one_direction!(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+    sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+    model_set, turbine_velocities,
+    turbine_ct, turbine_ai, turbine_local_ti, wake_deficits, contribution_matrix, deflections; wind_farm_state_id=wind_farm_state_id, velocity_only=velocity_only)
 
     if using_sparsity
-        return turbine_velocities, deltav_Uinf'
-    end
-    if velocity_only
+        return turbine_velocities, wake_deficits' ./ turbine_velocities'
+    elseif velocity_only
         return turbine_velocities
     else
         return turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti
@@ -228,7 +224,7 @@ end
 function turbine_velocities_one_direction!(turbine_x::T0, turbine_y::T1, turbine_z::T2, rotor_diameter::T3, hub_height::T4, turbine_yaw::T5,
     sorted_turbine_index::Vector{Int}, ct_model::Vector{<:AbstractThrustCoefficientModel}, rotor_sample_points_y::Vector{T6}, rotor_sample_points_z::Vector{T6}, wind_resource,
     model_set::AbstractModelSet, turbine_velocities::Vector{T7},
-    turbine_ct::Vector{T7}, turbine_ai::Vector{T7}, turbine_local_ti::Vector{T7}; wind_farm_state_id::Int=1, velocity_only::Bool=true) where {T0, T1, T2, T3, T4, T5, T6, T7}
+    turbine_ct::Vector{T7}, turbine_ai::Vector{T7}, turbine_local_ti::Vector{T7}, wake_deficits::T8, contribution_matrix::T9, deflections::T10; wind_farm_state_id::Int=1, velocity_only::Bool=true) where {T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10}
 
     # get number of turbines and rotor sample point
     n_turbines = length(turbine_x)
@@ -261,7 +257,7 @@ function turbine_velocities_one_direction!(turbine_x::T0, turbine_y::T1, turbine
             # calculate the velocity at given point
             point_velocity_with_shear = point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
                                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, turbine_velocities,
-                                    wind_resource, model_set,
+                                    wind_resource, model_set, wake_deficits, contribution_matrix, deflections,
                                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=downwind_turbine_id)
 
             # add sample point velocity to turbine velocity to be averaged later
@@ -428,6 +424,10 @@ function calculate_flow_field(xrange, yrange, zrange,
     # sort the turbines
     sorted_turbine_index = sortperm(rot_tx)
 
+    wake_deficits = []
+    contribution_matrix = []
+    deflections = []
+
     for zi in 1:zlen
         for yi in 1:ylen
             for xi in 1:xlen
@@ -438,7 +438,7 @@ function calculate_flow_field(xrange, yrange, zrange,
 
                 point_velocities[zi, yi, xi] = point_velocity(locx, locy, locz, rot_tx, rot_ty, turbine_z, turbine_yaw, turbine_ct, turbine_ai,
                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
-                    wind_resource, model_set,
+                    wind_resource, model_set, wake_deficits, contribution_matrix, deflections,
                     wind_farm_state_id=wind_farm_state_id, downwind_turbine_id=0)
 
             end
