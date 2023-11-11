@@ -821,8 +821,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     calc = abs_smooth(a2 - (m*turbine_ct[upstream_turbine_id]*cos(turbine_yaw[upstream_turbine_id]))/(16.0*gamma(2/m)*(sigma_n^(2/m))*(1-sum_C/wind_speed_internal)^2),0.1)
     contribution_matrix[upstream_turbine_id,downstream_turbine_id] = (1-sum_C/wind_speed_internal) * (a1-sqrt(calc))
     r_tilde = (sqrt((y_n-locy-deflections[upstream_turbine_id,downstream_turbine_id])^2 + (z_n-locz)^2)/rotor_diameter[upstream_turbine_id])
-    deltav_Uinf = contribution_matrix[upstream_turbine_id,downstream_turbine_id] * exp(-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor))
-    wake_deficits[upstream_turbine_id,downstream_turbine_id] = deltav_Uinf * wtvelocities[upstream_turbine_id]
+    wake_deficits[upstream_turbine_id,downstream_turbine_id] = contribution_matrix[upstream_turbine_id,downstream_turbine_id] * exp(-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor))
 
     return wake_deficits[upstream_turbine_id,downstream_turbine_id]
 end
