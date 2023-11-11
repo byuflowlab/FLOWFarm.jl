@@ -262,13 +262,13 @@ function turbine_velocities_one_direction!(turbine_x::T0, turbine_y::T1, turbine
 
             # add sample point velocity to turbine velocity to be averaged later
             wind_turbine_velocity += point_velocity_with_shear^model_set.point_velocity_average_factor
-
         end
+
 
         # final velocity calculation for downstream turbine (average equally across all points)
         wind_turbine_velocity /= n_rotor_sample_points
 
-        wind_turbine_velocity = (wind_turbine_velocity)^(1/model_set.point_velocity_average_factor)
+        wind_turbine_velocity = (wind_turbine_velocity)^(1.0/model_set.point_velocity_average_factor)
 
         turbine_velocities[downwind_turbine_id] = deepcopy(wind_turbine_velocity)
 
