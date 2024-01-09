@@ -497,9 +497,11 @@ using FiniteDiff
             testing_x = [0.0,0.0,500.0,500.0,7481.0]
             testing_y = [0.0,500.0,0.0,500.0,-43891.0]
             turbine_separation = [500.0,500.0,707.1067811865476,44523.9850193129,707.1067811865476,500.0,45016.95505029189,500.0,44442.70741077775,44936.56909466943]
+            spacing = zeros(10)
+            ff.turbine_spacing!(spacing,testing_x,testing_y)
 
             @test ff.turbine_spacing(testing_x,testing_y) == turbine_separation
-
+            @test spacing == turbine_separation
         end
 
         @testset "Circular boundary" begin
@@ -509,9 +511,11 @@ using FiniteDiff
             testing_x = [100,100,100,100,-500,700]
             testing_y = [500,1100,-100,0,500,500]
             test_values = (testing_x .- center[1]).^2 + (testing_y .- center[2]).^2 .- radius.^2
+            boundary = zeros(length(testing_x))
+            ff.circle_boundary!(boundary,center,radius,testing_x,testing_y)
 
             @test ff.circle_boundary(center,radius,testing_x,testing_y) == test_values
-
+            @test boundary == test_values
         end
 
         @testset "Splined boundary" begin

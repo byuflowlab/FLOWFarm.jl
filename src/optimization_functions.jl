@@ -32,6 +32,32 @@ function turbine_spacing(turbine_x, turbine_y)
 end
 
 """
+    turbine_spacing!(spacing_vec,turbine_x,turbine_y)
+
+Calculate the distance between turbines in a wind farm. There is an infinite gradient
+of this function if two points are exactly the same. This can be avoided by returning the
+square of the turbine spacing rather than the actual distance, but it makes the gradients
+scale much more poorly. Because it is very vanishingly rare to have turbines exactly in the
+same location, this function leaves the square root in the calculations.
+
+# Arguments
+- `spacing_vec::Array{Float}`: vector of distances between turbines
+- `turbine_x::Array{Float}`: turbine x locations
+- `turbine_y::Array{Float}`: turbine y locations
+"""
+function turbine_spacing!(spacing_vec,turbine_x,turbine_y)
+    nturbines = length(turbine_x)
+    k = 1
+    for i in 1:nturbines
+        for j in i+1:nturbines
+            spacing_vec[k] = sqrt((turbine_x[j] - turbine_x[i])^2+(turbine_y[j] - turbine_y[i])^2)
+            k += 1
+        end
+    end
+    return nothing
+end
+
+"""
     circle_boundary(center,radius,turbine_x,turbine_y)
 
 calculate the distance squared from each turbine to a circular boundary. Negative means the
@@ -50,6 +76,27 @@ function circle_boundary(center, radius, turbine_x, turbine_y)
         boundary_vec[i] = (center[1] - turbine_x[i])^2 + (center[2] - turbine_y[i])^2 - radius^2
     end
     return boundary_vec
+end
+
+"""
+    circle_boundary!(center,radius,turbine_x,turbine_y)
+
+calculate the distance squared from each turbine to a circular boundary. Negative means the
+turbine is inside the boundary
+
+# Arguments
+- `boundary_vec`: vector containing distances from the boundary
+- `center::Float`: circular boundary center [x,y]
+- `radius::Float`: circulat boundary radius
+- `turbine_x::Array{Float}`: turbine x locations
+- `turbine_y::Array{Float}`: turbine y locations
+"""
+function circle_boundary!(boundary_vec, center, radius, turbine_x, turbine_y)
+    nturbines = length(turbine_x)
+    for i in 1:nturbines
+        boundary_vec[i] = (center[1] - turbine_x[i])^2 + (center[2] - turbine_y[i])^2 - radius^2
+    end
+    return nothing
 end
 
 

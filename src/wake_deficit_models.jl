@@ -806,31 +806,53 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     sigma_squared[upstream_turbine_id,downstream_turbine_id] = wake_expansion(turbine_ct[upstream_turbine_id],turbine_local_ti[upstream_turbine_id],x_tilde_n,model)
 
     sigma_n = sigma_squared[upstream_turbine_id,downstream_turbine_id]
-    sum_C = 0.0
+    r_tilde = (sqrt((y_n-locy-deflections[upstream_turbine_id,downstream_turbine_id])^2 + (z_n-locz)^2)/rotor_diameter[upstream_turbine_id])
+    if (-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor)) > -750
 
-    @inbounds begin
-        for i = 1:current_index_loop-1
-            other_turbine_id = Int(sorted_turbine_index[i])
-            y_i = turbine_y[other_turbine_id]
-            z_i = turbine_z[other_turbine_id] + hub_height[other_turbine_id]
-            sigma_i = sigma_squared[other_turbine_id,downstream_turbine_id]
-            dy_i = deflections[other_turbine_id,downstream_turbine_id]
+        sum_C = 0.0
 
-            @fastmath sigma_plus = 1/(sigma_n+sigma_i)
-            @fastmath expo = -0.5*sigma_plus*((y_n-y_i-dy_i)^2 + (z_n-z_i)^2)
-            if expo > -750
-                lambda = sigma_n*sigma_plus*exp(expo)
-                sum_C += lambda * contribution_matrix[other_turbine_id,downstream_turbine_id]
+        @inbounds begin
+            for i = 1:current_index_loop-1
+                other_turbine_id = Int(sorted_turbine_index[i])
+
+                if contribution_matrix[other_turbine_id,downstream_turbine_id] == 0.0
+                    continue
+                end
+
+                y_i = turbine_y[other_turbine_id]
+                z_i = turbine_z[other_turbine_id] + hub_height[other_turbine_id]
+                sigma_i = sigma_squared[other_turbine_id,downstream_turbine_id]
+                dy_i = deflections[other_turbine_id,downstream_turbine_id]
+
+                @fastmath sigma_plus = 1/(sigma_n+sigma_i)
+                @fastmath expo = -0.5*sigma_plus*((y_n-y_i-dy_i)^2 + (z_n-z_i)^2)
+                if expo > -750
+                    lambda = sigma_n*sigma_plus*exp(expo)
+                    sum_C += lambda * contribution_matrix[other_turbine_id,downstream_turbine_id]
+                end
             end
+
+            calc = abs_smooth(a2 - (m*turbine_ct[upstream_turbine_id]*cos(turbine_yaw[upstream_turbine_id]))/(16.0*gamma(2.0/m)*(sigma_n^(2.0/m))*(1.0-sum_C/wind_speed_internal)^2),0.1)
+            contribution_matrix[upstream_turbine_id,downstream_turbine_id] = (1-sum_C/wind_speed_internal) * (a1-sqrt(calc))
+            wake_deficits[upstream_turbine_id,downstream_turbine_id] = contribution_matrix[upstream_turbine_id,downstream_turbine_id] * exp(-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor))
+
+            # keep = [155 114 14 5 1 2 8 20 39 64 95 133 177 228 285]
+            # cols = [317 155 114 14 5 1 2 8 20 39 64 95 133 177 228]
+            # for j = eachindex(cols)
+            #     temp_def = wake_deficits[cols[j],keep[j]]
+            #     temp_c = contribution_matrix[cols[j],keep[j]]
+            #     wake_deficits[cols[j],:] .= 0.0
+            #     contribution_matrix[cols[j],:] .= 0.0
+            #     wake_deficits[cols[j],keep[j]] = temp_def
+            #     contribution_matrix[cols[j],keep[j]] = temp_c
+            # end
+
+            # # 317 -> 155 -> 114 -> 14 -> 5 -> 1 -> 2 -> 8 -> 20 -> 39 -> 64 -> 95 -> 133 -> 177 -> 228 -> 285
+
+            return wake_deficits[upstream_turbine_id,downstream_turbine_id]
         end
-
-        calc = abs_smooth(a2 - (m*turbine_ct[upstream_turbine_id]*cos(turbine_yaw[upstream_turbine_id]))/(16.0*gamma(2.0/m)*(sigma_n^(2.0/m))*(1.0-sum_C/wind_speed_internal)^2),0.1)
-        contribution_matrix[upstream_turbine_id,downstream_turbine_id] = (1-sum_C/wind_speed_internal) * (a1-sqrt(calc))
-        r_tilde = (sqrt((y_n-locy-deflections[upstream_turbine_id,downstream_turbine_id])^2 + (z_n-locz)^2)/rotor_diameter[upstream_turbine_id])
-        wake_deficits[upstream_turbine_id,downstream_turbine_id] = contribution_matrix[upstream_turbine_id,downstream_turbine_id] * exp(-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor))
-
-        return wake_deficits[upstream_turbine_id,downstream_turbine_id]
     end
+    return 0.0
 end
 
 # Helper function for the Cumulative Curl model
