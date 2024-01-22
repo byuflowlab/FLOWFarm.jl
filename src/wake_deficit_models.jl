@@ -161,8 +161,9 @@ CumulativeCurl() = CumulativeCurl(0.179367259, 0.0118889215, 0.0563691592, 0.132
 """
     NoWakeDeficit()
 """
-struct NoWakeDeficit{TF} <: AbstractWakeDeficitModel
+struct NoWakeDeficit <: AbstractWakeDeficitModel
 end
+
 
 """
     wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::JensenTopHat)
