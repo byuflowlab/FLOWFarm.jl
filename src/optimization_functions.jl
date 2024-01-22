@@ -4,6 +4,8 @@ author: PJ Stanley and Jared Thomas
 contributors: Nicholas F. Baker and Wesley Holt
 """
 
+#TODO: Add more in-place versions of boundary functions
+
 """
     turbine_spacing(turbine_x,turbine_y)
 
