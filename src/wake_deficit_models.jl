@@ -159,6 +159,12 @@ end
 CumulativeCurl() = CumulativeCurl(0.179367259, 0.0118889215, 0.0563691592, 0.13290157, 3.11, -0.68, 2.41, [1.0])
 
 """
+    NoWakeDeficit()
+"""
+struct NoWakeDeficit{TF} <: AbstractWakeDeficitModel
+end
+
+"""
     wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::JensenTopHat)
 
 Computes the wake deficit according to the original Jensen top hat wake model, from the paper:
@@ -862,4 +868,8 @@ function wake_expansion(Ct,TI,x_tilde,model)
     k = (model.a_s*TI+model.b_s)
     sigma = k*x_tilde+epsilon
     return sigma^2
+end
+
+function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, wake_deficits, contribution_matrix, deflections, current_index_loop, wind_speed_internal, sigma_squared, wtvelocities, sorted_turbine_index, model::NoWakeDeficit)
+    return 0.0
 end

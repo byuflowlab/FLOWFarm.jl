@@ -705,3 +705,56 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
 
     return AEP
 end
+
+"""
+    calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
+    hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+    cut_out_speed, rated_speed, rated_power, wind_resource, power_models::Array{AbstractPowerModel}, model_set::AbstractModelSet;
+    rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0)
+
+Calculate ideal wind farm AEP (AEP with no wake loss)
+
+# Arguments
+- `turbine_x::Array{Float,nTurbines}`: turbine east-west locations in the global
+    reference frame
+- `turbine_y::Array{Float,nTurbines}`: turbine north-south locations in the global
+    reference frame
+- `turbine_z::Array{Float,nTurbines}`: turbine base height in the global reference frame
+- `rotor_diameter::Array{Float,nTurbines}`
+- `hub_height::Array{TF,nTurbines}`: turbine hub heights
+- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in
+    radians
+- `ct_model::AbstractThrustCoefficientModel`: defines how the thrust coefficient changes
+    with state etc
+- `generator_efficiency::Array{Float,nTurbines}`
+- `cut_in_speed::Array{Float,nTurbines}`
+- `cut_out_speed::Array{Float,nTurbines}`
+- `rated_speed::Array{Float,nTurbines}`
+- `rated_power::Array{Float,nTurbines}`
+- `wind_resource::DiscretizedWindResource`: wind resource discreption (directions, speeds,
+    frequencies, etc)
+- `power_model::Array{)`: elements of array should be sub types of AbstractPowerModel
+- `model_set::AbstractModelSet`: defines wake-realated models to be used in analysis
+- `rotor_sample_points_y::Array{TF,N}`: horizontal wind location of points to sample across
+    the rotor swept area when calculating the effective wind speed for the wind turbine.
+    Points are centered at the hub (0,0) and scaled by the radius (1=tip of blades)
+- `rotor_sample_points_z::Array{TF,N}`: vertical wind location of points to sample across the
+    rotor swept area when calculating the effective wind speed for the wind turbine. Points
+    are centered at the hub (0,0) and scaled by the radius (1=tip of blades)
+- `hours_per_year::Float`: hours per year (averaged for leap year by default)
+"""
+function calculate_ideal_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
+    hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+    cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set::AbstractModelSet;
+    rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0, distributed=false)
+
+    no_wake_model_set = WindFarmModelSet(NoWakeDeficit(),model_set.wake_deflection_model,
+        model_set.wake_combination_model,model_set.local_ti_model,model_set.point_velocity_average_factor)
+
+    AEP = calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
+    hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+    cut_out_speed, rated_speed, rated_power, wind_resource, power_models, no_wake_model_set;
+    rotor_sample_points_y, rotor_sample_points_z, hours_per_year, distributed)
+
+    return AEP
+end

@@ -677,11 +677,3 @@ function iea37cs4BndryVRIntPM(bndry_x_clsd, bndry_y_clsd, bndry_corner_indicies,
 
     return turbine_x, turbine_y, num_interior_turbs
 end
-
-function calculateIdealAEP(rotor_diameter,hub_height,ct_model,generator_efficiency,cut_in_speed,cut_out_speed,rated_speed, rated_power, wind_resource, power_models, model_set::AbstractModelSet;)
-    AEP = calculate_aep([0], [0], [0], [rotor_diameter[1]],
-            [hub_height[1]], [0], [ct_model[1]], [generator_efficiency[1]], [cut_in_speed[1]],
-            [cut_out_speed[1]], [rated_speed[1]], [rated_power[1]], wind_resource, [power_models[1]], model_set) * length(rotor_diameter)
-
-    return AEP
-end
