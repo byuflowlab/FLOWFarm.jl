@@ -50,7 +50,7 @@ function turbine_spacing!(spacing_vec,turbine_x,turbine_y)
             k += 1
         end
     end
-    return nothing
+    return spacing_vec
 end
 
 """
@@ -90,7 +90,7 @@ function circle_boundary!(boundary_vec, center, radius, turbine_x, turbine_y)
     for i in 1:nturbines
         boundary_vec[i] = (center[1] - turbine_x[i])^2 + (center[2] - turbine_y[i])^2 - radius^2
     end
-    return nothing
+    return boundary_vec
 end
 
 
@@ -108,6 +108,7 @@ turbine is inside the boundary
 - `turbine_x::Array{Float}`: turbine x locations
 - `turbine_y::Array{Float}`: turbine y locations
 """
+# TODO: test needed for convex_boundary, write in place version
 function convex_boundary(boundary_vertices, boundary_normals, turbine_x, turbine_y)
     nturbines = length(turbine_x)
     nVertices = size(boundary_vertices)[1]
@@ -129,7 +130,6 @@ function convex_boundary(boundary_vertices, boundary_normals, turbine_x, turbine
 
     return vcat(face_distance...)
 end
-
 
 """
     splined_boundary(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies)
@@ -161,15 +161,50 @@ coordinate system (+x and +y values only)
 function splined_boundary(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies)
     """ Returns if the passed turbines are within the passed closed boundary """
     num_turbs = Int8(length(turbine_x))
+    num_cons = Int(num_turbs * 4)
+    bndry_cons = zeros(typeof(turbine_x[1]), num_cons)   # 4 values (2 x and 2 y) for each turb
+
+    splined_boundary!(bndry_cons, turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies)
+
+    return bndry_cons
+end
+
+"""
+    splined_boundary!(bndry_cons, turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies)
+
+calculate the distance from each turbine to a closed boundary made up of zero or
+more reflex angles (concavities). Boundary will have three or four user-selected
+"corners", such that the "sides" between corners (that will be splined) are
+injective functions (meaning that for every x-coord, there exists only one
+corresponding y-coord). Returns four values for every turbine, corresponding to
+the distance from the turb to the upper, lower, left, and right splined "sides".
+A negative return value means the turb is inside the boundary for that "side".
+Returns a single array of {Float64} of length {length(turbine_x) * 4}. Note that
+all boundary coordinates must be in the first quadrant of the Cartesian
+coordinate system (+x and +y values only)
+
+# Arguments
+- `bndry_cons:: Vector{Float}`: boundary constraints
+- `turbine_x::Array{Float}`: turbine x locations
+- `turbine_y::Array{Float}`: turbine y locations
+- `bndry_x_clsd::Array{Float}`: x locations of boundary vertices, CCW in
+        order s.t. boundaryVertices[0] is the NE corner of boundary, and with
+        the first vertex duplicated at the end for completeness of calcs.
+- `bndry_y_clsd::Array{Float}`: y locations of boundary vertices, CCW in
+        order s.t. boundaryVertices[0] is the NE corner of boundary, and with
+        the first vertex duplicated at the end for completeness of calcs.
+- `bndry_corner_indcies::Array{Float}`: An array of 3 or 4 indicies in the
+        bndry_x/y_clsd arrays that correspond to the three four "corners" used
+        between splined "sides"
+"""
+function splined_boundary!(bndry_cons, turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies)
+    """ Returns if the passed turbines are within the passed closed boundary """
+    num_turbs = Int8(length(turbine_x))
     num_sides = Int8(length(bndry_corner_indcies)-1)
     x_min_indx = 3                      # Default to work w/ squared boundaries
     if num_sides == 3                   # If we only have 3 corners
         x_min_indx = 2                  # denote that it's a triangle boundary
     end
-
-    # Check to make sure our points are in
-    num_cons = Int(num_turbs * 4)
-    bndry_cons = zeros(typeof(turbine_x[1]), num_cons)   # 4 values (2 x and 2 y) for each turb
 
     x_max = bndry_x_clsd[bndry_corner_indcies[1]]           # Our maximum x-value
     x_min = bndry_x_clsd[bndry_corner_indcies[x_min_indx]]  # Our min x-value
@@ -187,8 +222,12 @@ function splined_boundary(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndr
         bndry_cons[place+4] = (turbine_y[cntr] - y_min)
     end
 
-    return -bndry_cons # Invert values so Negative is inside boundary
+    bndry_cons .= -1 .* bndry_cons # Invert values so Negative is inside boundary
+
+    return bndry_cons
 end
+
+
 
 """
     splined_boundary_discreet_regions(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies, turbs_per_region)
@@ -220,6 +259,7 @@ coordinates must be in the first quadrant of the Cartesian coordinate system
         are apportioned to the corresponding region. sum(turbs_per_region) must
         be equivalent to the total number of turbines in the windfarm
 """
+#TODO: Write test for splined_boundary_discreet_regions and add in place version
 function splined_boundary_discreet_regions(turbine_x, turbine_y, bndry_x_clsd, bndry_y_clsd, num_bndry_verts, bndry_corner_indcies, turbs_per_region)
     """ Goes through numerous discrete splined-boundary regions and returns if the apportioned turbines are within their region """
     num_regions = length(turbs_per_region)
@@ -536,7 +576,7 @@ Uses the Boundary portion of Boundary-Grid variable reduction method
 place turbines along a closed wind farm boundary and perturb their location with
 one (1) variable <start_dist>.  NOTE: Use of this function assumes prior use of
 VR_bounary_startup(), which ensures the number of turbines placed on the
-boundary doesn't violate any minimum spacing rules eiter along the boundary or
+boundary doesn't violate any minimum spacing rules either along the boundary or
 around corners.
 
 # Arguments
