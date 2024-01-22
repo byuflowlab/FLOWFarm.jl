@@ -21,13 +21,7 @@ function turbine_spacing(turbine_x, turbine_y)
     nturbines = length(turbine_x)
     spacing_vec =
         zeros(typeof(turbine_x[1]), Int((nturbines) * (nturbines - 1) / 2))
-    k = 1
-    for i in 1:nturbines
-        for j in i+1:nturbines
-            spacing_vec[k] = sqrt((turbine_x[j] - turbine_x[i])^2+(turbine_y[j] - turbine_y[i])^2)
-            k += 1
-        end
-    end
+    turbine_spacing!(spacing_vec,turbine_x,turbine_y)
     return spacing_vec
 end
 
@@ -72,9 +66,7 @@ turbine is inside the boundary
 function circle_boundary(center, radius, turbine_x, turbine_y)
     nturbines = length(turbine_x)
     boundary_vec = zeros(typeof(turbine_x[1]), nturbines)
-    for i in 1:nturbines
-        boundary_vec[i] = (center[1] - turbine_x[i])^2 + (center[2] - turbine_y[i])^2 - radius^2
-    end
+    circle_boundary!(boundary_vec,center,radius,turbine_x,turbine_y)
     return boundary_vec
 end
 
@@ -116,24 +108,24 @@ turbine is inside the boundary
 """
 function convex_boundary(boundary_vertices, boundary_normals, turbine_x, turbine_y)
     nturbines = length(turbine_x)
-        nVertices = size(boundary_vertices)[1]
-        # initialize array to hold distances from each point to each face
-        face_distance = zeros(typeof(turbine_x[1]),(nturbines, nVertices))
+    nVertices = size(boundary_vertices)[1]
+    # initialize array to hold distances from each point to each face
+    face_distance = zeros(typeof(turbine_x[1]),(nturbines, nVertices))
 
-        # loop through points and find distance to each face
-        for i = 1:nturbines
-                # determine if point is inside or outside of each face, and distance from each face
-                for j = 1:nVertices
-                        # define the vector from the point of interest to the first point of the face
-                        pa = [boundary_vertices[j, 1]-turbine_x[i], boundary_vertices[j, 2]-turbine_y[i]]
-                        # find perpendicular distance from point to current surface (vector projection)
-                        d_vec = sum(pa .* boundary_normals[j,:]) .* boundary_normals[j,:]
-                        # calculate the sign of perpendicular distance from point to current face (- is inside, + is outside)
-                        face_distance[i, j] = -sum(d_vec .* boundary_normals[j,:])
-                end
+    # loop through points and find distance to each face
+    for i = 1:nturbines
+        # determine if point is inside or outside of each face, and distance from each face
+        for j = 1:nVertices
+            # define the vector from the point of interest to the first point of the face
+            pa = [boundary_vertices[j, 1]-turbine_x[i], boundary_vertices[j, 2]-turbine_y[i]]
+            # find perpendicular distance from point to current surface (vector projection)
+            d_vec = sum(pa .* boundary_normals[j,:]) .* boundary_normals[j,:]
+            # calculate the sign of perpendicular distance from point to current face (- is inside, + is outside)
+            face_distance[i, j] = -sum(d_vec .* boundary_normals[j,:])
         end
+    end
 
-        return vcat(face_distance...)
+    return vcat(face_distance...)
 end
 
 
