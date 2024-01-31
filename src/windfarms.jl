@@ -2,6 +2,40 @@
 abstract type AbstractWindFarmModel end
 
 """
+wind_farm_struct
+
+Struct defining a wind farm
+
+# Arguments
+- `turbine_x`: Vector containing
+"""
+struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15,T16,T17,T18,T19,T20,T21,T22,T23} <: AbstractWindFarmModel
+    turbine_x::T1
+    turbine_y::T2
+    turbine_z::T3
+    rotor_diameter::T4
+    hub_height::T5
+    turbine_yaw::T6
+    ct_models::T7
+    generator_efficency::T8
+    cut_in_speed::T9
+    cut_out_speed::T10
+    rated_speed::T11
+    rated_power::T12
+    wind_resource::T13
+    power_models::T14
+    model_set::T15
+    rotor_sample_points_y::T16
+    rotor_sample_points_z::T17
+    hours_per_year::T18
+    objective_scale::T19
+    ideal_AEP::T20
+    boundary_struct::T21
+    spacing_struct::T22
+    struct_update_function::T23
+end
+
+"""
 WindFarm(windfarm, windresource, windfarmstates)
 
 Struct defining a wind farm
@@ -73,6 +107,3 @@ end
 #     boundary = PolygonBoundary(vertices, normals)
 #     return boundary
 # end
-
-
-

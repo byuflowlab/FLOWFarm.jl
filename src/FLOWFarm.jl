@@ -6,16 +6,15 @@ using ForwardDiff
 using LinearAlgebra
 using ReverseDiff
 
-# using CCBlade
 using PyPlot; const plt = PyPlot
 using FLOWMath: linear,trapz,Akima,ksmax,abs_smooth
-# using Statistics
 using Distributed
 using YAML
 using XLSX
 using DataFrames
 using CSV
 using SpecialFunctions
+using SparseDiffTools
 
 include("io.jl")
 include("utilities.jl")
@@ -36,4 +35,5 @@ include("fatigue_model.jl")
 include("tip.jl")
 include("cost_models.jl")
 include("plotting.jl")
+include("sparsity_functions.jl")
 end # module

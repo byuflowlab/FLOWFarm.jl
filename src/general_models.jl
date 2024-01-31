@@ -180,7 +180,8 @@ end
 function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
                     sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set::AbstractModelSet; wind_farm_state_id::Int=1, velocity_only::Bool=true, turbine_velocities=nothing,
-                    turbine_ct=nothing, turbine_ai=nothing, turbine_local_ti=nothing, using_sparsity=false)
+                    turbine_ct=nothing, turbine_ai=nothing, turbine_local_ti=nothing, using_sparsity::Bool=false,
+                    wake_deficits=nothing, contribution_matrix=nothing, deflections=nothing, sigma_squared=nothing)
 
     # get number of turbines and rotor sample point
     n_turbines = length(turbine_x)
@@ -189,30 +190,44 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
     arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
                                 typeof(hub_height[1]),typeof(turbine_yaw[1]))
 
-    if turbine_velocities===nothing || turbine_ai === nothing || turbine_ct === nothing || turbine_local_ti === nothing
-        # initialize arrays
-        if turbine_velocities === nothing
-            turbine_velocities = zeros(arr_type, n_turbines)
-        end
-        if turbine_ct === nothing
-            turbine_ct = zeros(arr_type, n_turbines)
-        end
-        if turbine_ai === nothing
-            turbine_ai = zeros(arr_type, n_turbines)
-        end
-        if turbine_local_ti === nothing
-            turbine_local_ti = zeros(arr_type, n_turbines)
-        end
+    # initialize arrays
+    if turbine_velocities === nothing
+        turbine_velocities = zeros(arr_type, n_turbines)
     end
-    wake_deficits = zeros(arr_type,n_turbines,n_turbines)
-    contribution_matrix = zeros(arr_type,n_turbines,n_turbines)
-    deflections = zeros(arr_type,n_turbines,n_turbines)
-    sigma_squared = zeros(arr_type,n_turbines,n_turbines)
+    if turbine_ct === nothing
+        turbine_ct = zeros(arr_type, n_turbines)
+    end
+    if turbine_ai === nothing
+        turbine_ai = zeros(arr_type, n_turbines)
+    end
+    if turbine_local_ti === nothing
+        turbine_local_ti = zeros(arr_type, n_turbines)
+    end
+    if wake_deficits === nothing
+        wake_deficits = zeros(arr_type,n_turbines,n_turbines)
+    else
+        wake_deficits .= 0
+    end
+    if contribution_matrix === nothing
+        contribution_matrix = zeros(arr_type,n_turbines,n_turbines)
+    else
+        contribution_matrix .= 0
+    end
+    if deflections === nothing
+        deflections = zeros(arr_type,n_turbines,n_turbines)
+    else
+        deflections .= 0
+    end
+    if sigma_squared === nothing
+        sigma_squared = zeros(arr_type,n_turbines,n_turbines)
+    else
+        sigma_squared .= 0
+    end
 
     turbine_velocities_one_direction!(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
-    sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-    model_set, turbine_velocities,
-    turbine_ct, turbine_ai, turbine_local_ti, wake_deficits, contribution_matrix, deflections, sigma_squared; wind_farm_state_id=wind_farm_state_id, velocity_only=velocity_only)
+        sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource, model_set, turbine_velocities,
+        turbine_ct, turbine_ai, turbine_local_ti, wake_deficits, contribution_matrix, deflections, sigma_squared;
+        wind_farm_state_id=wind_farm_state_id, velocity_only=velocity_only)
 
     if using_sparsity
         return turbine_velocities, wake_deficits' ./ turbine_velocities'

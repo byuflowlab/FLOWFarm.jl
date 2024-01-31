@@ -53,6 +53,8 @@ function turbine_spacing!(spacing_vec,turbine_x,turbine_y)
     return spacing_vec
 end
 
+# TODO: Insert analytic spacing jacobian
+
 """
     circle_boundary(center,radius,turbine_x,turbine_y)
 
@@ -92,7 +94,6 @@ function circle_boundary!(boundary_vec, center, radius, turbine_x, turbine_y)
     end
     return boundary_vec
 end
-
 
 """
     convex_boundary(boundary_vertices,boundary_normals,turbine_x,turbine_y)
