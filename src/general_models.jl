@@ -193,15 +193,23 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
     # initialize arrays
     if turbine_velocities === nothing
         turbine_velocities = zeros(arr_type, n_turbines)
+    else
+        turbine_velocities .= 0
     end
     if turbine_ct === nothing
         turbine_ct = zeros(arr_type, n_turbines)
+    else
+        turbine_velocities .= 0
     end
     if turbine_ai === nothing
         turbine_ai = zeros(arr_type, n_turbines)
+    else
+        turbine_ai .= 0
     end
     if turbine_local_ti === nothing
         turbine_local_ti = zeros(arr_type, n_turbines)
+    else
+        turbine_local_ti .= 0
     end
     if wake_deficits === nothing
         wake_deficits = zeros(arr_type,n_turbines,n_turbines)
@@ -241,8 +249,8 @@ end
 
 function turbine_velocities_one_direction!(turbine_x::T0, turbine_y::T1, turbine_z::T2, rotor_diameter::T3, hub_height::T4, turbine_yaw::T5,
     sorted_turbine_index::Vector{Int}, ct_model::Vector{<:AbstractThrustCoefficientModel}, rotor_sample_points_y::Vector{T6}, rotor_sample_points_z::Vector{T6}, wind_resource,
-    model_set::AbstractModelSet, turbine_velocities::Vector{T7},
-    turbine_ct::Vector{T7}, turbine_ai::Vector{T7}, turbine_local_ti::Vector{T7}, wake_deficits::T8, contribution_matrix::T9, deflections::T10, sigma_squared::T11; wind_farm_state_id::Int=1, velocity_only::Bool=true) where {T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11}
+    model_set::AbstractModelSet, turbine_velocities::T7,
+    turbine_ct::T7, turbine_ai::T7, turbine_local_ti::T7, wake_deficits::T8, contribution_matrix::T9, deflections::T10, sigma_squared::T11; wind_farm_state_id::Int=1, velocity_only::Bool=true) where {T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11}
 
     # get number of turbines and rotor sample point
     n_turbines = length(turbine_x)
