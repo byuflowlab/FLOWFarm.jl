@@ -4,20 +4,47 @@ abstract type AbstractWindFarmModel end
 """
 wind_farm_struct
 
-Struct defining a wind farm
+Unifying struct defining a wind farm
 
 # Arguments
-- `turbine_x`: Vector containing
+- `turbine_x`: Vector containing x positions of turbines
+- `turbine_y`: Vector containing y positions of turbines
+- `turbine_z`: Vector containing z positions of ground the turbines sit on
+- `hub_height`: Vector containing hub heights of each turbines as measured form the ground the turbines sit on
+- `rotor_diameter`: Vector containing the rotor diameter of each turbine
+- `ct_models`: Vector containing ct_models for each turbine
+- `generator_efficency`: Vector containing the generator efficiency of each turbine
+- `cut_in_speed`: Vector containing the cut in speed of each turbine
+- `cut_out_speed`: Vector containing the cut out speed of each turbine
+- `rated_speed`: Vector containing the rated speed of each turbine
+- `rated_power`: Vector containing the rated power of each turbine
+- `wind_resource`: The windresource struct
+- `power_models`: Vector containing power models of each turbine
+- `model_set`: The models_set struct
+- `rotor_sample_points_y`: Vector containing y sample points
+- `rotor_sample_points_z`: Vector containing z sample points
+- `hours_per_year`: Number of hours in a year
+- `objective_scale`: Factor used to scale the objective
+- `ideal_AEP`: The ideal AEP of the farm
+- `boundary_struct`: Boundary struct
+- `spacing_struct`: Spacing struct
+- `preallocations`: preallocated space
+- `turbine_x_dual`: Dual version of turbine_x
+- `turbine_y_dual`: Dual version of turbine_y
+- `turbine_z_dual`: Dual version of turbine_z
+- `turbine_yaw_dual`: Dual version of turbine_yaw
+- `preallocations_dual`: Dual version of preallocations
+- `unscale_function`: function that puts the design variables back into SI units
 """
-struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15,T16,T17,T18,T19,T20,T21,T22,T23} <: AbstractWindFarmModel
+struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15,T16,T17,T18,T19,T20,T21,T22,T23,T24,T25,T26,T27,T28,T29,T30} <: AbstractWindFarmModel
     turbine_x::T1
     turbine_y::T2
     turbine_z::T3
-    rotor_diameter::T4
-    hub_height::T5
-    turbine_yaw::T6
+    hub_height::T4
+    turbine_yaw::T5
+    rotor_diameter::T6
     ct_models::T7
-    generator_efficency::T8
+    generator_efficiency::T8
     cut_in_speed::T9
     cut_out_speed::T10
     rated_speed::T11
@@ -32,7 +59,31 @@ struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15,T16,T
     ideal_AEP::T20
     boundary_struct::T21
     spacing_struct::T22
-    struct_update_function::T23
+    preallocations::T23
+    n_turbines::T24
+
+    ## dual containers
+    turbine_x_dual::T25
+    turbine_y_dual::T26
+    hub_height_dual::T27
+    turbine_yaw_dual::T28
+    preallocations_dual::T29
+
+    ## functions
+    update_function::Function
+
+    aep_gradient::T30
+end
+
+struct preallocations_struct{V,M}
+    prealloc_turbine_velocities::V
+    prealloc_turbine_ct::V
+    prealloc_turbine_ai::V
+    prealloc_turbine_local_ti::V
+    prealloc_wake_deficits::M
+    prealloc_contribution_matrix::M
+    prealloc_deflections::M
+    prealloc_sigma_squared::M
 end
 
 """
@@ -76,34 +127,16 @@ struct SingleWindFarmState{TI,AF1,AF2,AF3,AF4,AF5,AF6,AF7,AF8,AF9,AI} <: Abstrac
 
 end
 
-# # abstract type AbstractBoundary end
+struct spacing_struct{T1,T2,T3,T4}
+    constraint_spacing::T1 # Single float that defines the minimum spacing between turbines in meters
+    constraint_scaling::T2 # Single float that scales the constraint
+    spacing_vec::T3 # In place vector
+    spacing_jacobian::T4
+end
 
-# # """
-# # CircleBoundary(boundary_center, boundary_radius)
-
-# # # Arguments
-# # - `boundary_center::Float`: center of wind farm boundary
-# # - 'boundary_radius::Float': radius of wind farm boundary
-# # """
-# # struct CircleBoundary{TF,TF} <: AbstractBoundary
-# #     boundary_center::TF
-# #     boundary_radius::TF
-# # end
-
-# # """
-# # PolygonBoundary(boundary_center, boundary_radius)
-
-# # # Arguments
-# # - `boundary_center::Float`: center of wind farm boundary
-# # - 'boundary_radius::Float': radius of wind farm boundary
-# # """
-# # struct PolygonBoundary{ATF} <: AbstractBoundary
-# #     boundary_vertices::ATF
-# #     boundary_normals::ATF
-# # end
-
-# function initialize_polygon_boundary(vertices)
-#     normals = boundary_normals_calculator(vertices)
-#     boundary = PolygonBoundary(vertices, normals)
-#     return boundary
-# end
+struct boundary_struct{T1,T2,T3,T4}
+    boundary_scaling_factor::T1
+    boundary_function::T2
+    boundary_vec::T3
+    boundary_jacobian::T4
+end

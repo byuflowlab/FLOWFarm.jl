@@ -3,7 +3,6 @@ created January 26, 2024
 author: Benjamin Varela
 """
 
-abstract type AbstractOptimizationParametersStruct end
 abstract type AbstractSparseOptimizationStruct end
 
 #TODO: documentation and examples

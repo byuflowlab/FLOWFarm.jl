@@ -638,7 +638,6 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
         ndirections = length(unique_directions)
     end
 
-    # state_energy = Vector{typeof(wind_farm.turbine_x[1])}(undef,nstates)
     arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),typeof(hub_height[1]),typeof(turbine_yaw[1]),
                 typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),typeof(rated_power[1]))
 
@@ -693,7 +692,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                     wind_speed_ids = findall(wind_resource.wind_directions .== unique_directions[i])
 
                     # take a speed in the middle (so it is not zero)
-                    middle_id = wind_speed_ids[ceil(Int64,length(wind_speed_ids)/2.0)]
+                    middle_id = wind_speed_ids[max(cld(length(wind_speed_ids),2),1)]
 
                     # get direction aep including all wind speeds for that direction
                     state_aep[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
@@ -722,11 +721,11 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                     state_aep[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
                         turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                         rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                        model_set; wind_farm_state_id=middle_id, hours_per_year=hours_per_year, wind_speed_ids=wind_speed_ids,
-                        prealloc_turbine_velocities=view(prealloc_turbine_velocities,:,i), prealloc_turbine_ct=view(prealloc_turbine_ct,:,i),
-                        prealloc_turbine_ai=view(prealloc_turbine_ai,:,i), prealloc_turbine_local_ti=view(prealloc_turbine_local_ti,:,i),
-                        prealloc_wake_deficits=view(prealloc_wake_deficits,:,:,i), prealloc_contribution_matrix=view(prealloc_contribution_matrix,:,:,i),
-                        prealloc_deflections=view(prealloc_deflections,:,:,i), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,i))
+                        model_set; wind_farm_state_id=i, hours_per_year=hours_per_year,
+                        prealloc_turbine_velocities=view(prealloc_turbine_velocities,:,i_assignment), prealloc_turbine_ct=view(prealloc_turbine_ct,:,i_assignment),
+                        prealloc_turbine_ai=view(prealloc_turbine_ai,:,i_assignment), prealloc_turbine_local_ti=view(prealloc_turbine_local_ti,:,i_assignment),
+                        prealloc_wake_deficits=view(prealloc_wake_deficits,:,:,i_assignment), prealloc_contribution_matrix=view(prealloc_contribution_matrix,:,:,i_assignment),
+                        prealloc_deflections=view(prealloc_deflections,:,:,i_assignment), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,i_assignment))
                 end
             end
         end
@@ -744,7 +743,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 wind_speed_ids = findall(wind_resource.wind_directions .== unique_directions[i])
 
                 # take a speed in the middle (so it is not zero)
-                middle_id = wind_speed_ids[max(Int(round(length(wind_speed_ids)/2.0)),1)]
+                middle_id = wind_speed_ids[max(cld(length(wind_speed_ids),2),1)]
 
                 # get direction aep including all wind speeds for that direction
                 calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
@@ -762,7 +761,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             end
         end
     else
-        state_aep = 0
+        state_aep = 0.0
         if prealloc_turbine_velocities === nothing
             prealloc_turbine_velocities = zeros(arr_type, n_turbines)
         end
@@ -793,7 +792,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 wind_speed_ids = findall(wind_resource.wind_directions .== unique_directions[i])
 
                 # take a speed in the middle (so it is not zero)
-                middle_id = wind_speed_ids[Int(length(wind_speed_ids)/2.0)]
+                middle_id = wind_speed_ids[max(cld(length(wind_speed_ids),2),1)]
 
                 # get direction aep including all wind speeds for that direction
                 state_aep += calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
@@ -810,7 +809,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 state_aep += calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
                     turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                     rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                    model_set; wind_farm_state_id=middle_id, hours_per_year=hours_per_year, wind_speed_ids=wind_speed_ids,
+                    model_set; wind_farm_state_id=i, hours_per_year=hours_per_year,
                     prealloc_turbine_velocities=prealloc_turbine_velocities, prealloc_turbine_ct=prealloc_turbine_ct,
                     prealloc_turbine_ai=prealloc_turbine_ai, prealloc_turbine_local_ti=prealloc_turbine_local_ti,
                     prealloc_wake_deficits=prealloc_wake_deficits, prealloc_contribution_matrix=prealloc_contribution_matrix,
@@ -870,7 +869,7 @@ function calculate_ideal_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
         model_set.wake_combination_model,model_set.local_ti_model,model_set.point_velocity_average_factor)
 
     AEP = calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
-    hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+    hub_height, zeros(length(turbine_yaw)), ct_model, generator_efficiency, cut_in_speed,
     cut_out_speed, rated_speed, rated_power, wind_resource, power_models, no_wake_model_set;
     rotor_sample_points_y, rotor_sample_points_z, hours_per_year)
 

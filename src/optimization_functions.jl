@@ -1,7 +1,7 @@
 """file with functions used in wind farm optimization, including constraints
 created May 4, 2020
 author: PJ Stanley and Jared Thomas
-contributors: Nicholas F. Baker and Wesley Holt
+contributors: Nicholas F. Baker and Wesley Holt and Benjamin Varela
 """
 
 #TODO: Add more in-place versions of boundary functions

@@ -1,7 +1,6 @@
 abstract type AbstractModelSet end
 # using CSV
 # using DataFrames
-
 """
     WindFarmModelSet(wakedeficitmodel, wake_deflection_model, wake_combination_model, local_ti_model)
 
@@ -87,7 +86,7 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
     nturbines = length(turbine_x)
 
     # initialize deficit summation term to zero
-    deficit_sum = 0.0
+    deficit_sum = eltype(hub_height)(0.0)
 
     # loop through all turbines
     for u=1:nturbines
