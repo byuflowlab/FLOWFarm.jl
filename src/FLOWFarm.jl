@@ -15,6 +15,7 @@ using DataFrames
 using CSV
 using SpecialFunctions
 using SparseDiffTools
+using SparseArrays
 
 include("io.jl")
 include("utilities.jl")

@@ -647,20 +647,22 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
         reverse_diff = false
     end
 
+    AEP = arr_type(0.0)
+
     # calculate AEP in parallel using multi-threading
     if Threads.nthreads() > 1 && !reverse_diff
         n_threads = Threads.nthreads()
         if prealloc_turbine_velocities === nothing
-            prealloc_turbine_velocities = zeros(arr_type, n_turbines,n_threads)
+            prealloc_turbine_velocities = zeros(arr_type,n_turbines,n_threads)
         end
         if prealloc_turbine_ct === nothing
-            prealloc_turbine_ct = zeros(arr_type, n_turbines,n_threads)
+            prealloc_turbine_ct = zeros(arr_type,n_turbines,n_threads)
         end
         if prealloc_turbine_ai === nothing
-            prealloc_turbine_ai = zeros(arr_type, n_turbines,n_threads)
+            prealloc_turbine_ai = zeros(arr_type,n_turbines,n_threads)
         end
         if prealloc_turbine_local_ti === nothing
-            prealloc_turbine_local_ti = zeros(arr_type, n_turbines,n_threads)
+            prealloc_turbine_local_ti = zeros(arr_type,n_turbines,n_threads)
         end
         if prealloc_wake_deficits === nothing
             prealloc_wake_deficits = zeros(arr_type,n_turbines,n_turbines,n_threads)
@@ -754,14 +756,14 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
         else
             AEP = @sync @distributed (+) for i = 1:nstates
 
-                state_aep = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
+                calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
                     turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                     rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set; wind_farm_state_id=i, hours_per_year=hours_per_year)
             end
         end
     else
-        state_aep = 0.0
+        state_aep = arr_type(0.0)
         if prealloc_turbine_velocities === nothing
             prealloc_turbine_velocities = zeros(arr_type, n_turbines)
         end

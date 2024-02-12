@@ -36,43 +36,26 @@ Unifying struct defining a wind farm
 - `preallocations_dual`: Dual version of preallocations
 - `unscale_function`: function that puts the design variables back into SI units
 """
-struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15,T16,T17,T18,T19,T20,T21,T22,T23,T24,T25,T26,T27,T28,T29,T30} <: AbstractWindFarmModel
+struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13} <: AbstractWindFarmModel
+    # design variables (user access)
     turbine_x::T1
     turbine_y::T2
-    turbine_z::T3
-    hub_height::T4
-    turbine_yaw::T5
-    rotor_diameter::T6
-    ct_models::T7
-    generator_efficiency::T8
-    cut_in_speed::T9
-    cut_out_speed::T10
-    rated_speed::T11
-    rated_power::T12
-    wind_resource::T13
-    power_models::T14
-    model_set::T15
-    rotor_sample_points_y::T16
-    rotor_sample_points_z::T17
-    hours_per_year::T18
-    objective_scale::T19
-    ideal_AEP::T20
-    boundary_struct::T21
-    spacing_struct::T22
-    preallocations::T23
-    n_turbines::T24
+    hub_height::T3
+    turbine_yaw::T4
+    rotor_diameter::T5
 
-    ## dual containers
-    turbine_x_dual::T25
-    turbine_y_dual::T26
-    hub_height_dual::T27
-    turbine_yaw_dual::T28
-    preallocations_dual::T29
+    # In place container (user access)
+    AEP_gradient::T6
 
-    ## functions
-    update_function::Function
+    constants::T7
 
-    aep_gradient::T30
+    AEP_scale::T8
+    ideal_AEP::T9
+    preallocations::T10
+    preallocations_dual::T11
+    update_function::T12
+
+    duals::T13
 end
 
 struct preallocations_struct{V,M}
@@ -86,57 +69,92 @@ struct preallocations_struct{V,M}
     prealloc_sigma_squared::M
 end
 
-"""
-WindFarm(windfarm, windresource, windfarmstates)
-
-Struct defining a wind farm
-
-# Arguments
-- `turbine_x::Array{Float}(Nturbines)`: contains windturbine x coordinates in the global reference frame
-- `turbine_y::Array{Float}(Nturbines)`: contains windturbine y coordinates in the global reference frame
-- `turbine_z::Array{Float}(Nturbines)`: contains windturbine base/z coordinates in the global reference frame
-- `turbine_definition_ids::Array{Int}(Nturbines)`: contains integers for each wind turbine specifying its definition
-- `turbine_definitions::Array{AbstractTurbineDefinition}(Ntypes)`: contains structs defining each wind turbine definition (design) used in the farm
-"""
-struct WindFarm{AF1,AF2,AF3,AI,AS} <: AbstractWindFarmModel
-
-    # farm design properties
-    turbine_x::AF1
-    turbine_y::AF2
-    turbine_z::AF3
-    turbine_definition_ids::AI
-    turbine_definitions::AS
-
+struct wind_farm_derivative_struct{T1,T2,T3,T4,T5,T6}
+    turbine_x_dual::T1
+    turbine_y_dual::T2
+    hub_height_dual::T3
+    turbine_yaw_dual::T4
+    rotor_diameter_dual::T5
+    forward_cfg::T6
 end
 
-
-struct SingleWindFarmState{TI,AF1,AF2,AF3,AF4,AF5,AF6,AF7,AF8,AF9,AI} <: AbstractWindFarmModel
-
-    # farm properties in rotated frame
-    id::TI
-    turbine_x::AF1
-    turbine_y::AF2
-    turbine_z::AF3
-    turbine_yaw::AF4
-    turbine_ct::AF5
-    turbine_ai::AF6
-    turbine_inflow_velcities::AF7
-    turbine_generators_powers::AF8
-    turbine_local_ti::AF9
-    sorted_turbine_index::AI
-
+struct wind_farm_constants_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12}
+    turbine_z::T1
+    ct_models::T2
+    generator_efficiency::T3
+    cut_in_speed::T4
+    cut_out_speed::T5
+    rated_speed::T6
+    rated_power::T7
+    wind_resource::T8
+    power_models::T9
+    model_set::T10
+    rotor_sample_points_y::T11
+    rotor_sample_points_z::T12
 end
 
-struct spacing_struct{T1,T2,T3,T4}
+######### constraint structs
+struct spacing_struct{T1,T2,T3,T4,T5,T6}
     constraint_spacing::T1 # Single float that defines the minimum spacing between turbines in meters
     constraint_scaling::T2 # Single float that scales the constraint
     spacing_vec::T3 # In place vector
     spacing_jacobian::T4
+    using_sparsity::T5
+    forward_cfg::T6
 end
 
-struct boundary_struct{T1,T2,T3,T4}
+struct boundary_struct{T1,T2,T3,T4,T5,T6}
     boundary_scaling_factor::T1
     boundary_function::T2
     boundary_vec::T3
     boundary_jacobian::T4
+    using_sparsity::T5
+    forward_cfg::T6
 end
+
+
+
+
+
+
+############################# outdated
+# """
+# WindFarm(windfarm, windresource, windfarmstates)
+
+# Struct defining a wind farm
+
+# # Arguments
+# - `turbine_x::Array{Float}(Nturbines)`: contains windturbine x coordinates in the global reference frame
+# - `turbine_y::Array{Float}(Nturbines)`: contains windturbine y coordinates in the global reference frame
+# - `turbine_z::Array{Float}(Nturbines)`: contains windturbine base/z coordinates in the global reference frame
+# - `turbine_definition_ids::Array{Int}(Nturbines)`: contains integers for each wind turbine specifying its definition
+# - `turbine_definitions::Array{AbstractTurbineDefinition}(Ntypes)`: contains structs defining each wind turbine definition (design) used in the farm
+# """
+# struct WindFarm{AF1,AF2,AF3,AI,AS} <: AbstractWindFarmModel
+
+#     # farm design properties
+#     turbine_x::AF1
+#     turbine_y::AF2
+#     turbine_z::AF3
+#     turbine_definition_ids::AI
+#     turbine_definitions::AS
+
+# end
+
+
+# struct SingleWindFarmState{TI,AF1,AF2,AF3,AF4,AF5,AF6,AF7,AF8,AF9,AI} <: AbstractWindFarmModel
+
+#     # farm properties in rotated frame
+#     id::TI
+#     turbine_x::AF1
+#     turbine_y::AF2
+#     turbine_z::AF3
+#     turbine_yaw::AF4
+#     turbine_ct::AF5
+#     turbine_ai::AF6
+#     turbine_inflow_velcities::AF7
+#     turbine_generators_powers::AF8
+#     turbine_local_ti::AF9
+#     sorted_turbine_index::AI
+
+# end
