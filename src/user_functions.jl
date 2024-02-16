@@ -75,14 +75,21 @@ function build_spacing_struct(x,n_turbines,space,scale)
     spacing_vec = zeros(eltype(x),n_constraints)
     spacing_jacobian = zeros(eltype(x),n_constraints,length(x))
     cfg = ForwardDiff.JacobianConfig(nothing,spacing_vec,x)
-    return spacing_struct(space,scale,spacing_vec,spacing_jacobian,false,cfg)
+    return spacing_struct(space,scale,spacing_vec,spacing_jacobian,cfg)
 end
 
-function build_boundary_struct(x,n_turbines,scaling,constraint_function)
+function build_boundary_struct(x,n_turbines,scaling,constraint_function,farm;using_sparsity=true)
     boundary_vec = zeros(eltype(x),n_turbines)
     boundary_jacobian = zeros(eltype(x),n_turbines,length(x))
     cfg = ForwardDiff.JacobianConfig(nothing,boundary_vec,x)
-    return boundary_struct(scaling,constraint_function,boundary_vec,boundary_jacobian,false,cfg)
+    f(a,x) = calculate_boundary!(a,x,farm,boundary_struct)
+    b_struct = boundary_struct(scaling,constraint_function,boundary_vec,boundary_jacobian,f,cfg)
+
+    if !using_sparsity
+        return b_struct
+    end
+
+    return build_sparse_boundary_struct(x,b_struct,farm)
 end
 
 function update_turbine_x!(farm,x)
@@ -90,6 +97,7 @@ function update_turbine_x!(farm,x)
 end
 
 function update_turbine_x!(farm,x::Vector{T}) where T <: ForwardDiff.Dual
+    @show eltype(x)
     farm.duals.turbine_x_dual .= x
 end
 
@@ -247,4 +255,14 @@ function calculate_boundary!(boundary_vec,x::Vector{T},farm,boundary_struct) whe
     boundary_vec .*= boundary_struct.boundary_scaling_factor
 
     return boundary_vec
+end
+
+function calculate_boundary!(boundary_struct::T,x) where T <: AbstractSparseMethod
+    sparse_jacobian!(boundary_struct.boundary_jacobian, boundary_struct.ad, boundary_struct.cache, boundary_struct.boundary_function, boundary_struct.boundary_vec, x)
+    return boundary_struct.boundary_vec, boundary_struct.boundary_jacobian
+end
+
+function calculate_boundary!(boundary_struct,x)
+    ForwardDiff.jacobian!(boundary_struct.boundary_jacobian,boundary_struct.deriv_function,boundary_struct.boundary_vec,x,boundary_struct.forward_cfg)
+    return boundary_struct.boundary_vec, boundary_struct.boundary_jacobian
 end

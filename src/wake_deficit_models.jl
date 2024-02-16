@@ -813,7 +813,12 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     sigma_squared[upstream_turbine_id,downstream_turbine_id] = wake_expansion(turbine_ct[upstream_turbine_id],turbine_local_ti[upstream_turbine_id],x_tilde_n,model)
 
     sigma_n = sigma_squared[upstream_turbine_id,downstream_turbine_id]
-    r_tilde = (sqrt((y_n-locy-deflections[upstream_turbine_id,downstream_turbine_id])^2 + (z_n-locz)^2)/rotor_diameter[upstream_turbine_id])
+    sqrt_num = (y_n-locy-deflections[upstream_turbine_id,downstream_turbine_id])^2 + (z_n-locz)^2
+    if sqrt_num == 0
+        r_tilde = 0.0
+    else
+        r_tilde = sqrt(sqrt_num)/rotor_diameter[upstream_turbine_id]
+    end
     if (-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor)) > -750
 
         sum_C = 0.0
@@ -843,6 +848,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
             contribution_matrix[upstream_turbine_id,downstream_turbine_id] = (1-sum_C/wind_speed_internal) * (a1-sqrt(calc))
             wake_deficits[upstream_turbine_id,downstream_turbine_id] = contribution_matrix[upstream_turbine_id,downstream_turbine_id] * exp(-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor))
 
+            # yaw color plot
             # keep = [155 114 14 5 1 2 8 20 39 64 95 133 177 228 285]
             # cols = [317 155 114 14 5 1 2 8 20 39 64 95 133 177 228]
             # for j = eachindex(cols)
@@ -859,7 +865,8 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
             return wake_deficits[upstream_turbine_id,downstream_turbine_id]
         end
     end
-    return 0.0
+    wake_deficits[upstream_turbine_id,downstream_turbine_id] = 0.0
+    return wake_deficits[upstream_turbine_id,downstream_turbine_id]
 end
 
 # Helper function for the Cumulative Curl model

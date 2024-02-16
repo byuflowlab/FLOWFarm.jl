@@ -94,13 +94,12 @@ struct wind_farm_constants_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12}
 end
 
 ######### constraint structs
-struct spacing_struct{T1,T2,T3,T4,T5,T6}
+struct spacing_struct{T1,T2,T3,T4,T5}
     constraint_spacing::T1 # Single float that defines the minimum spacing between turbines in meters
     constraint_scaling::T2 # Single float that scales the constraint
     spacing_vec::T3 # In place vector
     spacing_jacobian::T4
-    using_sparsity::T5
-    forward_cfg::T6
+    forward_cfg::T5
 end
 
 struct boundary_struct{T1,T2,T3,T4,T5,T6}
@@ -108,7 +107,7 @@ struct boundary_struct{T1,T2,T3,T4,T5,T6}
     boundary_function::T2
     boundary_vec::T3
     boundary_jacobian::T4
-    using_sparsity::T5
+    deriv_function::T5
     forward_cfg::T6
 end
 
@@ -118,43 +117,43 @@ end
 
 
 ############################# outdated
-# """
-# WindFarm(windfarm, windresource, windfarmstates)
+"""
+WindFarm(windfarm, windresource, windfarmstates)
 
-# Struct defining a wind farm
+Struct defining a wind farm
 
-# # Arguments
-# - `turbine_x::Array{Float}(Nturbines)`: contains windturbine x coordinates in the global reference frame
-# - `turbine_y::Array{Float}(Nturbines)`: contains windturbine y coordinates in the global reference frame
-# - `turbine_z::Array{Float}(Nturbines)`: contains windturbine base/z coordinates in the global reference frame
-# - `turbine_definition_ids::Array{Int}(Nturbines)`: contains integers for each wind turbine specifying its definition
-# - `turbine_definitions::Array{AbstractTurbineDefinition}(Ntypes)`: contains structs defining each wind turbine definition (design) used in the farm
-# """
-# struct WindFarm{AF1,AF2,AF3,AI,AS} <: AbstractWindFarmModel
+# Arguments
+- `turbine_x::Array{Float}(Nturbines)`: contains windturbine x coordinates in the global reference frame
+- `turbine_y::Array{Float}(Nturbines)`: contains windturbine y coordinates in the global reference frame
+- `turbine_z::Array{Float}(Nturbines)`: contains windturbine base/z coordinates in the global reference frame
+- `turbine_definition_ids::Array{Int}(Nturbines)`: contains integers for each wind turbine specifying its definition
+- `turbine_definitions::Array{AbstractTurbineDefinition}(Ntypes)`: contains structs defining each wind turbine definition (design) used in the farm
+"""
+struct WindFarm{AF1,AF2,AF3,AI,AS} <: AbstractWindFarmModel
 
-#     # farm design properties
-#     turbine_x::AF1
-#     turbine_y::AF2
-#     turbine_z::AF3
-#     turbine_definition_ids::AI
-#     turbine_definitions::AS
+    # farm design properties
+    turbine_x::AF1
+    turbine_y::AF2
+    turbine_z::AF3
+    turbine_definition_ids::AI
+    turbine_definitions::AS
 
-# end
+end
 
 
-# struct SingleWindFarmState{TI,AF1,AF2,AF3,AF4,AF5,AF6,AF7,AF8,AF9,AI} <: AbstractWindFarmModel
+struct SingleWindFarmState{TI,AF1,AF2,AF3,AF4,AF5,AF6,AF7,AF8,AF9,AI} <: AbstractWindFarmModel
 
-#     # farm properties in rotated frame
-#     id::TI
-#     turbine_x::AF1
-#     turbine_y::AF2
-#     turbine_z::AF3
-#     turbine_yaw::AF4
-#     turbine_ct::AF5
-#     turbine_ai::AF6
-#     turbine_inflow_velcities::AF7
-#     turbine_generators_powers::AF8
-#     turbine_local_ti::AF9
-#     sorted_turbine_index::AI
+    # farm properties in rotated frame
+    id::TI
+    turbine_x::AF1
+    turbine_y::AF2
+    turbine_z::AF3
+    turbine_yaw::AF4
+    turbine_ct::AF5
+    turbine_ai::AF6
+    turbine_inflow_velcities::AF7
+    turbine_generators_powers::AF8
+    turbine_local_ti::AF9
+    sorted_turbine_index::AI
 
-# end
+end
