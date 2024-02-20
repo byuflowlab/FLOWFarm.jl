@@ -36,26 +36,21 @@ Unifying struct defining a wind farm
 - `preallocations_dual`: Dual version of preallocations
 - `unscale_function`: function that puts the design variables back into SI units
 """
-struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13} <: AbstractWindFarmModel
-    # design variables (user access)
+struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14} <: AbstractWindFarmModel
     turbine_x::T1
     turbine_y::T2
     hub_height::T3
     turbine_yaw::T4
     rotor_diameter::T5
-
-    # In place container (user access)
-    AEP_gradient::T6
-
+    results::T6
     constants::T7
-
     AEP_scale::T8
     ideal_AEP::T9
     preallocations::T10
-    preallocations_dual::T11
-    update_function::T12
-
-    duals::T13
+    update_function::T11
+    AEP_gradient::T12
+    AEP::T13
+    config::T14
 end
 
 struct preallocations_struct{V,M}
@@ -67,15 +62,6 @@ struct preallocations_struct{V,M}
     prealloc_contribution_matrix::M
     prealloc_deflections::M
     prealloc_sigma_squared::M
-end
-
-struct wind_farm_derivative_struct{T1,T2,T3,T4,T5,T6}
-    turbine_x_dual::T1
-    turbine_y_dual::T2
-    hub_height_dual::T3
-    turbine_yaw_dual::T4
-    rotor_diameter_dual::T5
-    forward_cfg::T6
 end
 
 struct wind_farm_constants_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12}
@@ -94,21 +80,26 @@ struct wind_farm_constants_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12}
 end
 
 ######### constraint structs
-struct spacing_struct{T1,T2,T3,T4,T5}
-    constraint_spacing::T1 # Single float that defines the minimum spacing between turbines in meters
-    constraint_scaling::T2 # Single float that scales the constraint
-    spacing_vec::T3 # In place vector
-    spacing_jacobian::T4
-    forward_cfg::T5
+struct spacing_struct{T1,T2,T3,T4,T5,T6,T7,T8}
+    turbine_x::T1
+    turbine_y::T2
+    constraint_spacing::T3 # Single float that defines the minimum spacing between turbines in meters
+    constraint_scaling::T4 # Single float that scales the constraint
+    spacing::T5 # In place vector
+    jacobian::T6
+    config::T7
+    update_function::T8
 end
 
-struct boundary_struct{T1,T2,T3,T4,T5,T6}
-    boundary_scaling_factor::T1
-    boundary_function::T2
-    boundary_vec::T3
-    boundary_jacobian::T4
-    deriv_function::T5
-    forward_cfg::T6
+struct boundary_struct{T1,T2,T3,T4,T5,T6,T7,T8}
+    turbine_x::T1
+    turbine_y::T2
+    boundary_scaling_factor::T3
+    boundary_function::T4
+    boundary_vec::T5
+    jacobian::T6
+    config::T7
+    update_function::T8
 end
 
 

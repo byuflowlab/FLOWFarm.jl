@@ -16,6 +16,7 @@ using CSV
 using SpecialFunctions
 using SparseDiffTools
 using SparseArrays
+using DiffResults
 
 include("io.jl")
 include("utilities.jl")
