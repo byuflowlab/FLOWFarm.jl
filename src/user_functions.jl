@@ -64,7 +64,7 @@ end
 function build_spacing_struct(x,n_turbines,space,scale,update_function)
     n_constraints = n_turbines * (n_turbines - 1) ÷ 2
     spacing_vec = zeros(eltype(x),n_constraints)
-    spacing_jacobian = spzeros(eltype(x),n_constraints,length(x))
+    spacing_jacobian = zeros(eltype(x),n_constraints,length(x))
     cfg = ForwardDiff.JacobianConfig(nothing,spacing_vec,x)
     turbine_x = zeros(eltype(cfg),n_turbines)
     turbine_y = zeros(eltype(cfg),n_turbines)
@@ -73,7 +73,7 @@ end
 
 function build_boundary_struct(x,n_turbines,n_constraints,scaling,constraint_function,update_function;using_sparsity=true)
     boundary_vec = zeros(Float64,n_constraints)
-    boundary_jacobian = spzeros(Float64,n_constraints,length(x))
+    boundary_jacobian = zeros(Float64,n_constraints,length(x))
 
     cfg = ForwardDiff.JacobianConfig(nothing,boundary_vec,x)
     T = eltype(cfg)
@@ -92,7 +92,7 @@ function build_boundary_struct(x,n_turbines,n_constraints,scaling,constraint_fun
         ForwardDiff.jacobian!(b_struct.jacobian,calculate_boundary,b_struct.boundary_vec,x_temp,b_struct.config)
         boundary_jacobian .+= b_struct.jacobian
     end
-    boundary_jacobian .= dropzeros(boundary_jacobian)
+    boundary_jacobian = dropzeros(sparse(boundary_jacobian))
     ad = AutoSparseForwardDiff()
     sd = JacPrototypeSparsityDetection(; jac_prototype=boundary_jacobian)
     cache = sparse_jacobian_cache(ad, sd, nothing, boundary_vec, x)
@@ -145,7 +145,6 @@ end
 function calculate_spacing_jacobian!(spacing_struct,x)
     calculate_spacing(a,b) = calculate_spacing!(a,b,spacing_struct)
     ForwardDiff.jacobian!(spacing_struct.jacobian,calculate_spacing,spacing_struct.spacing,x,spacing_struct.config)
-    spacing_struct.jacobian .= dropzeros(spacing_struct.jacobian)
     return spacing_struct.spacing, spacing_struct.jacobian
 end
 
@@ -162,7 +161,6 @@ end
 function calculate_boundary_jacobian!(boundary_struct,x)
     calculate_boundary(a,b) = calculate_boundary!(a,b,boundary_struct)
     ForwardDiff.jacobian!(boundary_struct.jacobian,calculate_boundary,boundary_struct.boundary_vec,x,boundary_struct.config)
-    boundary_struct.jacobian .= dropzeros(boundary_struct.jacobian)
     return boundary_struct.boundary_vec, boundary_struct.jacobian
 end
 
