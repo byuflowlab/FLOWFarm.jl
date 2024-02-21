@@ -71,24 +71,28 @@ function build_spacing_struct(x,n_turbines,space,scale,update_function)
     return spacing_struct(turbine_x,turbine_y,space,scale,spacing_vec,spacing_jacobian,cfg,update_function)
 end
 
-# x must start with [turbine_x;turbine_y;...]
-function build_boundary_struct(x,n_turbines,scaling,constraint_function,update_function;using_sparsity=true)
-    boundary_vec = zeros(eltype(x),n_turbines)
-    boundary_jacobian = spzeros(eltype(x),n_turbines,length(x))
+function build_boundary_struct(x,n_turbines,n_constraints,scaling,constraint_function,update_function;using_sparsity=true)
+    boundary_vec = zeros(Float64,n_constraints)
+    boundary_jacobian = spzeros(Float64,n_constraints,length(x))
 
     cfg = ForwardDiff.JacobianConfig(nothing,boundary_vec,x)
     T = eltype(cfg)
     turbine_x = zeros(T,n_turbines)
     turbine_y = zeros(T,n_turbines)
+    b_struct = boundary_struct(turbine_x,turbine_y,scaling,constraint_function,boundary_vec,
+    boundary_jacobian,cfg,update_function)
     if !using_sparsity
-        return boundary_struct(turbine_x,turbine_y,scaling,constraint_function,boundary_vec,
-        boundary_jacobian,cfg,update_function)
+        return b_struct
     end
 
-    boundary_jacobian = Float64.(sparse(hcat(I(n_turbines),I(n_turbines))))
-    if length(x) > 2*n_turbines
-        boundary_jacobian = hcat(boundary_jacobian,spzeros(n_turbines,length(x)-2*n_turbines))
+    calculate_boundary(a,b) = calculate_boundary!(a,b,b_struct)
+    x_temp = copy(x)
+    for i = 1:3
+        x_temp .+= rand(length(x_temp))
+        ForwardDiff.jacobian!(b_struct.jacobian,calculate_boundary,b_struct.boundary_vec,x_temp,b_struct.config)
+        boundary_jacobian .+= b_struct.jacobian
     end
+    boundary_jacobian .= dropzeros(boundary_jacobian)
     ad = AutoSparseForwardDiff()
     sd = JacPrototypeSparsityDetection(; jac_prototype=boundary_jacobian)
     cache = sparse_jacobian_cache(ad, sd, nothing, boundary_vec, x)

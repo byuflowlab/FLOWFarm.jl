@@ -28,4 +28,3 @@ struct sparse_boundary_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9} <: AbstractSparseMetho
     update_function::T8
     boundary_scaling_factor::T9
 end
-# sparse_jacobian!(jacobian, ad, cache, f, vec, x)
