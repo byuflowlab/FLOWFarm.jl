@@ -5,57 +5,44 @@ author: Benjamin Varela
 
 function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,rotor_diameter,
             ct_models,generator_efficiency,cut_in_speed,cut_out_speed,rated_speed,rated_power,wind_resource,
-            power_models,model_set;rotor_sample_points_y=[0.0],rotor_sample_points_z=[0.0],AEP_scale=0.0,
-            update_function=dv->dv,input_type=nothing,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false)
+            power_models,model_set,update_function;rotor_sample_points_y=[0.0],rotor_sample_points_z=[0.0],
+            AEP_scale=0.0,input_type=nothing,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false)
 
     n_turbines = length(turbine_x)
+    n_threads = Threads.nthreads()
+    results = DiffResults.GradientResult(x)
+    AEP_gradient = zeros(Float64,length(x))
+    AEP = Array{Float64,0}(undef)
+
+    wind_farm_constants = wind_farm_constants_struct(turbine_z,ct_models,generator_efficiency,cut_in_speed,cut_out_speed,
+                rated_speed,rated_power,wind_resource,power_models,model_set,rotor_sample_points_y,rotor_sample_points_z)
 
     ideal_AEP = calculate_ideal_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
                 cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set;
                 rotor_sample_points_y=rotor_sample_points_y, rotor_sample_points_z=rotor_sample_points_z)
 
-    if AEP_scale == 0.0
-        AEP_scale = 1.0/ideal_AEP
-    end
+    (AEP_scale == 0.0) && (AEP_scale = 1.0/ideal_AEP)
 
-    n_threads = Threads.nthreads()
-    cfg = ForwardDiff.GradientConfig(nothing,x)
-
+    cfg = nothing
     if input_type === nothing
+        cfg = nothing
         input_type = eltype(x)
     elseif input_type == "ForwardDiff"
+        cfg = ForwardDiff.GradientConfig(nothing,x)
         input_type = eltype(cfg)
     end
 
+    opt_x && (turbine_x = Vector{input_type}(turbine_x))
+    opt_y && (turbine_y = Vector{input_type}(turbine_y))
+    opt_hub && (hub_height = Vector{input_type}(hub_height))
+    opt_yaw && (turbine_yaw = Vector{input_type}(turbine_yaw))
+    opt_diam && (rotor_diameter = Vector{input_type}(rotor_diameter))
+
     preallocations = preallocations_struct(zeros(input_type,n_turbines,n_threads),zeros(input_type,n_turbines,n_threads),
-                zeros(input_type,n_turbines,n_threads),zeros(input_type,n_turbines,n_threads),
-                zeros(input_type,n_turbines,n_turbines,n_threads),zeros(input_type,n_turbines,n_turbines,n_threads),
-                zeros(input_type,n_turbines,n_turbines,n_threads),zeros(input_type,n_turbines,n_turbines,n_threads))
-
-    results = DiffResults.GradientResult(x)
-
-    AEP_gradient = spzeros(Float64,length(x))
-    AEP = Array{Float64,0}(undef)
-
-    wind_farm_constants = wind_farm_constants_struct(turbine_z,ct_models,generator_efficiency,cut_in_speed,cut_out_speed,
-                rated_speed,rated_power,wind_resource,power_models,model_set,rotor_sample_points_y,rotor_sample_points_z)
-
-    if opt_x
-        turbine_x = Vector{input_type}(turbine_x)
-    end
-    if opt_y
-        turbine_y = Vector{input_type}(turbine_y)
-    end
-    if opt_hub
-        hub_height = Vector{input_type}(hub_height)
-    end
-    if opt_yaw
-        turbine_yaw = Vector{input_type}(turbine_yaw)
-    end
-    if opt_diam
-        rotor_diameter = Vector{input_type}(rotor_diameter)
-    end
+                    zeros(input_type,n_turbines,n_threads),zeros(input_type,n_turbines,n_threads),zeros(input_type,n_turbines,
+                    n_turbines,n_threads),zeros(input_type,n_turbines,n_turbines,n_threads),
+                    zeros(input_type,n_turbines,n_turbines,n_threads),zeros(input_type,n_turbines,n_turbines,n_threads))
 
     return wind_farm_struct(turbine_x, turbine_y, hub_height, turbine_yaw, rotor_diameter, results,
                 wind_farm_constants, AEP_scale, ideal_AEP, preallocations, update_function, AEP_gradient, AEP, cfg)
@@ -86,9 +73,9 @@ function build_boundary_struct(x,n_turbines,n_constraints,scaling,constraint_fun
     end
 
     calculate_boundary(a,b) = calculate_boundary!(a,b,b_struct)
-    x_temp = copy(x)
+    x_temp = similar(x)
     for i = 1:3
-        x_temp .+= rand(length(x_temp))
+        x_temp .= x + rand(length(x_temp)) * 1E-5
         ForwardDiff.jacobian!(b_struct.jacobian,calculate_boundary,b_struct.boundary_vec,x_temp,b_struct.config)
         boundary_jacobian .+= b_struct.jacobian
     end
@@ -129,6 +116,11 @@ function calculate_aep_gradient!(farm,x)
     ForwardDiff.gradient!(farm.results,calculate_aep,x,farm.config)
     farm.AEP .= DiffResults.value(farm.results)
     farm.AEP_gradient .= DiffResults.gradient(farm.results)
+    return farm.AEP[1], farm.AEP_gradient
+end
+
+function calculate_aep_gradient!(farm,x,sparse_struct::T) where T <: AbstractSparseMethod
+    calculate_aep_gradient!(farm,x,sparse_struct)
     return farm.AEP[1], farm.AEP_gradient
 end
 
