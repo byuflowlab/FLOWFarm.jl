@@ -801,10 +801,10 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                     turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                     rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set; wind_farm_state_id=middle_id, hours_per_year=hours_per_year, wind_speed_ids=wind_speed_ids,
-                    prealloc_turbine_velocities=prealloc_turbine_velocities, prealloc_turbine_ct=prealloc_turbine_ct,
-                    prealloc_turbine_ai=prealloc_turbine_ai, prealloc_turbine_local_ti=prealloc_turbine_local_ti,
-                    prealloc_wake_deficits=prealloc_wake_deficits, prealloc_contribution_matrix=prealloc_contribution_matrix,
-                    prealloc_deflections=prealloc_deflections, prealloc_sigma_squared=prealloc_sigma_squared)
+                    prealloc_turbine_velocities=view(prealloc_turbine_velocities,:,1), prealloc_turbine_ct=view(prealloc_turbine_ct,:,1),
+                    prealloc_turbine_ai=view(prealloc_turbine_ai,:,1), prealloc_turbine_local_ti=view(prealloc_turbine_local_ti,:,1),
+                    prealloc_wake_deficits=view(prealloc_wake_deficits,:,:,1), prealloc_contribution_matrix=view(prealloc_contribution_matrix,:,:,1),
+                    prealloc_deflections=view(prealloc_deflections,:,:,1), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,1))
             end
         else
             for i = 1:nstates
@@ -812,10 +812,10 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                     turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                     rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set; wind_farm_state_id=i, hours_per_year=hours_per_year,
-                    prealloc_turbine_velocities=prealloc_turbine_velocities, prealloc_turbine_ct=prealloc_turbine_ct,
-                    prealloc_turbine_ai=prealloc_turbine_ai, prealloc_turbine_local_ti=prealloc_turbine_local_ti,
-                    prealloc_wake_deficits=prealloc_wake_deficits, prealloc_contribution_matrix=prealloc_contribution_matrix,
-                    prealloc_deflections=prealloc_deflections, prealloc_sigma_squared=prealloc_sigma_squared)
+                    prealloc_turbine_velocities=view(prealloc_turbine_velocities,:,1), prealloc_turbine_ct=view(prealloc_turbine_ct,:,1),
+                    prealloc_turbine_ai=view(prealloc_turbine_ai,:,1), prealloc_turbine_local_ti=view(prealloc_turbine_local_ti,:,1),
+                    prealloc_wake_deficits=view(prealloc_wake_deficits,:,:,1), prealloc_contribution_matrix=view(prealloc_contribution_matrix,:,:,1),
+                    prealloc_deflections=view(prealloc_deflections,:,:,1), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,1))
             end
         end
 

@@ -31,6 +31,10 @@ function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbi
     elseif input_type == "ForwardDiff"
         cfg = ForwardDiff.GradientConfig(nothing,x)
         input_type = eltype(cfg)
+    elseif input_type == "ForwardDiffJacobian"
+        y = Float64.(collect(1:n_turbines))
+        cfg = ForwardDiff.JacobianConfig(nothing,y,x)
+        input_type = eltype(cfg)
     end
 
     opt_x && (turbine_x = Vector{input_type}(turbine_x))
@@ -153,11 +157,5 @@ end
 function calculate_boundary_jacobian!(boundary_struct,x)
     calculate_boundary(a,b) = calculate_boundary!(a,b,boundary_struct)
     ForwardDiff.jacobian!(boundary_struct.jacobian,calculate_boundary,boundary_struct.boundary_vec,x,boundary_struct.config)
-    return boundary_struct.boundary_vec, boundary_struct.jacobian
-end
-
-function calculate_boundary_jacobian!(boundary_struct::T,x) where T <: AbstractSparseMethod
-    calculate_boundary(a,b) = calculate_boundary!(a,b,boundary_struct)
-    sparse_jacobian!(boundary_struct.jacobian, boundary_struct.ad, boundary_struct.cache, calculate_boundary, boundary_struct.boundary_vec, x)
     return boundary_struct.boundary_vec, boundary_struct.jacobian
 end

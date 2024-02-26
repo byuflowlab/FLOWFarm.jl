@@ -236,8 +236,10 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         turbine_ct, turbine_ai, turbine_local_ti, wake_deficits, contribution_matrix, deflections, sigma_squared;
         wind_farm_state_id=wind_farm_state_id, velocity_only=velocity_only)
 
+    wake_deficits .= wake_deficits'
+
     if using_sparsity
-        return turbine_velocities, wake_deficits' ./ turbine_velocities'
+        return turbine_velocities, wake_deficits
     elseif velocity_only
         return turbine_velocities
     else
