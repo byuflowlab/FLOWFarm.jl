@@ -378,11 +378,6 @@ function calculate_unstable_sparsity_pattern!(sparse_struct::T,x,wind_state_id,p
 
     for j in 1:n_turbines, i in 1:n_turbines
         if i == j
-            # if !iszero(deficits[i,:])
-            #     for k = 1:2
-            #         pattern[i,j+(k-1)*n_turbines] = 1.0
-            #     end
-            # end
             for k = 1:n_variables
                 pattern[i,j+(k-1)*n_turbines] = 1.0
             end
@@ -411,7 +406,7 @@ function recolor_jacobian!(sparse_struct::T,wind_state_id,n_variables,n_turbines
     stop_i(x) = start_i(x) + n_turbines-1
     max_color = 0
     for i = 1:n_variables
-        if i == 1# || i == 3
+        if i == 1
             sparse_struct.colors[start_i(i):stop_i(i),wind_state_id] .= matrix_colors(sparse_struct.jacobians[wind_state_id][:,start_i(i):stop_i(i)]) .+ max_color
         else
             sparse_struct.colors[start_i(i):stop_i(i),wind_state_id] .= sparse_struct.colors[start_i(i-1):stop_i(i-1),wind_state_id] .+ max_color
