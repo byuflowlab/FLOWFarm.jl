@@ -94,6 +94,7 @@ function define_stable_jacobian_pattern(x,farm,tolerance,pow,state_id;prealloc_i
     x_temp = similar(x)
     cfg = ForwardDiff.JacobianConfig(nothing,pow,x)
     jacobian = ForwardDiff.jacobian(p,pow,x,cfg)
+    jacobian[abs.(jacobian) .<= tolerance] .= 0.0
     jac_temp = similar(jacobian)
     for i = 1:3
         x_temp .= x .+ (rand(size(x_temp)) .- 0.5) * 1E-4
@@ -104,16 +105,28 @@ function define_stable_jacobian_pattern(x,farm,tolerance,pow,state_id;prealloc_i
     return dropzeros(sparse(jacobian))
 end
 
-function calculate_wind_state_power!(pow,x,farm,state_id;prealloc_id=1,hours_per_year=365.25*24.0,skip_update=false)
-    if !skip_update
-        farm.update_function(farm,x)
+function calculate_wind_state_power!(pow,x,farm,state_id;prealloc_id=1,hours_per_year=365.25*24.0,lock=nothing)
+    if !isnothing(lock)
+        Threads.lock(lock)
     end
 
-    rot_x, rot_y = rotate_to_wind_direction(farm.turbine_x, farm.turbine_y,
+    farm.update_function(farm,x)
+    turbine_x = copy(farm.turbine_x)
+    turbine_y = copy(farm.turbine_y)
+    rotor_diameter = copy(farm.rotor_diameter)
+    turbine_yaw = copy(farm.turbine_yaw)
+    hub_height = copy(farm.hub_height)
+
+    if !isnothing(lock)
+        Threads.unlock(lock)
+    end
+
+    rot_x, rot_y = rotate_to_wind_direction(turbine_x, turbine_y,
                     farm.constants.wind_resource.wind_directions[state_id])
+
     sorted_turbine_index = sortperm(rot_x)
     turbine_velocities = ff.turbine_velocities_one_direction(rot_x, rot_y, farm.constants.turbine_z,
-                    farm.rotor_diameter, farm.hub_height, farm.turbine_yaw, sorted_turbine_index,
+                    rotor_diameter, hub_height, turbine_yaw, sorted_turbine_index,
                     farm.constants.ct_models, farm.constants.rotor_sample_points_y, farm.constants.rotor_sample_points_z,
                     farm.constants.wind_resource, farm.constants.model_set, wind_farm_state_id=state_id,
                     velocity_only=true,
@@ -128,7 +141,7 @@ function calculate_wind_state_power!(pow,x,farm,state_id;prealloc_id=1,hours_per
 
     pow .= turbine_powers_one_direction(farm.constants.generator_efficiency, farm.constants.cut_in_speed,
                     farm.constants.cut_out_speed, farm.constants.rated_speed, farm.constants.rated_power,
-                    farm.rotor_diameter, turbine_velocities, farm.turbine_yaw, farm.constants.wind_resource.air_density,
+                    rotor_diameter, turbine_velocities, farm.turbine_yaw, farm.constants.wind_resource.air_density,
                     farm.constants.power_models)
 
     pow .*= hours_per_year .* farm.constants.wind_resource.wind_probabilities[state_id] .* farm.AEP_scale
@@ -142,12 +155,13 @@ function calculate_aep_gradient!(farm,x,sparse_struct::T) where T <: StableSpars
         n_per_thread, rem = divrem(n_states,n_threads)
         rem > 0 && (n_per_thread += 1)
         assignments = 1:n_per_thread:n_states
+        l = Threads.SpinLock()
 
         Threads.@threads for i_assignment in eachindex(assignments)
             i_start = assignments[i_assignment]
             i_stop = min(i_start+n_per_thread-1, n_states)
             for i = i_start:i_stop
-                p(a,x) = calculate_wind_state_power!(a,x,farm,i;prealloc_id=i_assignment)
+                p(a,x) = calculate_wind_state_power!(a,x,farm,i;prealloc_id=i_assignment,lock=l)
                 SparseDiffTools.sparse_jacobian!(sparse_struct.jacobians[i],sparse_struct.adtype,
                                 sparse_struct.caches[i],p,sparse_struct.turbine_powers[:,i],x)
                 sparse_struct.state_gradients[i,:] .= sum(sparse_struct.jacobians[i],dims=1)[:]
@@ -158,7 +172,7 @@ function calculate_aep_gradient!(farm,x,sparse_struct::T) where T <: StableSpars
         for i = 1:n_states
             p(a,x) = calculate_wind_state_power!(a,x,farm,i;prealloc_id=1)
             SparseDiffTools.sparse_jacobian!(sparse_struct.jacobians[i],sparse_struct.adtype,
-                            sparse_struct.caches[i],p,view(sparse_struct.turbine_powers,:,i),x)
+                            sparse_struct.caches[i],p,sparse_struct.turbine_powers[:,i],x)
             sparse_struct.state_gradients[i,:] .= sum(sparse_struct.jacobians[i],dims=1)[:]
             update_turbine_powers!(sparse_struct,i)
         end
@@ -306,17 +320,16 @@ function calculate_aep_gradient!(farm,x,sparse_struct::T) where T <: UnstableSpa
     n_threads = Threads.nthreads()
     n_states = length(farm.constants.wind_resource.wind_probabilities)
 
-    sparse_struct.farm.update_function(sparse_struct.farm,x)
-
     if n_threads > 1
         n_per_thread, rem = divrem(n_states,n_threads)
         rem > 0 && (n_per_thread += 1)
         assignments = 1:n_per_thread:n_states
+        l = Threads.SpinLock()
         Threads.@threads for i_assignment in eachindex(assignments)
             i_start = assignments[i_assignment]
             i_stop = min(i_start+n_per_thread-1, n_states)
             for i = i_start:i_stop
-                unstable_sparse_aep_gradient!(sparse_struct,x,farm,i;prealloc_id=i_assignment)
+                unstable_sparse_aep_gradient!(sparse_struct,x,farm,i;prealloc_id=i_assignment,lock=l)
             end
         end
     else
@@ -331,20 +344,20 @@ function calculate_aep_gradient!(farm,x,sparse_struct::T) where T <: UnstableSpa
     return farm.AEP[1], farm.AEP_gradient
 end
 
-function unstable_sparse_aep_gradient!(sparse_struct::T,x,farm,wind_state_id;prealloc_id=1) where T <: UnstableSparseMethod
+function unstable_sparse_aep_gradient!(sparse_struct::T,x,farm,wind_state_id;prealloc_id=1,lock=nothing) where T <: UnstableSparseMethod
     if farm.constants.wind_resource.wind_speeds[wind_state_id] == 0.0 || farm.constants.wind_resource.wind_probabilities[wind_state_id] == 0.0
         return
     end
 
     # calculate deficits and powers
     pow = view(sparse_struct.turbine_powers,:,wind_state_id)
-    calculate_wind_state_power!(pow,x,sparse_struct.farm,wind_state_id;prealloc_id=prealloc_id,skip_update=true)
+    calculate_wind_state_power!(pow,x,sparse_struct.farm,wind_state_id;prealloc_id=prealloc_id,lock=lock)
 
     # calculate sparsity pattern
     calculate_unstable_sparsity_pattern!(sparse_struct,x,wind_state_id,prealloc_id)
 
     # calculate sparse jacobian
-    calculate_unstable_sparse_jacobian!(sparse_struct,x,farm,wind_state_id,prealloc_id)
+    calculate_unstable_sparse_jacobian!(sparse_struct,x,farm,wind_state_id,prealloc_id,lock)
 
     # sum turbine powers into state power
     sparse_struct.state_powers[wind_state_id] = sum(pow)
@@ -365,12 +378,12 @@ function calculate_unstable_sparsity_pattern!(sparse_struct::T,x,wind_state_id,p
 
     for j in 1:n_turbines, i in 1:n_turbines
         if i == j
-            if !iszero(deficits[i,:])
-                for k = 1:2
-                    pattern[i,j+(k-1)*n_turbines] = 1.0
-                end
-            end
-            for k = 3:n_variables
+            # if !iszero(deficits[i,:])
+            #     for k = 1:2
+            #         pattern[i,j+(k-1)*n_turbines] = 1.0
+            #     end
+            # end
+            for k = 1:n_variables
                 pattern[i,j+(k-1)*n_turbines] = 1.0
             end
         else
@@ -396,17 +409,20 @@ end
 function recolor_jacobian!(sparse_struct::T,wind_state_id,n_variables,n_turbines) where T <: UnstableSparseMethod
     start_i(x) = n_turbines*(x-1)+1
     stop_i(x) = start_i(x) + n_turbines-1
+    max_color = 0
     for i = 1:n_variables
-        if i == 1 || i == 3
-            sparse_struct.colors[start_i(i):stop_i(i),wind_state_id] .= matrix_colors(sparse_struct.jacobians[wind_state_id][:,start_i(i):stop_i(i)])
+        if i == 1# || i == 3
+            sparse_struct.colors[start_i(i):stop_i(i),wind_state_id] .= matrix_colors(sparse_struct.jacobians[wind_state_id][:,start_i(i):stop_i(i)]) .+ max_color
         else
-            sparse_struct.colors[start_i(i):stop_i(i),wind_state_id] .= sparse_struct.colors[start_i(i-1):stop_i(i-1),wind_state_id]
+            sparse_struct.colors[start_i(i):stop_i(i),wind_state_id] .= sparse_struct.colors[start_i(i-1):stop_i(i-1),wind_state_id] .+ max_color
+
         end
+        max_color = maximum(sparse_struct.colors[start_i(i):stop_i(i),wind_state_id])
     end
 end
 
-function calculate_unstable_sparse_jacobian!(sparse_struct::T,x,farm,wind_state_id,prealloc_id) where T <: UnstableSparseMethod
-    p(a,x) = calculate_wind_state_power!(a,x,farm,wind_state_id;prealloc_id=prealloc_id)
+function calculate_unstable_sparse_jacobian!(sparse_struct::T,x,farm,wind_state_id,prealloc_id,lock) where T <: UnstableSparseMethod
+    p(a,x) = calculate_wind_state_power!(a,x,farm,wind_state_id;prealloc_id=prealloc_id,lock=lock)
     sparse_struct.caches[wind_state_id].colorvec .= sparse_struct.colors[:,wind_state_id][:]
     sparse_struct.caches[wind_state_id].sparsity .= dropzeros(sparse_struct.jacobians[wind_state_id])
 
