@@ -201,9 +201,9 @@ struct sparse_AEP_struct_unstable_pattern{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10} <: Uns
     turbine_powers::T5
     farm::T6 #farm of floats
     old_patterns::T7
-    caches::T8
-    colors::T9
-    state_powers::T10
+    colors::T8
+    state_powers::T9
+    chunksize::T10
 end
 
 function build_unstable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,rotor_diameter,
@@ -225,7 +225,7 @@ function build_unstable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height
                 rotor_sample_points_z=rotor_sample_points_z,AEP_scale=AEP_scale,
                 opt_x=opt_x,opt_y=opt_y,opt_hub=opt_hub,opt_yaw=opt_yaw,opt_diam=opt_diam,input_type="ForwardDiffJacobian")
 
-    sparse_struct = build_unstable_sparse_struct(x,farm_floats,farm_forwarddiff;tolerance=tolerance)
+    sparse_struct, cache = build_unstable_sparse_struct(x,farm_floats,farm_forwarddiff;tolerance=tolerance)
 
     farm = build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,
                 rotor_diameter,ct_models,generator_efficiency,cut_in_speed,
@@ -233,7 +233,7 @@ function build_unstable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height
                 model_set,update_function;rotor_sample_points_y=rotor_sample_points_y,
                 rotor_sample_points_z=rotor_sample_points_z,AEP_scale=AEP_scale,
                 opt_x=opt_x,opt_y=opt_y,opt_hub=opt_hub,opt_yaw=opt_yaw,opt_diam=opt_diam,
-                input_type=eltype(sparse_struct.caches[1].t))
+                input_type=eltype(cache.t))
 
     return farm, sparse_struct
 
@@ -249,22 +249,20 @@ function build_unstable_sparse_struct(x,farm,farm_forwarddiff;tolerance=1E-16)
     patterns = zeros(Float64,n_turbines,length(x),n_states)
     old_patterns = zeros(Float64,n_turbines,length(x),n_states)
     colors = zeros(Int64,length(x),n_states)
-    caches = nothing
     state_powers = zeros(Float64,n_states)
 
     calculate_thresholds!(jacobians,thresholds,x,farm_forwarddiff,farm,tolerance,pow,n_states)
 
     for i = 1:n_states
-        if i == 1
-            cache = ForwardColorJacCache(nothing,x;dx=pow[:,i],colorvec=collect(1:length(x)),sparsity=jacobians[i])
-            caches = Vector{typeof(cache)}(undef,n_states)
-        else
-            cache = ForwardColorJacCache(nothing,x,caches[1].chunksize;dx=pow[:,i],colorvec=collect(1:length(x)),sparsity=jacobians[i])
-        end
-        caches[i] = cache
+        colors[:,i] .= matrix_colors(jacobians[i])
     end
 
-    return sparse_AEP_struct_unstable_pattern(thresholds,patterns,state_gradients,jacobians,pow,farm,old_patterns,caches,colors,state_powers)
+    cache = ForwardColorJacCache(nothing,x;
+                    dx = pow[:,1],
+                    colorvec = colors[:,1],
+                    sparsity = jacobians[1])
+
+    return sparse_AEP_struct_unstable_pattern(thresholds,patterns,state_gradients,jacobians,pow,farm,old_patterns,colors,state_powers,cache.chunksize), cache
 end
 
 function calculate_thresholds!(jacobians,thresholds,x,farm_forwarddiff,farm,tolerance,pow,n_states)
@@ -294,14 +292,15 @@ function calculate_threshold(x,farm_forwarddiff,farm,tolerance,pow,state_id;prea
     if farm.constants.wind_resource.wind_speeds[state_id] == 0.0 || farm.constants.wind_resource.wind_probabilities[state_id] == 0.0
         return sparse(jacobian), 0.0
     end
+    x_temp = x .+ rand(length(x)) .* 1E-4
     n_variables = length(x)÷n_turbines
     p(a,x) = calculate_wind_state_power!(a,x,farm_forwarddiff,state_id;prealloc_id=prealloc_id)
-    ForwardDiff.jacobian!(jacobian,p,pow,x,farm_forwarddiff.config)
-    jacobian[abs.(jacobian) .<= tolerance] .= 0.0
-    calculate_wind_state_power!(pow,x,farm,state_id;prealloc_id=prealloc_id)
+    ForwardDiff.jacobian!(jacobian,p,pow,x_temp,farm_forwarddiff.config)
+    jacobian[abs.(jacobian) .< tolerance] .= 0.0
+    calculate_wind_state_power!(pow,x_temp,farm,state_id;prealloc_id=prealloc_id)
     deficits = view(farm.preallocations.prealloc_wake_deficits,:,:,prealloc_id)
     pattern = zeros(Float64,size(deficits))
-    jac = reshape(jacobian,n_turbines,n_turbines,n_variables)
+    jac = deepcopy(reshape(jacobian,n_turbines,n_turbines,n_variables))
     for j = 1:n_turbines, i = 1:n_turbines
         for k = 1:n_variables
             if !iszero(jac[i,j,k])
@@ -312,7 +311,7 @@ function calculate_threshold(x,farm_forwarddiff,farm,tolerance,pow,state_id;prea
     end
     deficits[pattern .== 0.0] .= 0.0
     deficits[deficits .== 0.0] .= Inf
-    threshold = minimum(deficits) * 1E-1
+    threshold = minimum(deficits) .* 1E-1
     return dropzeros(sparse(jacobian)), threshold
 end
 
@@ -418,13 +417,16 @@ end
 
 function calculate_unstable_sparse_jacobian!(sparse_struct::T,x,farm,wind_state_id,prealloc_id,lock) where T <: UnstableSparseMethod
     p(a,x) = calculate_wind_state_power!(a,x,farm,wind_state_id;prealloc_id=prealloc_id,lock=lock)
-    sparse_struct.caches[wind_state_id].colorvec .= sparse_struct.colors[:,wind_state_id][:]
-    sparse_struct.caches[wind_state_id].sparsity .= dropzeros(sparse_struct.jacobians[wind_state_id])
+
+    cache = ForwardColorJacCache(nothing,x,sparse_struct.chunksize;
+                              dx = sparse_struct.turbine_powers[:,wind_state_id],
+                              colorvec=sparse_struct.colors[:,wind_state_id],
+                              sparsity = sparse_struct.jacobians[wind_state_id])
 
     forwarddiff_color_jacobian!(sparse_struct.jacobians[wind_state_id],
                             p,
                             x,
-                            sparse_struct.caches[wind_state_id])
+                            cache)
 end
 
 # Sparse spacing constraint methods ########################################################
@@ -445,5 +447,10 @@ end
 function calculate_boundary_jacobian!(boundary_struct::T,x) where T <: AbstractSparseMethod
     calculate_boundary(a,b) = calculate_boundary!(a,b,boundary_struct)
     sparse_jacobian!(boundary_struct.jacobian, boundary_struct.ad, boundary_struct.cache, calculate_boundary, boundary_struct.boundary_vec, x)
+
+    for i = eachindex(boundary_struct.cache.cache.fx)
+        boundary_struct.boundary_vec[i] = boundary_struct.cache.cache.fx[i].value
+    end
+
     return boundary_struct.boundary_vec, boundary_struct.jacobian
 end
