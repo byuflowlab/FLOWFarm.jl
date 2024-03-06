@@ -140,8 +140,8 @@ end
 
 function calculate_spacing_jacobian!(spacing_struct,x)
     calculate_spacing(a,b) = calculate_spacing!(a,b,spacing_struct)
-    ForwardDiff.jacobian!(spacing_struct.jacobian,calculate_spacing,spacing_struct.spacing,x,spacing_struct.config)
-    return spacing_struct.spacing, spacing_struct.jacobian
+    ForwardDiff.jacobian!(spacing_struct.jacobian,calculate_spacing,spacing_struct.spacing_vec,x,spacing_struct.config)
+    return spacing_struct.spacing_vec, spacing_struct.jacobian
 end
 
 function calculate_boundary!(boundary_vec,x,boundary_struct)

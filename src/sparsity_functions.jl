@@ -409,7 +409,6 @@ function recolor_jacobian!(sparse_struct::T,wind_state_id,n_variables,n_turbines
             sparse_struct.colors[start_i(i):stop_i(i),wind_state_id] .= matrix_colors(sparse_struct.jacobians[wind_state_id][:,start_i(i):stop_i(i)]) .+ max_color
         else
             sparse_struct.colors[start_i(i):stop_i(i),wind_state_id] .= sparse_struct.colors[start_i(i-1):stop_i(i-1),wind_state_id] .+ max_color
-
         end
         max_color = maximum(sparse_struct.colors[start_i(i):stop_i(i),wind_state_id])
     end
@@ -423,13 +422,108 @@ function calculate_unstable_sparse_jacobian!(sparse_struct::T,x,farm,wind_state_
                               colorvec=sparse_struct.colors[:,wind_state_id],
                               sparsity = sparse_struct.jacobians[wind_state_id])
 
-    forwarddiff_color_jacobian!(sparse_struct.jacobians[wind_state_id],
-                            p,
-                            x,
-                            cache)
+    forwarddiff_color_jacobian!(sparse_struct.jacobians[wind_state_id],p,x,cache)
 end
 
 # Sparse spacing constraint methods ########################################################
+struct sparse_spacing_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10} <: AbstractSparseMethod
+    turbine_x::T1
+    turbine_y::T2
+    constraint_spacing::T3 # Single float that defines the minimum spacing between turbines in meters
+    constraint_scaling::T4 # Single float that scales the constraint
+    spacing_vec::T5 # In place vector
+    jacobian::T6
+    cache::T7
+    update_function::T8
+    relevant_list::T9
+    ad::T10
+end
+
+function build_sparse_spacing_struct(x,turbine_x,turbine_y,space,scale,update_function;first_opt=true,relevant_spacing_factor=2)
+    if first_opt
+        n_constraints = 0
+        relevant_list = nothing
+        spacing_vec = zeros(eltype(x),n_constraints)
+        spacing_jacobian = zeros(eltype(x),n_constraints,length(x))
+        cache = nothing
+        ad = nothing
+        return sparse_spacing_struct(turbine_x,turbine_y,space,scale,spacing_vec,spacing_jacobian,cache,update_function,relevant_list,ad)
+    end
+
+    relevant_list,idx = build_relevant_list(turbine_x,turbine_y,space,relevant_spacing_factor)
+    n_constraints = size(relevant_list,1)
+    spacing_vec = zeros(eltype(x),n_constraints)
+
+    # calculate jacobian pattern
+    s_struct = build_spacing_struct(x,length(turbine_x),space,scale,update_function)
+    calculate_spacing_jacobian!(s_struct,x)
+    spacing_jacobian = dropzeros(sparse(s_struct.jacobian[idx,:]))
+
+    ad = AutoSparseForwardDiff()
+    sd = JacPrototypeSparsityDetection(; jac_prototype=spacing_jacobian)
+    cache = sparse_jacobian_cache(ad, sd, nothing, spacing_vec, x)
+    T = eltype(cache.cache.t)
+
+    turbine_x = Vector{T}(turbine_x)
+    turbine_y = Vector{T}(turbine_y)
+
+    return sparse_spacing_struct(turbine_x,turbine_y,space,scale,spacing_vec,spacing_jacobian,cache,update_function,relevant_list,ad)
+end
+
+function build_relevant_list(turbine_x,turbine_y,space,factor)
+    n_turbines = length(turbine_x)
+    spacing = turbine_spacing(turbine_x,turbine_y)
+    n_constraints = length(spacing)
+    relevant = zeros(Int64,n_constraints,2)
+    k = 1
+    for i = 1:n_turbines
+        for j = i+1:n_turbines
+            relevant[k,1] = j
+            relevant[k,2] = i
+            k += 1
+        end
+    end
+
+    for i = axes(relevant,1)
+        if spacing[i] >= space*factor
+            spacing[i] = Inf
+        end
+    end
+    idx = spacing .!= Inf
+    relevant = relevant[idx,:]
+    return relevant,idx
+end
+
+function calculate_spacing!(spacing_vec,x,spacing_struct::T) where T<: AbstractSparseMethod
+    spacing_struct.update_function(spacing_struct,x)
+
+    sparse_spacing!(spacing_vec,spacing_struct.turbine_x,spacing_struct.turbine_y,spacing_struct.relevant_list)
+
+    spacing_vec .= (spacing_struct.constraint_spacing .- spacing_vec) .* spacing_struct.constraint_scaling
+end
+
+function sparse_spacing!(spacing_vec,turbine_x,turbine_y,relevant)
+    for i in axes(relevant,1)
+        j = relevant[i,1]
+        k = relevant[i,2]
+        spacing_vec[i] = sqrt((turbine_x[j] - turbine_x[k])^2+(turbine_y[j] - turbine_y[k])^2)
+    end
+    return spacing_vec
+end
+
+function calculate_spacing_jacobian!(spacing_struct::T,x) where T <: AbstractSparseMethod
+    if isnothing(spacing_struct.cache)
+        return spacing_struct.spacing_vec, spacing_struct.jacobian
+    end
+    calculate_spacing(a,b) = calculate_spacing!(a,b,spacing_struct)
+    sparse_jacobian!(spacing_struct.jacobian,spacing_struct.ad,spacing_struct.cache,calculate_spacing,spacing_struct.spacing_vec,x)
+
+    for i = eachindex(spacing_struct.cache.cache.fx)
+        spacing_struct.spacing_vec[i] = spacing_struct.cache.cache.fx[i].value
+    end
+
+    return spacing_struct.spacing_vec, spacing_struct.jacobian
+end
 
 # Sparse boundary constraint methods #######################################################
 struct sparse_boundary_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9} <: AbstractSparseMethod

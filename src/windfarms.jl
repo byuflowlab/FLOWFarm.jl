@@ -85,7 +85,7 @@ struct spacing_struct{T1,T2,T3,T4,T5,T6,T7,T8}
     turbine_y::T2
     constraint_spacing::T3 # Single float that defines the minimum spacing between turbines in meters
     constraint_scaling::T4 # Single float that scales the constraint
-    spacing::T5 # In place vector
+    spacing_vec::T5 # In place vector
     jacobian::T6
     config::T7
     update_function::T8
