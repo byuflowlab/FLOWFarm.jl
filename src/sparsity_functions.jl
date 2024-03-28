@@ -272,11 +272,12 @@ function calculate_thresholds!(jacobians,thresholds,x,farm_forwarddiff,farm,tole
         n_per_thread, rem = divrem(n_states,n_threads)
         rem > 0 && (n_per_thread += 1)
         assignments = 1:n_per_thread:n_states
+        l = Threads.SpinLock()
         Threads.@threads for i_assignment in eachindex(assignments)
             i_start = assignments[i_assignment]
             i_stop = min(i_start+n_per_thread-1, n_states)
             for i = i_start:i_stop
-                jacobians[i],thresholds[i] = calculate_threshold(x,farm_forwarddiff,farm,tolerance,pow[:,i],i;prealloc_id=i_assignment)
+                jacobians[i],thresholds[i] = calculate_threshold(x,farm_forwarddiff,farm,tolerance,pow[:,i],i;prealloc_id=i_assignment,lock=l)
             end
         end
     else
@@ -286,18 +287,19 @@ function calculate_thresholds!(jacobians,thresholds,x,farm_forwarddiff,farm,tole
     end
 end
 
-function calculate_threshold(x,farm_forwarddiff,farm,tolerance,pow,state_id;prealloc_id=1)
+function calculate_threshold(x,farm_forwarddiff,farm,tolerance,pow,state_id;prealloc_id=1,lock=nothing)
     n_turbines = length(farm.turbine_x)
     jacobian = zeros(Float64,n_turbines,length(x))
     if farm.constants.wind_resource.wind_speeds[state_id] == 0.0 || farm.constants.wind_resource.wind_probabilities[state_id] == 0.0
         return sparse(jacobian), 0.0
     end
-    x_temp = x .+ rand(length(x)) .* 1E-4
+    x_temp = x# .+ rand(length(x)) .* 1E-4
     n_variables = length(x)÷n_turbines
-    p(a,x) = calculate_wind_state_power!(a,x,farm_forwarddiff,state_id;prealloc_id=prealloc_id)
-    ForwardDiff.jacobian!(jacobian,p,pow,x_temp,farm_forwarddiff.config)
+    p(a,x) = calculate_wind_state_power!(a,x,farm_forwarddiff,state_id;prealloc_id=prealloc_id,lock=lock)
+    cfg = deepcopy(farm_forwarddiff.config)
+    ForwardDiff.jacobian!(jacobian,p,pow,x_temp,cfg)
     jacobian[abs.(jacobian) .< tolerance] .= 0.0
-    calculate_wind_state_power!(pow,x_temp,farm,state_id;prealloc_id=prealloc_id)
+    calculate_wind_state_power!(pow,x_temp,farm,state_id;prealloc_id=prealloc_id,lock=lock)
     deficits = view(farm.preallocations.prealloc_wake_deficits,:,:,prealloc_id)
     pattern = zeros(Float64,size(deficits))
     jac = deepcopy(reshape(jacobian,n_turbines,n_turbines,n_variables))
