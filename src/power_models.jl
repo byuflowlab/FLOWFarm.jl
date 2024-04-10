@@ -623,7 +623,8 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set::AbstractModelSet;
             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0, prealloc_turbine_velocities=nothing,
             prealloc_turbine_ct=nothing, prealloc_turbine_ai=nothing, prealloc_turbine_local_ti=nothing, prealloc_wake_deficits=nothing,
-            prealloc_contribution_matrix=nothing, prealloc_deflections=nothing, prealloc_sigma_squared=nothing)
+            prealloc_contribution_matrix=nothing, prealloc_deflections=nothing, prealloc_sigma_squared=nothing,
+            force_single_thread=false)
 
     # find how many wind states are being calculated
     nstates = length(wind_resource.wind_directions)
@@ -650,7 +651,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
     AEP = arr_type(0.0)
 
     # calculate AEP in parallel using multi-threading
-    if Threads.nthreads() > 1 && !reverse_diff
+    if Threads.nthreads() > 1 && !reverse_diff && !force_single_thread
         n_threads = Threads.nthreads()
         if prealloc_turbine_velocities === nothing
             prealloc_turbine_velocities = zeros(arr_type,n_turbines,n_threads)
@@ -735,7 +736,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
         AEP = sum(state_aep)
 
     # calculate AEP using distributed processing
-    elseif Distributed.nworkers() > 1 && !reverse_diff
+    elseif Distributed.nworkers() > 1 && !reverse_diff && !force_single_thread
         # if possible, avoid recalculating wakes for more than one speed in each direction
         if typeof(model_set.wake_combination_model) == SumOfSquaresFreestreamSuperposition
             state_aep = zeros(arr_type,ndirections)

@@ -36,7 +36,7 @@ Unifying struct defining a wind farm
 - `preallocations_dual`: Dual version of preallocations
 - `unscale_function`: function that puts the design variables back into SI units
 """
-struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14} <: AbstractWindFarmModel
+struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15} <: AbstractWindFarmModel
     turbine_x::T1
     turbine_y::T2
     hub_height::T3
@@ -51,6 +51,7 @@ struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14} <: Abstr
     AEP_gradient::T12
     AEP::T13
     config::T14
+    force_single_thread::T15
 end
 
 struct preallocations_struct{V,M}

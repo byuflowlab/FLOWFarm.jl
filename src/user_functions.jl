@@ -6,10 +6,12 @@ author: Benjamin Varela
 function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,rotor_diameter,
             ct_models,generator_efficiency,cut_in_speed,cut_out_speed,rated_speed,rated_power,wind_resource,
             power_models,model_set,update_function;rotor_sample_points_y=[0.0],rotor_sample_points_z=[0.0],
-            AEP_scale=0.0,input_type=nothing,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false)
+            AEP_scale=0.0,input_type=nothing,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false,
+            force_single_thread=false)
 
     n_turbines = length(turbine_x)
     n_threads = Threads.nthreads()
+    force_single_thread && (n_threads = 1)
     results = DiffResults.GradientResult(x)
     AEP_gradient = zeros(Float64,length(x))
     AEP = Array{Float64,0}(undef)
@@ -49,7 +51,7 @@ function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbi
                     zeros(input_type,n_turbines,n_turbines,n_threads),zeros(input_type,n_turbines,n_turbines,n_threads))
 
     return wind_farm_struct(turbine_x, turbine_y, hub_height, turbine_yaw, rotor_diameter, results,
-                wind_farm_constants, AEP_scale, ideal_AEP, preallocations, update_function, AEP_gradient, AEP, cfg)
+                wind_farm_constants, AEP_scale, ideal_AEP, preallocations, update_function, AEP_gradient, AEP, cfg, force_single_thread)
 end
 
 function build_spacing_struct(x,n_turbines,space,scale,update_function)
@@ -109,7 +111,8 @@ function calculate_aep!(farm,x)
                 prealloc_wake_deficits=farm.preallocations.prealloc_wake_deficits,
                 prealloc_contribution_matrix=farm.preallocations.prealloc_contribution_matrix,
                 prealloc_deflections=farm.preallocations.prealloc_deflections,
-                prealloc_sigma_squared=farm.preallocations.prealloc_sigma_squared
+                prealloc_sigma_squared=farm.preallocations.prealloc_sigma_squared,
+                force_single_thread=farm.force_single_thread
                 ) .* farm.AEP_scale
 
     return AEP

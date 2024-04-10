@@ -21,14 +21,16 @@ end
 function build_stable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,rotor_diameter,
                 ct_models,generator_efficiency,cut_in_speed,cut_out_speed,rated_speed,rated_power,wind_resource,
                 power_models,model_set,update_function;rotor_sample_points_y=[0.0],rotor_sample_points_z=[0.0],
-                AEP_scale=0.0,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false,tolerance=1E-16)
+                AEP_scale=0.0,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false,tolerance=1E-16,
+                force_single_thread=false)
 
     farm = build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,
                 rotor_diameter,ct_models,generator_efficiency,cut_in_speed,
                 cut_out_speed,rated_speed,rated_power,wind_resource,power_models,
                 model_set,update_function;rotor_sample_points_y=rotor_sample_points_y,
                 rotor_sample_points_z=rotor_sample_points_z,AEP_scale=AEP_scale,
-                opt_x=opt_x,opt_y=opt_y,opt_hub=opt_hub,opt_yaw=opt_yaw,opt_diam=opt_diam,input_type="ForwardDiff")
+                opt_x=opt_x,opt_y=opt_y,opt_hub=opt_hub,opt_yaw=opt_yaw,opt_diam=opt_diam,
+                input_type="ForwardDiff",force_single_thread=force_single_thread)
 
     sparse_struct = build_stable_sparse_struct(x,farm;tolerance=tolerance)
 
@@ -38,7 +40,8 @@ function build_stable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height,t
                 model_set,update_function;rotor_sample_points_y=rotor_sample_points_y,
                 rotor_sample_points_z=rotor_sample_points_z,AEP_scale=AEP_scale,
                 opt_x=opt_x,opt_y=opt_y,opt_hub=opt_hub,opt_yaw=opt_yaw,opt_diam=opt_diam,
-                input_type=eltype(sparse_struct.caches[1].cache.t))
+                input_type=eltype(sparse_struct.caches[1].cache.t),
+                force_single_thread=force_single_thread)
 
     return farm,sparse_struct
 end
@@ -70,7 +73,7 @@ end
 
 function define_patterns!(jacobians,x,farm,tolerance,pow,n_states)
     n_threads = Threads.nthreads()
-    if n_threads > 1
+    if n_threads > 1 && !farm.force_single_thread
         n_per_thread, rem = divrem(n_states,n_threads)
         rem > 0 && (n_per_thread += 1)
         assignments = 1:n_per_thread:n_states
@@ -151,7 +154,7 @@ function calculate_aep_gradient!(farm,x,sparse_struct::T) where T <: StableSpars
     n_threads = Threads.nthreads()
     n_states = length(farm.constants.wind_resource.wind_probabilities)
 
-    if n_threads > 1
+    if n_threads > 1 && !farm.force_single_thread
         n_per_thread, rem = divrem(n_states,n_threads)
         rem > 0 && (n_per_thread += 1)
         assignments = 1:n_per_thread:n_states
@@ -209,21 +212,24 @@ end
 function build_unstable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,rotor_diameter,
                 ct_models,generator_efficiency,cut_in_speed,cut_out_speed,rated_speed,rated_power,wind_resource,
                 power_models,model_set,update_function;rotor_sample_points_y=[0.0],rotor_sample_points_z=[0.0],
-                AEP_scale=0.0,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false,tolerance=1E-16)
+                AEP_scale=0.0,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false,tolerance=1E-16,
+                force_single_thread=false)
 
     farm_floats = build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,
                 rotor_diameter,ct_models,generator_efficiency,cut_in_speed,
                 cut_out_speed,rated_speed,rated_power,wind_resource,power_models,
                 model_set,update_function;rotor_sample_points_y=rotor_sample_points_y,
                 rotor_sample_points_z=rotor_sample_points_z,AEP_scale=AEP_scale,
-                opt_x=opt_x,opt_y=opt_y,opt_hub=opt_hub,opt_yaw=opt_yaw,opt_diam=opt_diam,input_type=nothing)
+                opt_x=opt_x,opt_y=opt_y,opt_hub=opt_hub,opt_yaw=opt_yaw,opt_diam=opt_diam,
+                input_type=nothing,force_single_thread=force_single_thread)
 
     farm_forwarddiff = build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,
                 rotor_diameter,ct_models,generator_efficiency,cut_in_speed,
                 cut_out_speed,rated_speed,rated_power,wind_resource,power_models,
                 model_set,update_function;rotor_sample_points_y=rotor_sample_points_y,
                 rotor_sample_points_z=rotor_sample_points_z,AEP_scale=AEP_scale,
-                opt_x=opt_x,opt_y=opt_y,opt_hub=opt_hub,opt_yaw=opt_yaw,opt_diam=opt_diam,input_type="ForwardDiffJacobian")
+                opt_x=opt_x,opt_y=opt_y,opt_hub=opt_hub,opt_yaw=opt_yaw,opt_diam=opt_diam,
+                input_type="ForwardDiffJacobian",force_single_thread=force_single_thread)
 
     sparse_struct, cache = build_unstable_sparse_struct(x,farm_floats,farm_forwarddiff;tolerance=tolerance)
 
@@ -233,7 +239,7 @@ function build_unstable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height
                 model_set,update_function;rotor_sample_points_y=rotor_sample_points_y,
                 rotor_sample_points_z=rotor_sample_points_z,AEP_scale=AEP_scale,
                 opt_x=opt_x,opt_y=opt_y,opt_hub=opt_hub,opt_yaw=opt_yaw,opt_diam=opt_diam,
-                input_type=eltype(cache.t))
+                input_type=eltype(cache.t),force_single_thread=force_single_thread)
 
     return farm, sparse_struct
 
@@ -268,7 +274,7 @@ end
 function calculate_thresholds!(jacobians,thresholds,x,farm_forwarddiff,farm,tolerance,pow,n_states)
     n_threads = Threads.nthreads()
 
-    if n_threads > 1
+    if n_threads > 1 && !farm.force_single_thread
         n_per_thread, rem = divrem(n_states,n_threads)
         rem > 0 && (n_per_thread += 1)
         assignments = 1:n_per_thread:n_states
@@ -293,7 +299,7 @@ function calculate_threshold(x,farm_forwarddiff,farm,tolerance,pow,state_id;prea
     if farm.constants.wind_resource.wind_speeds[state_id] == 0.0 || farm.constants.wind_resource.wind_probabilities[state_id] == 0.0
         return sparse(jacobian), 0.0
     end
-    x_temp = x# .+ rand(length(x)) .* 1E-4
+    x_temp = x
     n_variables = length(x)÷n_turbines
     p(a,x) = calculate_wind_state_power!(a,x,farm_forwarddiff,state_id;prealloc_id=prealloc_id,lock=lock)
     cfg = deepcopy(farm_forwarddiff.config)
@@ -321,7 +327,7 @@ function calculate_aep_gradient!(farm,x,sparse_struct::T) where T <: UnstableSpa
     n_threads = Threads.nthreads()
     n_states = length(farm.constants.wind_resource.wind_probabilities)
 
-    if n_threads > 1
+    if n_threads > 1 && !farm.force_single_thread
         n_per_thread, rem = divrem(n_states,n_threads)
         rem > 0 && (n_per_thread += 1)
         assignments = 1:n_per_thread:n_states
