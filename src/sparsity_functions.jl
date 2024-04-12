@@ -400,11 +400,10 @@ function calculate_unstable_sparsity_pattern!(sparse_struct::T,x,wind_state_id,p
     sparse_struct.jacobians[wind_state_id] .= dropzeros(sparse(pattern))
 
     # recolor if necessary
-    if pattern != sparse_struct.old_patterns[:,:,wind_state_id]
+    if sparse_struct.patterns[:,:,wind_state_id] != sparse_struct.old_patterns[:,:,wind_state_id]
         recolor_jacobian!(sparse_struct,wind_state_id,n_variables,n_turbines)
+        sparse_struct.old_patterns[:,:,wind_state_id] .= sparse_struct.patterns[:,:,wind_state_id]
     end
-
-    sparse_struct.old_patterns[:,:,wind_state_id] .= sparse_struct.patterns[:,:,wind_state_id]
     return nothing
 end
 
