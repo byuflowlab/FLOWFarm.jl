@@ -13,8 +13,8 @@ function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbi
     n_threads = Threads.nthreads()
     force_single_thread && (n_threads = 1)
     results = DiffResults.GradientResult(x)
-    AEP_gradient = zeros(Float64,length(x))
-    AEP = Array{Float64,0}(undef)
+    AEP_gradient = zeros(eltype(x),length(x))
+    AEP = Array{eltype(x),0}(undef)
 
     wind_farm_constants = wind_farm_constants_struct(turbine_z,ct_models,generator_efficiency,cut_in_speed,cut_out_speed,
                 rated_speed,rated_power,wind_resource,power_models,model_set,rotor_sample_points_y,rotor_sample_points_z)
@@ -34,7 +34,7 @@ function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbi
         cfg = ForwardDiff.GradientConfig(nothing,x)
         input_type = eltype(cfg)
     elseif input_type == "ForwardDiffJacobian"
-        y = Float64.(collect(1:n_turbines))
+        y = eltype(x).(collect(1:n_turbines))
         cfg = ForwardDiff.JacobianConfig(nothing,y,x)
         input_type = eltype(cfg)
     end
@@ -65,8 +65,8 @@ function build_spacing_struct(x,n_turbines,space,scale,update_function)
 end
 
 function build_boundary_struct(x,n_turbines,n_constraints,scaling,constraint_function,update_function;using_sparsity=true)
-    boundary_vec = zeros(Float64,n_constraints)
-    boundary_jacobian = zeros(Float64,n_constraints,length(x))
+    boundary_vec = zeros(eltype(x),n_constraints)
+    boundary_jacobian = zeros(eltype(x),n_constraints,length(x))
 
     cfg = ForwardDiff.JacobianConfig(nothing,boundary_vec,x)
     T = eltype(cfg)

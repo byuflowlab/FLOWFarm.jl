@@ -49,9 +49,9 @@ end
 function build_stable_sparse_struct(x,farm;tolerance=1E-16)
     n_states = length(farm.constants.wind_resource.wind_probabilities)
     n_turbines = length(farm.turbine_x)
-    pow = zeros(Float64,n_turbines,n_states)
-    jacobians = Array{SparseMatrixCSC{Float64, Int64},1}(undef,n_states)
-    state_gradients = zeros(Float64,n_states,length(x))
+    pow = zeros(eltype(x),n_turbines,n_states)
+    jacobians = Array{SparseMatrixCSC{eltype(x), Int64},1}(undef,n_states)
+    state_gradients = zeros(eltype(x),n_states,length(x))
     caches = nothing
     adtype = AutoSparseForwardDiff()
 
@@ -248,14 +248,14 @@ end
 function build_unstable_sparse_struct(x,farm,farm_forwarddiff;tolerance=1E-16)
     n_states = length(farm.constants.wind_resource.wind_probabilities)
     n_turbines = length(farm.turbine_x)
-    pow = zeros(Float64,n_turbines,n_states)
-    jacobians = Array{SparseMatrixCSC{Float64, Int64},1}(undef,n_states)
-    state_gradients = zeros(Float64,n_states,length(x))
-    thresholds = zeros(Float64,n_states)
-    patterns = zeros(Float64,n_turbines,length(x),n_states)
-    old_patterns = zeros(Float64,n_turbines,length(x),n_states)
+    pow = zeros(eltype(x),n_turbines,n_states)
+    jacobians = Array{SparseMatrixCSC{eltype(x), Int64},1}(undef,n_states)
+    state_gradients = zeros(eltype(x),n_states,length(x))
+    thresholds = zeros(eltype(x),n_states)
+    patterns = zeros(eltype(x),n_turbines,length(x),n_states)
+    old_patterns = zeros(eltype(x),n_turbines,length(x),n_states)
     colors = zeros(Int64,length(x),n_states)
-    state_powers = zeros(Float64,n_states)
+    state_powers = zeros(eltype(x),n_states)
 
     calculate_thresholds!(jacobians,thresholds,x,farm_forwarddiff,farm,tolerance,pow,n_states)
 
@@ -295,7 +295,7 @@ end
 
 function calculate_threshold(x,farm_forwarddiff,farm,tolerance,pow,state_id;prealloc_id=1,lock=nothing)
     n_turbines = length(farm.turbine_x)
-    jacobian = zeros(Float64,n_turbines,length(x))
+    jacobian = zeros(eltype(x),n_turbines,length(x))
     if farm.constants.wind_resource.wind_speeds[state_id] == 0.0 || farm.constants.wind_resource.wind_probabilities[state_id] == 0.0
         return sparse(jacobian), 0.0
     end
@@ -307,7 +307,7 @@ function calculate_threshold(x,farm_forwarddiff,farm,tolerance,pow,state_id;prea
     jacobian[abs.(jacobian) .< tolerance] .= 0.0
     calculate_wind_state_power!(pow,x_temp,farm,state_id;prealloc_id=prealloc_id,lock=lock)
     deficits = view(farm.preallocations.prealloc_wake_deficits,:,:,prealloc_id)
-    pattern = zeros(Float64,size(deficits))
+    pattern = zeros(eltype(x),size(deficits))
     jac = deepcopy(reshape(jacobian,n_turbines,n_turbines,n_variables))
     for j = 1:n_turbines, i = 1:n_turbines
         for k = 1:n_variables
