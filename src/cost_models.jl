@@ -1,4 +1,5 @@
 abstract type AbstractCostModel end
+abstract type AbstractFloatingModelSet end
 
 """
     Levelized(TCC, BOS, FC, FCR, OpEx)
@@ -115,7 +116,7 @@ function cost_of_energy_floating(turbine_x, turbine_y, turbine_z, turbine_ocean_
     rotor_sample_points_y=rotorsamplepointsy, rotor_sample_points_z=rotorsamplepointsz)
 
 
-    TCC_model = model_set.Floating_TCC
+    # TCC_model = model_set.Floating_TCC
 
     # Taken from 2020 ORBIT
     # TCC = Floating_TCC(rotor_diameter, hub_height, rated_power, TCC_model) # default is 776.0
@@ -133,27 +134,27 @@ function cost_of_energy_floating(turbine_x, turbine_y, turbine_z, turbine_ocean_
 end
 
 
-"""
-    Floating_TCC(rotor_diameter, hub_height, rated_power, turbine_model::Floating_turbine)
+# """
+#     Floating_TCC(rotor_diameter, hub_height, rated_power, turbine_model::Floating_turbine)
 
-Turbine capital cost calculations
+# Turbine capital cost calculations
 
-# Arguments
-- `rotor_diameter::array`: Vector of Rotor Diameters for the Turbines
-- `hub_height::array`: Vector of Hub Heights for the Turbines
-- `rated_power::array`: Vector of rated powers for the Turbines in kW
-- `turbine_model::AbstractCostParameter`: TCC capital cost from orbit 2020
-"""
+# # Arguments
+# - `rotor_diameter::array`: Vector of Rotor Diameters for the Turbines
+# - `hub_height::array`: Vector of Hub Heights for the Turbines
+# - `rated_power::array`: Vector of rated powers for the Turbines in kW
+# - `turbine_model::AbstractCostParameter`: TCC capital cost from orbit 2020
+# """
 
-function Floating_TCC(rotor_diameter, hub_height, rated_power, turbine_model::Floating_turbine)
+# function Floating_TCC(rotor_diameter, hub_height, rated_power, turbine_model::Floating_turbine)
     
-    nturbines = length(rotor_diameter)
-    # Taken from 2019 Cost of Wind Energy Review
-    TCC = turbine_model.TCC
+#     nturbines = length(rotor_diameter)
+#     # Taken from 2019 Cost of Wind Energy Review
+#     TCC = turbine_model.TCC
     
 
-    return TCC 
-end
+#     return TCC 
+# end
 
 """
     Floating_BOS(rotor_diameter, turbine_x, turbine_y, turbine_z, turbine_ocean_depth)
@@ -533,7 +534,7 @@ Calculates the balance of system cost (BOS) for the substation using the same ca
 """
 
 function Substation_Design(rated_power, substation_ocean_depth, drag_embedment, Mooring_per_turbine, mpt_cost_rate=12500, topside_fab_cost_rate=14500, 
-            topside_design_cost=4.5e6, shunt_cost_rate=35000, switchgear_cost_rate=14.5e5, backup_gen_cost=1e6
+            topside_design_cost=4.5e6, shunt_cost_rate=35000, switchgear_cost_rate=14.5e5, backup_gen_cost=1e6,
             worspace_cost=2e6, other_ancillary_cost=3e6, topside_assembly_factor=0.075, oss_substructure_cost_rate=3000)
     # nturbines = length(rated_power)
     # number_of_substations = sum(rated_power)/800      # 800 MW
