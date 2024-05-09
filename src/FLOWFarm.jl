@@ -5,6 +5,7 @@ using Geodesy; const gd = Geodesy
 using ForwardDiff
 using LinearAlgebra
 using Statistics
+using Graphs, SimpleWeightedGraphs
 
 # using CCBlade
 using PyPlot; const plt = PyPlot

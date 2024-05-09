@@ -98,8 +98,9 @@ Calculates the LCOE using the same numbers as NREL's FLORIS Model and BOS cost f
 """
 
 function cost_of_energy_floating(turbine_x, turbine_y, turbine_z, turbine_ocean_depth, rotor_diameter,
-    hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
-    cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set::AbstractModelSet, CostModel::AbstractFloatingModelSet;
+    hub_height, turbine_yaw, Onshore_substation_x, Onshore_substation_y, substation_x, substation_y, substation_z,
+    ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, wind_resource, power_models,
+     model_set::AbstractModelSet, CostModel::AbstractFloatingModelSet;
     rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0, distributed=false)
     
     nturbines = length(rotor_diameter)
@@ -119,7 +120,8 @@ function cost_of_energy_floating(turbine_x, turbine_y, turbine_z, turbine_ocean_
     # Taken from 2020 ORBIT
     # TCC = Floating_TCC(rotor_diameter, hub_height, rated_power, TCC_model) # default is 776.0
     TCC = 776.0
-    BOS = Floating_BOS(rotor_diameter, turbine_x, turbine_y, turbine_z, turbine_ocean_depth, rated_power, drag_embedment, Mooring_per_turbine, drag_embedment_fixed_length)
+    BOS = Floating_BOS(turbine_x, turbine_y, turbine_ocean_depth, rated_power, drag_embedment, Mooring_per_turbine, drag_embedment_fixed_length,
+                        Onshore_substation_x, Onshore_substation_y, substation_x, substation_y, substation_z)
     FC = CostModel.FFC
     FCR = CostModel.FFCR
     OpEx = CostModel.OpEx
@@ -172,21 +174,20 @@ Calculates the balance of system cost (BOS) using the same numbers as NREL's ORB
 - `drag_embedment_fixed_length::Float`: drag embedment fixed length (default is 1)
 """
 
-function Floating_BOS(rotor_diameter, turbine_x, turbine_y, turbine_z, turbine_ocean_depth, rated_power,
+function Floating_BOS(turbine_x, turbine_y, turbine_z, rated_power,
             drag_embedment, Mooring_per_turbine, drag_embedment_fixed_length, Onshore_substation_x, Onshore_substation_y, substation_x, substation_y,
             substation_z)
     
-    nturbines = length(rotor_diameter)
     # Taken from 2019 Cost of Wind Energy Review
 
     # Mooring design (no shared mooring lines)
     # TODO: include option of shared mooring line design
-    Mooring_BOS = Mooring_Design(rated_power, drag_embedment, turbine_ocean_depth, Mooring_per_turbine, drag_embedment_fixed_length)
+    Mooring_BOS = Mooring_Design(rated_power, drag_embedment, turbine_z, Mooring_per_turbine, drag_embedment_fixed_length)
     # Semisubmersible design
     Semisub_BOS = Semisubmersible_Design(rated_power)
     # Electrical cabling design
     # Put Weston's cable design code here
-    Num_Array2, Cabling_BOS = Cabling_Design(turbine_x, turbine_y, turbine_z, turbine_ocean_depth)
+    Cabling_BOS = Cabling_Design(turbine_x, turbine_y, turbine_z, substation_x, substation_y, substation_z)
 
     # does export cabling design go before substation design?
     # Export sytem design
@@ -321,7 +322,7 @@ function Semisubmersible_Design(rated_power, Cost_rate_column=3120, Cost_rate_tr
 end
 
 """
-    Cabling_Design(turbine_x, turbine_y, turbine_z, turbine_ocean_depth)
+    Cabling_Design(turbine_x, turbine_y, turbine_z, substation_x, substation_y, substation_z)
 
 Designs the cabling of the wind farm and then calculates the balance 
 of system cost (BOS) for the cabling design using same calculations from NREL's ORBIT (2020)
@@ -335,13 +336,108 @@ of system cost (BOS) for the cabling design using same calculations from NREL's 
 - `turbine_ocean_depth::Array{Float,nTurbines}`: ocean depth at location of each turbine
 """
 
-function Cabling_Design(turbine_x, turbine_y, turbine_z, turbine_ocean_depth)
+function Cabling_Design(turbine_x, turbine_y, turbine_z, substation_x, substation_y, substation_z)
     # considerations:
     # cable capacity must increase as arrays of interconnected turbines grow
     # Can have different cable sizes or do just two different cable sizes
 
+    turbine_num = Int(length(x)/2) + 1
 
-    return Num_Array2, Cabling_BOS
+    sources = Vector{Int64}(undef, turbine_num*(turbine_num - 1))
+    destinations = Vector{Int64}(undef, turbine_num*(turbine_num - 1))
+
+    push!(turbine_x, substation_x)
+    push!(turbine_y, substation_y)
+    push!(turbine_z, substation_z)
+
+    distances = Vector{eltype(turbinex)}(undef, turbine_num*(turbine_num - 1))
+
+    # default is 4%, but this should be set early in the code
+    Catenary_length_factor = 0.04
+
+    k = 1
+    p = 1
+    for i in 1:turbine_num
+
+        for j in 1:(turbine_num - 1)
+
+            sources[p] = k
+
+            p = p + 1
+
+        end
+
+        k = k + 1
+
+    end
+
+    p = 1
+
+    for i in 1:turbine_num
+
+        for j in 1:(turbine_num)
+
+            if j != i
+
+                destinations[p] = j
+                # horizontal distance between two turbines
+                dist_length = dist(turbine_x[i], turbine_x[j], turbine_y[i], turbine_y[j], turbine_z[i], turbine_z[j])
+                # Add vertical distance for cable
+
+                sys_angle_1 = (-0.0047*turbine_z[i] + 18.743)*pi/180
+                sys_angle_2 = (-0.0047*turbine_z[j] + 18.743)*pi/180
+
+                # length of branch cable that is fixed to the seafloor
+                fixed_cable_length = (dist_length) - (tan(sys_angle_1)*turbine_z[i]) - (tan(sys_angle_2)*turbine_z[j]) - 70
+
+                # length of cable that hangs from a floating platform to the seafloor with added length for abrasion protection
+                free_cable_length_1 = (turbine_z[i]/cos(sys_angle_1))*(Catenary_length_factor + 1) + 190
+                free_cable_length_2 = (turbine_z[j]/cos(sys_angle_2))*(Catenary_length_factor + 1) + 190
+
+                
+                distances[p] = fixed_cable_length + free_cable_length_1 + free_cable_length_2
+                p = p + 1
+
+            end
+
+        end
+
+    end
+
+    g = SimpleWeightedGraph(sources, destinations, distances)
+    mst1, _ = boruvka_mst(g, weights(g); minimize = true)
+
+    cable_length = 0.0
+
+    for i in 1:length(mst1)
+
+        dist_length = dist(turbine_x[mst1[i].src], turbine_x[mst1[i].dst], turbine_y[mst1[i].src], turbine_y[mst1[i].dst], turbine_z[mst1[i].src], turbine_z[mst1[i],dst])
+
+        sys_angle_1 = (-0.0047*turbine_z[mst[i].src] + 18.743)*pi/180
+        sys_angle_2 = (-0.0047*turbine_z[mst[i].dst] + 18.743)*pi/180
+
+        # length of branch cable that is fixed to the seafloor
+        fixed_cable_length = (dist_length) - (tan(sys_angle_1)*turbine_z[mst[i].src]) - (tan(sys_angle_2)*turbine_z[mst[i].dst]) - 70
+
+        # length of cable that hangs from a floating platform to the seafloor with added length for abrasion protection
+        free_cable_length_1 = (turbine_z[mst[i].src]/cos(sys_angle_1))*(Catenary_length_factor + 1) + 190
+        free_cable_length_2 = (turbine_z[mst[i].dst]/cos(sys_angle_2))*(Catenary_length_factor + 1) + 190
+
+
+        cable_length = cable_length + fixed_cable_length + free_cable_length_1 + free_cable_length_2
+
+    end
+
+    total_cable_cost = cable_length*828000/1000
+    return total_cable_cost
+end
+
+function dist(x1, x2, y1, y2, z2, z1)
+
+    distance = sqrt((x2 - x1)^2 + (y2 - y1)^2 + (z2 - z1)^2)
+
+    return distance
+
 end
 
 """
@@ -396,20 +492,20 @@ function Export_Cable_Design(rated_power, Onshore_substation_x, Onshore_substati
     return (Total_cable_length/1000)*cost_per_km
 end
 
-"""
-    Cable_define()
+# """
+#     Cable_define()
 
-Calculates the balance of system cost (BOS) for the substation using the same calculations from NREL's ORBIT (2020)
+# Calculates the balance of system cost (BOS) for the substation using the same calculations from NREL's ORBIT (2020)
 
-# Arguments
-- `rated_power::Array{Float,nTurbines}`: the rated power of each turbine in MW
+# # Arguments
+# - `rated_power::Array{Float,nTurbines}`: the rated power of each turbine in MW
 
-"""
+# """
 
-function Cable_define()
+# function Cable_define()
     
-    return cable
-end
+#     return cable
+# end
 
 """
     Substation_Design(rated_power, substation_ocean_depth, drag_embedment, Mooring_per_turbine, mpt_cost_rate=12500, topside_fab_cost_rate=14500, 
