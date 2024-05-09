@@ -117,8 +117,9 @@ function cost_of_energy_floating(turbine_x, turbine_y, turbine_z, turbine_ocean_
     TCC_model = model_set.Floating_TCC
 
     # Taken from 2020 ORBIT
-    TCC = Floating_TCC(rotor_diameter, hub_height, rated_power, TCC_model)
-    BOS = Floating_BOS(rotor_diameter, turbine_x, turbine_y, turbine_z, turbine_ocean_depth)
+    # TCC = Floating_TCC(rotor_diameter, hub_height, rated_power, TCC_model) # default is 776.0
+    TCC = 776.0
+    BOS = Floating_BOS(rotor_diameter, turbine_x, turbine_y, turbine_z, turbine_ocean_depth, rated_power, drag_embedment, Mooring_per_turbine, drag_embedment_fixed_length)
     FC = CostModel.FFC
     FCR = CostModel.FFCR
     OpEx = CostModel.OpEx
@@ -131,16 +132,15 @@ end
 
 
 """
-    Floating_TCC(rotor_diameter, hub_height, Cost::Levelized)
+    Floating_TCC(rotor_diameter, hub_height, rated_power, turbine_model::Floating_turbine)
 
-Calculates the LCOE using the same numbers as NREL's FLORIS Model
+Turbine capital cost calculations
 
 # Arguments
 - `rotor_diameter::array`: Vector of Rotor Diameters for the Turbines
 - `hub_height::array`: Vector of Hub Heights for the Turbines
 - `rated_power::array`: Vector of rated powers for the Turbines in kW
-- `AEP::Float`: Annual Energy Production
-- `OpEx::AbstractCostParameter`: KW of the Farm
+- `turbine_model::AbstractCostParameter`: TCC capital cost from orbit 2020
 """
 
 function Floating_TCC(rotor_diameter, hub_height, rated_power, turbine_model::Floating_turbine)
@@ -150,7 +150,7 @@ function Floating_TCC(rotor_diameter, hub_height, rated_power, turbine_model::Fl
     TCC = turbine_model.TCC
     
 
-    return TCC # LCOE is in units of $/kWh
+    return TCC 
 end
 
 """
@@ -173,8 +173,8 @@ Calculates the balance of system cost (BOS) using the same numbers as NREL's ORB
 """
 
 function Floating_BOS(rotor_diameter, turbine_x, turbine_y, turbine_z, turbine_ocean_depth, rated_power,
-            drag_embedment, Mooring_per_turbine, drag_embedment_fixed_length, 
-            turbine_model::Floating_turbine)
+            drag_embedment, Mooring_per_turbine, drag_embedment_fixed_length, Onshore_substation_x, Onshore_substation_y, substation_x, substation_y,
+            substation_z)
     
     nturbines = length(rotor_diameter)
     # Taken from 2019 Cost of Wind Energy Review
@@ -185,19 +185,16 @@ function Floating_BOS(rotor_diameter, turbine_x, turbine_y, turbine_z, turbine_o
     # Semisubmersible design
     Semisub_BOS = Semisubmersible_Design(rated_power)
     # Electrical cabling design
+    # Put Weston's cable design code here
     Num_Array2, Cabling_BOS = Cabling_Design(turbine_x, turbine_y, turbine_z, turbine_ocean_depth)
 
     # does export cabling design go before substation design?
     # Export sytem design
-    Export_Cable_BOS = Export_Cable_Design()
+    Export_Cable_BOS = Export_Cable_Design(rated_power, Onshore_substation_x, Onshore_substation_y, substation_x, substation_y, substation_z)
 
     # Substation design
-    Substation_BOS = Substation_Design(Num_Array2)
-    
+    Substation_BOS = Substation_Design(rated_power, substation_z, drag_embedment, Mooring_per_turbine)
 
-    
-    
-    
     BOS = Substation_BOS + Cabling_BOS + Semisub_BOS + Mooring_BOS + Export_Cable_BOS
     return BOS # LCOE is in units of $/kWh
 end
@@ -348,7 +345,7 @@ function Cabling_Design(turbine_x, turbine_y, turbine_z, turbine_ocean_depth)
 end
 
 """
-    Export_Cable_Design()
+    Export_Cable_Design(Onshore_substation_x, Onshore_substation_y, substation_x, substation_y)
 
 Calculates the balance of system cost (BOS) for the export cable design using the same calculations from NREL's ORBIT (2020)
 
@@ -356,10 +353,47 @@ Calculates the balance of system cost (BOS) for the export cable design using th
 - `rotor_diameter::array`: Vector of Rotor Diameters for the Turbines
 """
 
-function Export_Cable_Design()
+function Export_Cable_Design(rated_power, Onshore_substation_x, Onshore_substation_y, substation_x, substation_y, substation_depth)
+    # pick a point along the shore that represents the onshore substation
+    export_diff_x = abs(Onshore_substation_x - substation_x)
+    export_diff_y = abs(Onshore_substation_y - substation_y)
 
+    Export_cable_distance = sqrt(export_diff_x^2 + export_diff_y^2)
 
-    return Export_Cable_BOS
+    # find cost now based on export cable Export_cable_distance
+    # these will need to be imported from .yaml files in later iterations
+    # 0 means it is HVDC, 1 means it isn't
+    HVDC = 0
+
+    if HVDC == 1
+        rated_voltage = 320     # kV
+        current_capaticy = 1900     # A
+        char_impedence = 1
+        phase_angle = atan(imag(char_impedence)/real(char_impedence))
+        power_factor = cos(phase_angle)
+
+        cable_power = sqrt(3)*(rated_voltage * current_capaticy * power_factor/1000)
+
+    else
+        rated_voltage = 320     # kV
+        current_capaticy = 1900     # A
+        cable_power = sqrt(3)*(rated_voltage * 2 * current_capaticy/1000)
+    end
+    Num_cables = sum(rated_power)/(cable_power)
+
+    # find required length of each cable
+    system_angle = -0.0047*substation_depth + 18.743
+    Catenary_length_factor = 0.04
+    added_length = 500
+    free_cable_length = (substation_depth/cos(system_angle*pi/180))*(Catenary_length_factor + 1) + 190
+    Export_cable_distance = Export_cable_distance + free_cable_length + added_length
+
+    Total_cable_length = (Num_cables*Export_cable_distance)*1.1
+
+    # cost per km of cable
+    cost_per_km = 828000        # $/km
+
+    return (Total_cable_length/1000)*cost_per_km
 end
 
 """
@@ -378,7 +412,9 @@ function Cable_define()
 end
 
 """
-    Substation_Design()
+    Substation_Design(rated_power, substation_ocean_depth, drag_embedment, Mooring_per_turbine, mpt_cost_rate=12500, topside_fab_cost_rate=14500, 
+    topside_design_cost=4.5e6, shunt_cost_rate=35000, switchgear_cost_rate=14.5e5, backup_gen_cost=1e6
+    worspace_cost=2e6, other_ancillary_cost=3e6, topside_assembly_factor=0.075, oss_substructure_cost_rate=3000)
 
 Calculates the balance of system cost (BOS) for the substation using the same calculations from NREL's ORBIT (2020)
 
