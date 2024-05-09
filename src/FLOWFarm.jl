@@ -4,6 +4,8 @@ using Geodesy: bound_thetad
 using Geodesy; const gd = Geodesy
 using ForwardDiff
 using LinearAlgebra
+using Statistics
+using Graphs, SimpleWeightedGraphs
 
 # using CCBlade
 using PyPlot; const plt = PyPlot
@@ -35,3 +37,4 @@ include("tip.jl")
 include("cost_models.jl")
 include("plotting.jl")
 end # module
+
