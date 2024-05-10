@@ -77,7 +77,7 @@ Calculates the LCOE using the same numbers as NREL's FLORIS Model and BOS cost f
 - `OpEx::AbstractCostParameter`: KW of the Farm
 """
 
-function cost_of_energy_floating(turbine_x, turbine_y, turbine_z, turbine_ocean_depth, rotor_diameter,
+function cost_of_energy_floating(drag_embedment, turbine_x, turbine_y, turbine_z, turbine_ocean_depth, rotor_diameter,
     hub_height, turbine_yaw, Onshore_substation_x, Onshore_substation_y, substation_x, substation_y, substation_z,
     ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, wind_resource, power_models,
      model_set::AbstractModelSet;
