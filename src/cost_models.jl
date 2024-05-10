@@ -1,5 +1,4 @@
 abstract type AbstractCostModel end
-abstract type AbstractFloatingModelSet end
 
 """
     Levelized(TCC, BOS, FC, FCR, OpEx)
@@ -22,26 +21,6 @@ struct Levelized{TF} <: AbstractCostModel
     OpEx::TF
 end
 Levelized() = Levelized(776.0, 326.0, 120.0, .0655, 43.0) # Default values taken from NREL 2019 Cost of Wind Energy
-
-
-"""
-    Floating_turbine(TCC, BOS, FC, FCR, OpEx)
-
-Container for parameters related to floating turbine capital cost (NREL 2020 ORBIT)
-
-# Arguments
-- `TCC::Float`: Turbine Capital Cost not including the tower module
-- `BOS::Float`: Balance of System (Costs outside of turbine i.e. operation and maintenance)
-- `FC::Float`: Financial Costs including construction and contingency
-- `FCR::Float`: Fixed Charge Rate
-- `OpEx::Float`: Operational Expenditures
-"""
-struct Floating_turbine_model_set{FTCC, FFC, FFCR, OpEx} <: AbstractFloatingModelSet
-    Floating_TCC::FTCC
-    Floating_FC::FFC
-    Floating_FCR::FFCR
-    Floating_OpEx::OpEx
-end
 
 
 """
@@ -101,7 +80,7 @@ Calculates the LCOE using the same numbers as NREL's FLORIS Model and BOS cost f
 function cost_of_energy_floating(turbine_x, turbine_y, turbine_z, turbine_ocean_depth, rotor_diameter,
     hub_height, turbine_yaw, Onshore_substation_x, Onshore_substation_y, substation_x, substation_y, substation_z,
     ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed, rated_power, wind_resource, power_models,
-     model_set::AbstractModelSet, CostModel::AbstractFloatingModelSet;
+     model_set::AbstractModelSet;
     rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0, distributed=false)
     
     nturbines = length(rotor_diameter)
@@ -123,9 +102,9 @@ function cost_of_energy_floating(turbine_x, turbine_y, turbine_z, turbine_ocean_
     TCC = 776.0
     BOS = Floating_BOS(turbine_x, turbine_y, turbine_ocean_depth, rated_power, drag_embedment, Mooring_per_turbine, drag_embedment_fixed_length,
                         Onshore_substation_x, Onshore_substation_y, substation_x, substation_y, substation_z)
-    FC = CostModel.FFC
-    FCR = CostModel.FFCR
-    OpEx = CostModel.OpEx
+    FC = 120.0
+    FCR = 0.0655
+    OpEx = 43.0
 
     # Uses parameters in COE function from eq 1 in 2016 Cost of Wind Energy Review
     LCOE = ((TCC+BOS+FC)*FCR + OpEx)/(AEP/1000)
