@@ -321,7 +321,7 @@ function Cabling_Design(turbine_x, turbine_y, turbine_z, substation_x, substatio
     # cable capacity must increase as arrays of interconnected turbines grow
     # Can have different cable sizes or do just two different cable sizes
 
-    turbine_num = Int(length(x)/2) + 1
+    turbine_num = Int(length(turbine_x)) + 1
 
     sources = Vector{Int64}(undef, turbine_num*(turbine_num - 1))
     destinations = Vector{Int64}(undef, turbine_num*(turbine_num - 1))
@@ -390,18 +390,26 @@ function Cabling_Design(turbine_x, turbine_y, turbine_z, substation_x, substatio
     cable_length = 0.0
 
     for i in 1:length(mst1)
+        x1 = turbine_x[mst1[i].src]
+        x2 = turbine_x[mst1[i].dst]
+        y1 = turbine_y[mst1[i].src]
+        y2 = turbine_y[mst1[i].dst]
+        z1 = turbine_z[mst1[i].src]
+        z2 = turbine_z[mst1[i].dst]
 
-        dist_length = dist(turbine_x[mst1[i].src], turbine_x[mst1[i].dst], turbine_y[mst1[i].src], turbine_y[mst1[i].dst], turbine_z[mst1[i].src], turbine_z[mst1[i],dst])
+        dist_length = sqrt((x2 - x1)^2.0 + (y2 - y1)^2.0 + (z2 - z1)^2.0)
 
-        sys_angle_1 = (-0.0047*turbine_z[mst[i].src] + 18.743)*pi/180
-        sys_angle_2 = (-0.0047*turbine_z[mst[i].dst] + 18.743)*pi/180
+        # dist_length = dist(turbine_x[mst1[i].src], turbine_x[mst1[i].dst], turbine_y[mst1[i].src], turbine_y[mst1[i].dst], turbine_z[mst1[i].src], turbine_z[mst1[i],dst])
+
+        sys_angle_1 = (-0.0047*turbine_z[mst1[i].src] + 18.743)*pi/180
+        sys_angle_2 = (-0.0047*turbine_z[mst1[i].dst] + 18.743)*pi/180
 
         # length of branch cable that is fixed to the seafloor
-        fixed_cable_length = (dist_length) - (tan(sys_angle_1)*turbine_z[mst[i].src]) - (tan(sys_angle_2)*turbine_z[mst[i].dst]) - 70
+        fixed_cable_length = (dist_length) - (tan(sys_angle_1)*turbine_z[mst1[i].src]) - (tan(sys_angle_2)*turbine_z[mst1[i].dst]) - 70
 
         # length of cable that hangs from a floating platform to the seafloor with added length for abrasion protection
-        free_cable_length_1 = (turbine_z[mst[i].src]/cos(sys_angle_1))*(Catenary_length_factor + 1) + 190
-        free_cable_length_2 = (turbine_z[mst[i].dst]/cos(sys_angle_2))*(Catenary_length_factor + 1) + 190
+        free_cable_length_1 = (turbine_z[mst1[i].src]/cos(sys_angle_1))*(Catenary_length_factor + 1) + 190
+        free_cable_length_2 = (turbine_z[mst1[i].dst]/cos(sys_angle_2))*(Catenary_length_factor + 1) + 190
 
 
         cable_length = cable_length + fixed_cable_length + free_cable_length_1 + free_cable_length_2
@@ -414,7 +422,7 @@ end
 
 function dist(x1, x2, y1, y2, z2, z1)
 
-    distance = sqrt((x2 - x1)^2 + (y2 - y1)^2 + (z2 - z1)^2)
+    distance = sqrt((x2 - x1)^2.0 + (y2 - y1)^2.0 + (z2 - z1)^2.0)
 
     return distance
 
