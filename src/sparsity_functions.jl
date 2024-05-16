@@ -154,7 +154,7 @@ function calculate_aep_gradient!(farm,x,sparse_struct::T) where T <: StableSpars
     n_threads = Threads.nthreads()
     n_states = length(farm.constants.wind_resource.wind_probabilities)
 
-    if n_threads > 1 && !farm.force_single_thread
+    if n_threads > 1 && !farm.force_single_thread && n_states > 1
         n_per_thread, rem = divrem(n_states,n_threads)
         rem > 0 && (n_per_thread += 1)
         assignments = 1:n_per_thread:n_states
@@ -327,7 +327,7 @@ function calculate_aep_gradient!(farm,x,sparse_struct::T) where T <: UnstableSpa
     n_threads = Threads.nthreads()
     n_states = length(farm.constants.wind_resource.wind_probabilities)
 
-    if n_threads > 1 && !farm.force_single_thread
+    if n_threads > 1 && !farm.force_single_thread && n_states > 1
         n_per_thread, rem = divrem(n_states,n_threads)
         rem > 0 && (n_per_thread += 1)
         assignments = 1:n_per_thread:n_states
