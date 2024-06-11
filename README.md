@@ -24,19 +24,6 @@
 (v1.x) pkg> dev https://github.com/byuflowlab/FLOWFarm.jl.git
 ```
 
-### Enable NaN Safe Mode in ForwardDiff
-NaN Safe Mode must be enables in ForwardDiff for ForwardDiff to work properly with FLOWFarm.
-
-```julia
-(v1.x) pkg> dev ForwardDiff
-```
-```
-$ cd ~/.julia/dev/ForwardDiff/src/
-```
-In `prelude.jl`, on the first line, set `const NANSAFE_MODE_ENABLED = true` and save the file. 
-For more information see the ForwardDiff documentation at 
-http://www.juliadiff.org/ForwardDiff.jl/latest/user/advanced.html
-
 ## Testing
 
 To test FLOWFarm, run the following from the top directory:
