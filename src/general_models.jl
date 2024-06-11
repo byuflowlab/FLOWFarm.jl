@@ -1,6 +1,6 @@
+export WindFarmModelSet
 abstract type AbstractModelSet end
-# using CSV
-# using DataFrames
+
 """
     WindFarmModelSet(wakedeficitmodel, wake_deflection_model, wake_combination_model, local_ti_model)
 

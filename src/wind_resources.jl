@@ -1,3 +1,4 @@
+export DiscretizedWindResource
 import SpecialFunctions: gamma
 
 abstract type AbstractWindResourceModel end
@@ -48,7 +49,7 @@ function rediscretize_windrose(windrosein::DiscretizedWindResource, ndirectionbi
     probabilityspline = Akima(splinedirs, [windrosein.wind_probabilities; windrosein.wind_probabilities; windrosein.wind_probabilities])
     heightspline = Akima(splinedirs, [windrosein.measurement_heights; windrosein.measurement_heights; windrosein.measurement_heights])
     ambienttispline = Akima(splinedirs, [windrosein.ambient_tis; windrosein.ambient_tis; windrosein.ambient_tis])
-    
+
     # get new interpolated wind rose attributes
     directionsnew = collect(range(start,2*pi+start-2*pi/ndirectionbins,length=ndirectionbins))
     if averagespeed
@@ -60,10 +61,10 @@ function rediscretize_windrose(windrosein::DiscretizedWindResource, ndirectionbi
     heightsnew = heightspline.(directionsnew)
     ambient_tis_new = ambienttispline.(directionsnew)
 
-    # re-normalize probabilites 
+    # re-normalize probabilites
     probabilitiesnew = probabilitiesnew./sum(probabilitiesnew)
 
-    # create new wind rose 
+    # create new wind rose
     windroseout = DiscretizedWindResource(directionsnew, speedsnew, probabilitiesnew, heightsnew, windrosein.air_density, ambient_tis_new, windrosein.wind_shear_model)
 
     return windroseout

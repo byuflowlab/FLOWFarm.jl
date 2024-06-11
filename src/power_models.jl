@@ -1,3 +1,4 @@
+export PowerModelConstantCp, PowerModelCpPoints, PowerModelPowerPoints, PowerModelPowerCurveCubic
 abstract type AbstractPowerModel end
 
 """

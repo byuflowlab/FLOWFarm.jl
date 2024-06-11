@@ -1,3 +1,4 @@
+export PowerLawWindShear
 abstract type AbstractWindShearModel end
 
 """
@@ -12,7 +13,7 @@ Ground height may be tuned because the power law does not always hold near the g
 - `shear_order::Bool`: when shear should be calculated. Can be "first", "last", or "none"
 """
 struct PowerLawWindShear{TF, TS} <: AbstractWindShearModel
-    
+
     # model parameter
     shear_exponent::TF
     ground_height::TF
@@ -32,7 +33,7 @@ not always hold near the ground.
 # Arguments
 - `locz::Float`: height of desired velocity
 - `reference_velocity::Float`: known velocity at reference_height
-- `reference_height::Float`: height of known velocity 
+- `reference_height::Float`: height of known velocity
 - `ground_height::Float`: height of the ground (typically zero)
 - `model::AbstractWindShearModel`: wind shear model to use for calculations
 """
@@ -41,7 +42,7 @@ function adjust_for_wind_shear(locz, reference_velocity, reference_height, groun
     # initialize adjusted wind speed to zero
     adjusted_wind_speed = 0.0
     shear_exp = model.shear_exponent
-    
+
     # check that the point of interest is above ground level
     if locz >= ground_height
         # adjusted wind speed for wind shear if point is above ground
@@ -60,7 +61,7 @@ end
 #     if loc[3] >= ground_height
 #         # adjusted wind speed for wind shear if point is above ground
 #         adjusted_wind_speed = point_velocity_no_shear*((loc[3]-ground_height)/(reference_height-ground_height))^shear_exp
-#     else 
+#     else
 #         # if the point of interest is below ground, set the wind speed to 0.0
 #         adjusted_wind_speed = 0.0
 #     end

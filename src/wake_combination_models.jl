@@ -1,3 +1,4 @@
+export LinearFreestreamSuperposition, SumOfSquaresFreestreamSuperposition, SumOfSquaresLocalVelocitySuperposition, LinearLocalVelocitySuperposition
 abstract type AbstractWakeCombinationModel end
 
 #=

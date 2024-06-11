@@ -1,3 +1,5 @@
+export turbine_spacing, turbine_spacing!, circle_boundary, circle_boundary!, convex_boundary, splined_boundary, splined_boundary!, splined_boundary_discreet_regions, ray_casting_boundary, VR_boundary_startup, VR_boundary
+
 """file with functions used in wind farm optimization, including constraints
 created May 4, 2020
 author: PJ Stanley and Jared Thomas

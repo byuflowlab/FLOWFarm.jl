@@ -1,3 +1,4 @@
+export NoYawDeflection, GaussYawDeflection, GaussYawVariableSpreadDeflection, JiminezYawDeflection, MultizoneDeflection
 abstract type AbstractWakeDeflectionModel end
 
 """
@@ -175,7 +176,7 @@ function wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine
 end
 
 function _bpa_theta_0(yaw, ct)
-    
+
     theta0 = (0.3*yaw/cos(yaw))*(1.0-sqrt(1.0-ct*cos(yaw)))
 
     return theta0
@@ -218,16 +219,16 @@ function wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine
     # [1] eqn 7.4
     x0 = _gauss_yaw_potential_core(diam, yaw, ct, as, ti, bs)
 
-    # calculate the discontinuity point of the gauss yaw model 
+    # calculate the discontinuity point of the gauss yaw model
     xd = _gauss_yaw_discontinuity(diam, x0, ky, kz, yaw, ct)
-    
+
     # calculate horizontal wake spread (paper eq: 7.2)
     sigmay = _gauss_yaw_spread_interpolated(diam, ky, dx, x0, yaw, xd)
 
     # calculate vertical wake spread (paper eq: 7.2)
     sigmaz = _gauss_yaw_spread_interpolated(diam, kz, dx, x0, 0.0, xd)
 
-    
+
     y_deflection = _bpa_deflection(diam, ct, yaw, ky, kz, sigmay, sigmaz, theta0, x0)
 
     return y_deflection
@@ -264,9 +265,9 @@ function wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine
     # [1] eqn 7.4
     x0 = _gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
 
-    # calculate the discontinuity point of the gauss yaw model 
+    # calculate the discontinuity point of the gauss yaw model
     xd = _gauss_yaw_discontinuity(dt, x0, ky, kz, yaw, ct)
-    
+
     # calculate horizontal wake spread (paper eq: 7.2)
     sigma_y = _gauss_yaw_spread_interpolated(dt, ky, dx, x0, yaw, xd)
 

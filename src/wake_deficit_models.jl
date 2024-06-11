@@ -1,3 +1,4 @@
+export JensenTopHat, JensenCosine, MultiZone, GaussOriginal, GaussYaw, GaussYawVariableSpread, GaussSimple, CumulativeCurl, NoWakeDeficit
 abstract type AbstractWakeDeficitModel end
 
 """

@@ -1,3 +1,6 @@
+export build_stable_sparse_struct, build_unstable_sparse_struct, build_sparse_spacing_struct, build_sparse_boundary_struct,
+calculate_aep_gradient!, calculate_spacing_jacobian!, calculate_boundary_jacobian!, calculate_spacing!
+
 """file with functions used in wind farm optimization employing sparse methods
 created January 26, 2024
 author: Benjamin Varela
@@ -7,9 +10,19 @@ abstract type AbstractSparseMethod end
 abstract type StableSparseMethod <: AbstractSparseMethod end
 abstract type UnstableSparseMethod <: AbstractSparseMethod end
 
-#TODO: documentation and examples
-
 # ∇AEP Optimization (stable pattern) #######################################################
+"""
+sparse_AEP_struct_stable_pattern
+
+Struct that holds all the necessary variables to calculate the AEP gradient using a stable sparsity pattern
+
+# Arguments
+- `caches`: vector of SparseDiffTools jacobian caches for each wind state
+- `jacobians`: vector of sparse matracies containing jacobians for each wind state
+- `state_gradients`: 2d array, each row is a state gradient (used for threads)
+- `turbine_powers`: 2d array that holds the powers or each turbine (used for threads)
+- `adtype`: AutoSparseForwardDiff object needed for SparseDiffTools
+"""
 struct sparse_AEP_struct_stable_pattern{T1,T2,T3,T4,T5} <: StableSparseMethod
     caches::T1 # vector of caches
     jacobians::T2 # vector of sparse jacobians
@@ -18,6 +31,45 @@ struct sparse_AEP_struct_stable_pattern{T1,T2,T3,T4,T5} <: StableSparseMethod
     adtype::T5
 end
 
+"""
+build_stable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,rotor_diameter,
+                ct_models,generator_efficiency,cut_in_speed,cut_out_speed,rated_speed,rated_power,wind_resource,
+                power_models,model_set,update_function;rotor_sample_points_y=[0.0],rotor_sample_points_z=[0.0],
+                AEP_scale=0.0,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false,tolerance=1E-16,
+                force_single_thread=false)
+
+Function that builds a wind_farm_struct and a sparse_AEP_struct_stable_pattern struct that goes with it
+
+# Arguments
+- `x`: Vector containing the design variables
+- `turbine_x`: Vector containing x positions of turbines
+- `turbine_y`: Vector containing y positions of turbines
+- `turbine_z`: Vector containing z positions of turbines (this is where the base meets the ground)
+- `hub_height`: Vector containing hub heights of turbines
+- `turbine_yaw`: Vector containing yaw angles of turbines
+- `rotor_diameter`: Vector containing rotor diameters of turbines
+- `ct_models`: Vector containing ct_models for each turbine
+- `generator_efficiency`: Vector containing generator efficiencies for each turbine
+- `cut_in_speed`: Vector containing cut in speeds for each turbine
+- `cut_out_speed`: Vector containing cut out speeds for each turbine
+- `rated_speed`: Vector containing rated speeds for each turbine
+- `rated_power`: Vector containing rated powers for each turbine
+- `wind_resource`: The DiscretizedWindResource struct
+- `power_models`: Vector containing power models for each turbine
+- `model_set`: The WindFarmModelSet for the wind farm
+- `update_function`: Function that updates the wind farm struct with the new design variables
+- `rotor_sample_points_y`: Vector containing the y positions of the rotor sample points
+- `rotor_sample_points_z`: Vector containing the z positions of the rotor sample points
+- `AEP_scale`: Single float that scales the AEP, if 0.0 will be set to 1.0/ideal_AEP
+- `input_type`: default is nothing and will be set to the type of x, if "ForwardDiff" then the input type will be set to ForwardDiff.dual
+- `opt_x`: Boolean to optimize x positions of turbines
+- `opt_y`: Boolean to optimize y positions of turbines
+- `opt_hub`: Boolean to optimize hub heights of turbines
+- `opt_yaw`: Boolean to optimize yaw angles of turbines
+- `opt_diam`: Boolean to optimize rotor diameters of turbines
+- `tolerance`: Single float that defines the tolerance for the jacobian pattern (default is 1E-16), set to 0.0 to use traditional sparsity
+- `force_single_thread`: Boolean to force single thread calculation
+"""
 function build_stable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,rotor_diameter,
                 ct_models,generator_efficiency,cut_in_speed,cut_out_speed,rated_speed,rated_power,wind_resource,
                 power_models,model_set,update_function;rotor_sample_points_y=[0.0],rotor_sample_points_z=[0.0],
@@ -46,6 +98,16 @@ function build_stable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height,t
     return farm,sparse_struct
 end
 
+"""
+build_stable_sparse_struct(x,farm;tolerance=1E-16)
+
+Helper function that builds a sparse_AEP_struct_stable_pattern struct
+
+# Arguments
+- `x`: Vector containing the  design variables
+- `farm`: WindFarm struct
+- `tolerance`: Single float that defines the tolerance for the jacobian pattern
+"""
 function build_stable_sparse_struct(x,farm;tolerance=1E-16)
     n_states = length(farm.constants.wind_resource.wind_probabilities)
     n_turbines = length(farm.turbine_x)
@@ -71,6 +133,19 @@ function build_stable_sparse_struct(x,farm;tolerance=1E-16)
     return sparse_AEP_struct_stable_pattern(caches,jacobians,state_gradients,pow,adtype)
 end
 
+"""
+define_patterns!(jacobians,x,farm,tolerance,pow,n_states)
+
+Helper function that defines the jacobian patterns for each wind state
+
+# Arguments
+- `jacobians`: Vector of sparse arrays holding jacobians
+- `x`: Vector containing the  design variables
+- `farm`: WindFarm struct
+- `tolerance`: Single float that defines the tolerance for the jacobian pattern
+- `pow`: 2d array that holds the powers or each turbine (used for threads)
+- `n_states`: Number of wind states
+"""
 function define_patterns!(jacobians,x,farm,tolerance,pow,n_states)
     n_threads = Threads.nthreads()
     if n_threads > 1 && !farm.force_single_thread
@@ -92,6 +167,19 @@ function define_patterns!(jacobians,x,farm,tolerance,pow,n_states)
     return nothing
 end
 
+"""
+define_stable_jacobian_pattern(x,farm,tolerance,pow,state_id;prealloc_id=1)
+
+Helper function that defines the jacobian pattern for a single wind state
+
+# Arguments
+- `x`: Vector containing the  design variables
+- `farm`: WindFarm struct
+- `tolerance`: Single float that defines the tolerance for the jacobian pattern
+- `pow`: 1d array that holds the powers or each turbine
+- `state_id`: Wind state id
+- `prealloc_id`: Preallocation id (to select the correct preallocated memory inside the wind farm struct)
+"""
 function define_stable_jacobian_pattern(x,farm,tolerance,pow,state_id;prealloc_id=1)
     p(a,x) = calculate_wind_state_power!(a,x,farm,state_id;prealloc_id=prealloc_id)
     x_temp = similar(x)
@@ -108,6 +196,20 @@ function define_stable_jacobian_pattern(x,farm,tolerance,pow,state_id;prealloc_i
     return dropzeros(sparse(jacobian))
 end
 
+"""
+calculate_wind_state_power!(pow,x,farm,state_id;prealloc_id=1,hours_per_year=365.25*24.0,lock=nothing)
+
+Helper function that calculates the power fora a single wind state
+
+# Arguments
+- `pow`: 1d array that holds the powers or each turbine
+- `x`: Vector containing the  design variables
+- `farm`: WindFarm struct
+- `state_id`: Wind state id
+- `prealloc_id`: Preallocation id (to select the correct preallocated memory inside the wind farm struct)
+- `hours_per_year`: Single float that defines the hours per year
+- `lock`: SpinLock object to lock the farm struct for multithreadeding
+"""
 function calculate_wind_state_power!(pow,x,farm,state_id;prealloc_id=1,hours_per_year=365.25*24.0,lock=nothing)
     if !isnothing(lock)
         Threads.lock(lock)
@@ -150,6 +252,16 @@ function calculate_wind_state_power!(pow,x,farm,state_id;prealloc_id=1,hours_per
     pow .*= hours_per_year .* farm.constants.wind_resource.wind_probabilities[state_id] .* farm.AEP_scale
 end
 
+"""
+calculate_aep_gradient!(farm,x,sparse_struct::T)
+
+Function that calculates the AEP gradient using a stable sparsity pattern
+
+# Arguments
+- `farm`: WindFarm struct
+- `x`: Vector containing the scaled design variables
+- `sparse_struct`: sparse_AEP_struct_stable_pattern struct
+"""
 function calculate_aep_gradient!(farm,x,sparse_struct::T) where T <: StableSparseMethod
     n_threads = Threads.nthreads()
     n_states = length(farm.constants.wind_resource.wind_probabilities)
@@ -187,6 +299,15 @@ function calculate_aep_gradient!(farm,x,sparse_struct::T) where T <: StableSpars
     return farm.AEP[1], farm.AEP_gradient
 end
 
+"""
+update_turbine_powers!(sparse_struct::T,i)
+
+Helper function that updates the turbine powers for a single wind state from the sparse struct
+
+# Arguments
+- `sparse_struct`: sparse_AEP_struct_stable_pattern struct
+- `i`: Wind state id
+"""
 function update_turbine_powers!(sparse_struct::T,i) where T <: StableSparseMethod
     n = length(sparse_struct.caches[i].cache.fx)
     for j = 1:n
@@ -196,6 +317,23 @@ end
 
 # ∇AEP Optimization (unstable pattern) #######################################################
 
+"""
+sparse_AEP_struct_unstable_pattern
+
+Struct that holds all the necessary variables to calculate the AEP gradient using an unstable sparsity pattern
+
+# Arguments
+- `deficit_thresholds`: Vector of floats that define the deficit thresholds for each wind state
+- `patterns`: 3d array that holds the sparsity patterns for each wind state
+- `state_gradients`: 2d array, each row is a state gradient (used for threads)
+- `jacobians`: Vector of sparse arrays containing jacobians for each wind state
+- `turbine_powers`: 2d array that holds the powers or each turbine (used for threads)
+- `farm`: WindFarm struct
+- `old_patterns`: 3d array that holds the old sparsity patterns for each wind state
+- `colors`: 2d array that holds the colors for each wind state
+- `state_powers`: 1d array that holds the state powers
+- `chunksize`: Chunksize for the AutoSparseForwardDiff object
+"""
 struct sparse_AEP_struct_unstable_pattern{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10} <: UnstableSparseMethod
     deficit_thresholds::T1
     patterns::T2
@@ -209,6 +347,45 @@ struct sparse_AEP_struct_unstable_pattern{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10} <: Uns
     chunksize::T10
 end
 
+"""
+build_unstable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,rotor_diameter,
+                ct_models,generator_efficiency,cut_in_speed,cut_out_speed,rated_speed,rated_power,wind_resource,
+                power_models,model_set,update_function;rotor_sample_points_y=[0.0],rotor_sample_points_z=[0.0],
+                AEP_scale=0.0,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false,tolerance=1E-16,
+                force_single_thread=false)
+
+Function that builds a wind_farm_struct and a sparse_AEP_struct_unstable_pattern struct
+
+# Arguments
+- `x`: Vector containing the  design variables
+- `turbine_x`: Vector containing x positions of turbines
+- `turbine_y`: Vector containing y positions of turbines
+- `turbine_z`: Vector containing z positions of turbines (this is where the base meets the ground)
+- `hub_height`: Vector containing hub heights of turbines
+- `turbine_yaw`: Vector containing yaw angles of turbines
+- `rotor_diameter`: Vector containing rotor diameters of turbines
+- `ct_models`: Vector containing ct_models for each turbine
+- `generator_efficiency`: Vector containing generator efficiencies for each turbine
+- `cut_in_speed`: Vector containing cut in speeds for each turbine
+- `cut_out_speed`: Vector containing cut out speeds for each turbine
+- `rated_speed`: Vector containing rated speeds for each turbine
+- `rated_power`: Vector containing rated powers for each turbine
+- `wind_resource`: The DiscretizedWindResource struct
+- `power_models`: Vector containing power models for each turbine
+- `model_set`: The WindFarmModelSet for the wind farm
+- `update_function`: Function that updates the wind farm struct with the new design variables
+- `rotor_sample_points_y`: Vector containing the y positions of the rotor sample points
+- `rotor_sample_points_z`: Vector containing the z positions of the rotor sample points
+- `AEP_scale`: Single float that scales the AEP, if 0.0 will be set to 1.0/ideal_AEP
+- `input_type`: default is nothing and will be set to the type of x, if "ForwardDiff" then the input type will be set to ForwardDiff.dual
+- `opt_x`: Boolean to optimize x positions of turbines
+- `opt_y`: Boolean to optimize y positions of turbines
+- `opt_hub`: Boolean to optimize hub heights of turbines
+- `opt_yaw`: Boolean to optimize yaw angles of turbines
+- `opt_diam`: Boolean to optimize rotor diameters of turbines
+- `tolerance`: Single float that defines the tolerance for the jacobian pattern (default is 1E-16), set to 0.0 to use traditional sparsity
+- `force_single_thread`: Boolean to force single thread calculation
+"""
 function build_unstable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,rotor_diameter,
                 ct_models,generator_efficiency,cut_in_speed,cut_out_speed,rated_speed,rated_power,wind_resource,
                 power_models,model_set,update_function;rotor_sample_points_y=[0.0],rotor_sample_points_z=[0.0],
@@ -245,6 +422,17 @@ function build_unstable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height
 
 end
 
+"""
+build_unstable_sparse_struct(x,farm,farm_forwarddiff;tolerance=1E-16)
+
+Helper function that builds a sparse_AEP_struct_unstable_pattern struct
+
+# Arguments
+- `x`: Vector containing the  design variables
+- `farm`: WindFarm struct
+- `farm_forwarddiff`: WindFarm struct with ForwardDiff input type for deficit tolerance calculation
+- `tolerance`: Single float that defines the tolerance for the jacobian pattern
+"""
 function build_unstable_sparse_struct(x,farm,farm_forwarddiff;tolerance=1E-16)
     n_states = length(farm.constants.wind_resource.wind_probabilities)
     n_turbines = length(farm.turbine_x)
@@ -271,6 +459,21 @@ function build_unstable_sparse_struct(x,farm,farm_forwarddiff;tolerance=1E-16)
     return sparse_AEP_struct_unstable_pattern(thresholds,patterns,state_gradients,jacobians,pow,farm,old_patterns,colors,state_powers,cache.chunksize), cache
 end
 
+"""
+calculate_thresholds!(jacobians,thresholds,x,farm_forwarddiff,farm,tolerance,pow,n_states)
+
+Helper function that calculates the thresholds for each wind state
+
+# Arguments
+- `jacobians`: Vector of sparse arrays holding jacobians
+- `thresholds`: Vector of floats that define the deficit thresholds for each wind state
+- `x`: Vector containing the  design variables
+- `farm_forwarddiff`: WindFarm struct with ForwardDiff input type for deficit tolerance calculation
+- `farm`: WindFarm struct
+- `tolerance`: Single float that defines the tolerance for the jacobian pattern
+- `pow`: 2d array that holds the powers or each turbine (used for threads)
+- `n_states`: Number of wind states
+"""
 function calculate_thresholds!(jacobians,thresholds,x,farm_forwarddiff,farm,tolerance,pow,n_states)
     n_threads = Threads.nthreads()
 
@@ -293,6 +496,21 @@ function calculate_thresholds!(jacobians,thresholds,x,farm_forwarddiff,farm,tole
     end
 end
 
+"""
+calculate_threshold(x,farm_forwarddiff,farm,tolerance,pow,state_id;prealloc_id=1,lock=nothing)
+
+Helper function that calculates the deficit threshold for a single wind state
+
+# Arguments
+- `x`: Vector containing the design variables
+- `farm_forwarddiff`: WindFarm struct with ForwardDiff input type for deficit tolerance calculation
+- `farm`: WindFarm struct
+- `tolerance`: Single float that defines the tolerance for the jacobian pattern
+- `pow`: 1d array that holds the powers or each turbine
+- `state_id`: Wind state id
+- `prealloc_id`: Preallocation id (to select the correct preallocated memory inside the wind farm struct)
+- `lock`: SpinLock object to lock the farm struct for multithreadeding
+"""
 function calculate_threshold(x,farm_forwarddiff,farm,tolerance,pow,state_id;prealloc_id=1,lock=nothing)
     n_turbines = length(farm.turbine_x)
     jacobian = zeros(eltype(x),n_turbines,length(x))
@@ -323,6 +541,16 @@ function calculate_threshold(x,farm_forwarddiff,farm,tolerance,pow,state_id;prea
     return dropzeros(sparse(jacobian)), threshold
 end
 
+"""
+calculate_aep_gradient!(farm,x,sparse_struct::T)
+
+Function that calculates the AEP gradient using an unstable sparsity pattern
+
+# Arguments
+- `farm`: WindFarm struct
+- `x`: Vector containing the scaled design variables
+- `sparse_struct`: sparse_AEP_struct_unstable_pattern struct
+"""
 function calculate_aep_gradient!(farm,x,sparse_struct::T) where T <: UnstableSparseMethod
     n_threads = Threads.nthreads()
     n_states = length(farm.constants.wind_resource.wind_probabilities)
@@ -351,6 +579,19 @@ function calculate_aep_gradient!(farm,x,sparse_struct::T) where T <: UnstableSpa
     return farm.AEP[1], farm.AEP_gradient
 end
 
+"""
+unstable_sparse_aep_gradient!(sparse_struct::T,x,farm,wind_state_id;prealloc_id=1,lock=nothing)
+
+Function that calculates the AEP gradient for a single wind state using an unstable sparsity pattern
+
+# Arguments
+- `sparse_struct`: sparse_AEP_struct_unstable_pattern struct
+- `x`: Vector containing the design variables
+- `farm`: WindFarm struct
+- `wind_state_id`: Wind state id
+- `prealloc_id`: Preallocation id (to select the correct preallocated memory inside the wind farm struct)
+- `lock`: SpinLock object to lock the farm struct for multithreadeding
+"""
 function unstable_sparse_aep_gradient!(sparse_struct::T,x,farm,wind_state_id;prealloc_id=1,lock=nothing) where T <: UnstableSparseMethod
     if farm.constants.wind_resource.wind_speeds[wind_state_id] == 0.0 || farm.constants.wind_resource.wind_probabilities[wind_state_id] == 0.0
         return
@@ -375,6 +616,17 @@ function unstable_sparse_aep_gradient!(sparse_struct::T,x,farm,wind_state_id;pre
     return nothing
 end
 
+"""
+calculate_unstable_sparsity_pattern!(sparse_struct::T,x,wind_state_id,prealloc_id)
+
+Helper function that calculates the sparsity pattern for a single wind state using an unstable sparsity pattern
+
+# Arguments
+- `sparse_struct`: sparse_AEP_struct_unstable_pattern struct
+- `x`: Vector containing the design variables
+- `wind_state_id`: Wind state id
+- `prealloc_id`: Preallocation id (to select the correct preallocated memory inside the wind farm struct)
+"""
 function calculate_unstable_sparsity_pattern!(sparse_struct::T,x,wind_state_id,prealloc_id) where T <: UnstableSparseMethod
     n_turbines = length(sparse_struct.farm.turbine_x)
     n_variables = length(x)÷n_turbines
@@ -407,6 +659,17 @@ function calculate_unstable_sparsity_pattern!(sparse_struct::T,x,wind_state_id,p
     return nothing
 end
 
+"""
+recolor_jacobian!(sparse_struct::T,wind_state_id,n_variables,n_turbines)
+
+Helper function that recolors the jacobian for a single wind state
+
+# Arguments
+- `sparse_struct`: sparse_AEP_struct_unstable_pattern struct
+- `wind_state_id`: Wind state id
+- `n_variables`: Number of design variables
+- `n_turbines`: Number of turbines
+"""
 function recolor_jacobian!(sparse_struct::T,wind_state_id,n_variables,n_turbines) where T <: UnstableSparseMethod
     start_i(x) = n_turbines*(x-1)+1
     stop_i(x) = start_i(x) + n_turbines-1
@@ -421,6 +684,19 @@ function recolor_jacobian!(sparse_struct::T,wind_state_id,n_variables,n_turbines
     end
 end
 
+"""
+calculate_unstable_sparse_jacobian!(sparse_struct::T,x,farm,wind_state_id,prealloc_id,lock)
+
+Helper function that calculates the sparse jacobian for a single wind state using an unstable sparsity pattern
+
+# Arguments
+- `sparse_struct`: sparse_AEP_struct_unstable_pattern struct
+- `x`: Vector containing the design variables
+- `farm`: WindFarm struct
+- `wind_state_id`: Wind state id
+- `prealloc_id`: Preallocation id (to select the correct preallocated memory inside the wind farm struct)
+- `lock`: SpinLock object to lock the farm struct for multithreadeding
+"""
 function calculate_unstable_sparse_jacobian!(sparse_struct::T,x,farm,wind_state_id,prealloc_id,lock) where T <: UnstableSparseMethod
     p(a,x) = calculate_wind_state_power!(a,x,farm,wind_state_id;prealloc_id=prealloc_id,lock=lock)
 
@@ -433,10 +709,27 @@ function calculate_unstable_sparse_jacobian!(sparse_struct::T,x,farm,wind_state_
 end
 
 # Sparse spacing constraint methods ########################################################
+"""
+sparse_spacing_struct
+
+Struct that holds all the necessary variables to calculate the spacing constraints using sparse methods
+
+# Arguments
+- `turbine_x`: Vector containing x positions of turbines
+- `turbine_y`: Vector containing y positions of turbines
+- `constraint_spacing`: Single float that defines the minimum spacing between turbines
+- `constraint_scaling`: Single float that scales the constraint
+- `spacing_vec`: Vector containing the spacing constraints
+- `jacobian`: Sparse matrix containing the jacobian of the spacing constraints
+- `cache`: SparseJacobianCache object for SparseDiffTools
+- `update_function`: Function that updates the spacing struct with the new design variables
+- `relevant_list`: 2d array that holds the relevant turbine pairs for the spacing constraint (column 1 holds the first turbine and column 2 holds the second turbine in the pair)
+- `ad`: AutoSparseForwardDiff object
+"""
 struct sparse_spacing_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10} <: AbstractSparseMethod
     turbine_x::T1
     turbine_y::T2
-    constraint_spacing::T3 # Single float that defines the minimum spacing between turbines in meters
+    constraint_spacing::T3 # Single float that defines the minimum spacing between turbines
     constraint_scaling::T4 # Single float that scales the constraint
     spacing_vec::T5 # In place vector
     jacobian::T6
@@ -446,6 +739,21 @@ struct sparse_spacing_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10} <: AbstractSparseMe
     ad::T10
 end
 
+"""
+build_sparse_spacing_struct(x,turbine_x,turbine_y,space,scale,update_function;first_opt=true,relevant_spacing_factor=2)
+
+Function that builds a sparse_spacing_struct
+
+# Arguments
+- `x`: Vector containing the design variables
+- `turbine_x`: Vector containing x positions of turbines
+- `turbine_y`: Vector containing y positions of turbines
+- `space`: Single float that defines the minimum spacing between turbines
+- `scale`: Single float that scales the constraint
+- `update_function`: Function that updates the spacing struct with the new design variables
+- `first_opt`: Boolean to determine if this is the first optimization (if true uses no spacing constraints)
+- `relevant_spacing_factor`: Single float that defines the factor of space to be considered relevant
+"""
 function build_sparse_spacing_struct(x,turbine_x,turbine_y,space,scale,update_function;first_opt=true,relevant_spacing_factor=2)
     if first_opt
         n_constraints = 0
@@ -477,6 +785,17 @@ function build_sparse_spacing_struct(x,turbine_x,turbine_y,space,scale,update_fu
     return sparse_spacing_struct(turbine_x,turbine_y,space,scale,spacing_vec,spacing_jacobian,cache,update_function,relevant_list,ad)
 end
 
+"""
+build_relevant_list(turbine_x,turbine_y,space,factor)
+
+Helper function that builds the relevant list for the sparse spacing constraints
+
+# Arguments
+- `turbine_x`: Vector containing x positions of turbines
+- `turbine_y`: Vector containing y positions of turbines
+- `space`: Single float that defines the minimum spacing between turbines
+- `factor`: Single float that defines the factor of space to be considered relevant
+"""
 function build_relevant_list(turbine_x,turbine_y,space,factor)
     n_turbines = length(turbine_x)
     spacing = turbine_spacing(turbine_x,turbine_y)
@@ -501,6 +820,11 @@ function build_relevant_list(turbine_x,turbine_y,space,factor)
     return relevant,idx
 end
 
+"""
+build_spacing_struct(x,n_turbines,space,scale,update_function)
+
+Calculates the spacing constraints using sparse methods
+"""
 function calculate_spacing!(spacing_vec,x,spacing_struct::T) where T<: AbstractSparseMethod
     spacing_struct.update_function(spacing_struct,x)
 
@@ -509,6 +833,17 @@ function calculate_spacing!(spacing_vec,x,spacing_struct::T) where T<: AbstractS
     spacing_vec .= (spacing_struct.constraint_spacing .- spacing_vec) .* spacing_struct.constraint_scaling
 end
 
+"""
+sparse_spacing!(spacing_vec,turbine_x,turbine_y,relevant)
+
+Helper function that calculates the relevant spacing constraints
+
+# Arguments
+- `spacing_vec`: Vector containing the spacing constraints
+- `turbine_x`: Vector containing x positions of turbines
+- `turbine_y`: Vector containing y positions of turbines
+- `relevant`: 2d array that holds the relevant turbine pairs for the spacing constraint
+"""
 function sparse_spacing!(spacing_vec,turbine_x,turbine_y,relevant)
     for i in axes(relevant,1)
         j = relevant[i,1]
@@ -518,6 +853,15 @@ function sparse_spacing!(spacing_vec,turbine_x,turbine_y,relevant)
     return spacing_vec
 end
 
+"""
+calculate_spacing_jacobian!(spacing_struct,x)
+
+Function that calculates the spacing constraints jacobian using sparse methods
+
+# Arguments
+- `spacing_struct`: sparse_spacing_struct
+- `x`: Vector containing the design variables
+"""
 function calculate_spacing_jacobian!(spacing_struct::T,x) where T <: AbstractSparseMethod
     if isnothing(spacing_struct.cache)
         return spacing_struct.spacing_vec, spacing_struct.jacobian
@@ -533,6 +877,22 @@ function calculate_spacing_jacobian!(spacing_struct::T,x) where T <: AbstractSpa
 end
 
 # Sparse boundary constraint methods #######################################################
+"""
+sparse_boundary_struct
+
+Struct that holds all the necessary variables to calculate the boundary constraints using sparse methods
+
+# Arguments
+- `turbine_x`: Vector containing x positions of turbines
+- `turbine_y`: Vector containing y positions of turbines
+- `jacobian`: Sparse matrix containing the jacobian of the boundary constraints
+- `ad`: AutoSparseForwardDiff object
+- `cache`: SparseJacobianCache object for SparseDiffTools
+- `boundary_vec`: Vector containing the boundary constraints
+- `boundary_function`: Function that calculates the boundary constraints
+- `update_function`: Function that updates the boundary struct with the new design variables
+- `boundary_scaling_factor`: Single float that scales the boundary constraint
+"""
 struct sparse_boundary_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9} <: AbstractSparseMethod
     turbine_x::T1
     turbine_y::T2
@@ -545,6 +905,15 @@ struct sparse_boundary_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9} <: AbstractSparseMetho
     boundary_scaling_factor::T9
 end
 
+"""
+calculate_boundary_jacobian!(boundary_struct::T,x)
+
+Function that builds a sparse_boundary_struct
+
+# Arguments
+- `boundary_struct`: sparse_boundary_struct
+- `x`: Vector containing the design variables
+"""
 function calculate_boundary_jacobian!(boundary_struct::T,x) where T <: AbstractSparseMethod
     calculate_boundary(a,b) = calculate_boundary!(a,b,boundary_struct)
     sparse_jacobian!(boundary_struct.jacobian, boundary_struct.ad, boundary_struct.cache, calculate_boundary, boundary_struct.boundary_vec, x)

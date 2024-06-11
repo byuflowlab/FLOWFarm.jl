@@ -1,5 +1,7 @@
 abstract type AbstractTurbineDefinition end
 
+# not used
+
 struct TurbineDefinition{TI,AF,CTM,PM} <: AbstractTurbineDefinition
     id::TI
     rotor_diameter::AF
