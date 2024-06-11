@@ -21,6 +21,7 @@ XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
+ForwardDiff = "0.10"
 julia = "1"
 
 [extras]
