@@ -22,6 +22,14 @@ YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
 YAML = "0.4"
+DataFrames = "1"
+SpecialFunctions = "2"
+FiniteDiff = "2"
+XLSX = "0.10"
+DelimitedFiles = "1"
+CCBlade = "0.2"
+PyPlot = "2"
+ForwardDiff = "0.10"
 julia = "1"
 
 [extras]
