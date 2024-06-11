@@ -1,7 +1,15 @@
 abstract type AbstractWakeDeflectionModel end
 
 """
-    GaussYawDeflection(horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
+    NoYawDeflection()
+
+Allows for bypassing deflection calculations.
+"""
+struct NoYawDeflection <: AbstractWakeDeflectionModel
+end
+
+"""
+    GaussYawDeflection(horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star, interpolation)
 
 Container for parameters related to the Gaussian deflection model presented by Bastankhah and Porte-Agel 2016
 
@@ -10,17 +18,22 @@ Container for parameters related to the Gaussian deflection model presented by B
 - `vertical_spread_rate::Float`: parameter controlling the vertical spread of the deficit model. Default value is 0.022.
 - `alpha_star::Float`: parameter controlling the impact of turbulence intensity on the length of the near wake. Default value is 2.32.
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
+- `interpolation::Bool`: boolean stating if the the near wake should be interpolated. Default value is true.
 """
-struct GaussYawDeflection{TF} <: AbstractWakeDeflectionModel
+struct GaussYawDeflection{TF, BO} <: AbstractWakeDeflectionModel
     horizontal_spread_rate::TF
     vertical_spread_rate::TF
     alpha_star::TF
     beta_star::TF
+    interpolate_sigma::BO
 end
-GaussYawDeflection() = GaussYawDeflection(0.022, 0.022, 2.32, 0.154)
+GaussYawDeflection() = GaussYawDeflection(0.022, 0.022, 2.32, 0.154, true)
+GaussYawDeflection(interp) = GaussYawDeflection(0.022, 0.022, 2.32, 0.154, interp)
+GaussYawDeflection(a,b,c,d) = GaussYawDeflection(a, b, c, d, true)
+GaussYawDeflection(a,b,c,d,interp) = GaussYawDeflection(a, b, c, d, interp)
 
 """
-    GaussYawDeflectionVariableSpread(alpha_star, beta_star, k1, k2, wec_factor)
+    GaussYawDeflectionVariableSpread(alpha_star, beta_star, k1, k2, interpolation)
 
 Container for parameters related to the Gaussian deflection model with yaw presented by Bastankhah and Porte-Agel 2016
 
@@ -29,15 +42,19 @@ Container for parameters related to the Gaussian deflection model with yaw prese
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 - `k1::Float`: first parameter tuning wake spread as based on turbulence intensity
 - `k2::Float`: second parameter tuning wake spread as based on turbulence intensity
+- `interpolation::Bool`: boolean stating if the the near wake should be interpolated. Default value is true.
 """
-struct GaussYawVariableSpreadDeflection{TF} <: AbstractWakeDeflectionModel
+struct GaussYawVariableSpreadDeflection{TF, BO} <: AbstractWakeDeflectionModel
     alpha_star::TF
     beta_star::TF
     k1::TF
     k2::TF
+    interpolate_sigma::BO
 end
-GaussYawVariableSpreadDeflection() = GaussYawVariableSpreadDeflection(2.32, 0.154, 0.3837, 0.003678)
-GaussYawVariableSpreadDeflection(x, y) = GaussYawVariableSpreadDeflection(x, y, 0.3837, 0.003678)
+GaussYawVariableSpreadDeflection() = GaussYawVariableSpreadDeflection(2.32, 0.154, 0.3837, 0.003678, true)
+GaussYawVariableSpreadDeflection(interp) = GaussYawVariableSpreadDeflection(2.32, 0.154, 0.3837, 0.003678, interp)
+GaussYawVariableSpreadDeflection(x, y) = GaussYawVariableSpreadDeflection(x, y, 0.3837, 0.003678, true)
+GaussYawVariableSpreadDeflection(x, y, interp) = GaussYawVariableSpreadDeflection(x, y, 0.3837, 0.003678, interp)
 
 """
     JiminezYawDeflection(horizontal_spread_rate)
@@ -70,7 +87,19 @@ end
 MultizoneDeflection() = MultizoneDeflection(0.15, -4.5, -0.01)
 
 """
-    wake_deflection_model(locx, locy, locz, turbine_id, turbine_definition::TurbineDefinition, model::JiminezYawDeflection, windfarmstate::SingleWindFarmState)
+    wake_deflection_model(locx, locy, locz, turbine_id, turbine_definition::TurbineDefinition, model::NoYawDeflection, windfarmstate::SingleWindFarmState)
+
+    Bypasses yaw deflection calculations.
+
+"""
+function wake_deflection_model(locx, locy, locz, turbine_x, turbine_yaw, turbine_ct, turbine_id, rotor_diameter, turbine_local_ti, model::NoYawDeflection)
+
+    return 0.0
+
+end
+
+"""
+    wake_deflection_model(locx, locy, locz, turbine_id, turbine_definition::TurbineDefinition, model::JiminezYawDeflection)
 
     Calculates the horizontal deflection of the wind turbine wake
 

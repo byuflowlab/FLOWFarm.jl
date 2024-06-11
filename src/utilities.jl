@@ -7,7 +7,7 @@ Convert from meteorological polar system (CW, 0 rad.=N, wind from) to cartesian 
 # Arguments
 - `angle_met::Number`: an angle in radians in a meteorological coordinate system
 """
-function met2cart(angle_met)
+function met2cart(angle_met::Number)
     angle_cartesian = (3.0*pi/2.0 - angle_met)
 
     if angle_cartesian < 0.0
@@ -28,7 +28,7 @@ the positive x.
 - `wind_direction_met::Array`: contains wind direction in radians in meteorological standard 
     system (N=0 rad, proceeds CW, wind from direction given)
 """
-function rotate_to_wind_direction(xlocs, ylocs, wind_direction_met; center=[0.0,0.0])
+function rotate_to_wind_direction(xlocs, ylocs, wind_direction_met::Number; center=[0.0,0.0])
     # use radians
 
     # convert from meteorological polar system (CW, 0 rad.=N) to standard polar system (CCW, 0 rad.=E)
@@ -653,7 +653,7 @@ sample is requested, it will be at the hub location. Otherwise, the points will 
 using the sunflower packcing algorithm.
 
 # Arguments
-- `nsamplepoints::Int`: controlls how many sample points to generate
+- `nsamplepoints::Int`: controls how many sample points to generate
 - `alpha::Float`: Controls smoothness of the sunflower algorithm boundary. alpha=0 is the standard "jagged edge" sunflower algoirthm and
     alpha=1 results in a smooth boundary.
 - `pradius::Float`: the percent of the rotor radius to use in generating initial point grid 
@@ -1296,7 +1296,7 @@ boundary, and 1 otherwise.
 - `shift::Float`: how far to shift point if it lies on an edge or vertex
 - `return_distance::Bool`: if true, return distance. if false, return -1 if in polygon or on the boundary, and 1 otherwise.
 """
-function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycasting", shift=1E-10, return_distance=true)
+function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycasting", shift=1E-10, return_distance=true, turbine_to_face_distance=[])
     # println(point)
     if return_distance && typeof(point[1]) <: Int
         throw(ArgumentError("point coordinates may not be given as Ints, must use Floats of some kind. point used $(typeof(point[1]))"))
@@ -1313,8 +1313,11 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
     intersection_counter = 0
 
     # initialize array to hold distances from each turbine to closest boundary face
-    turbine_to_face_distance = zeros(typeof(point[1]), nvertices)
-                
+    if turbine_to_face_distance == []
+        # println("allocating")
+        turbine_to_face_distance = zeros(typeof(point[1]), nvertices)
+    end
+    # println("type of turbine to face in pointinpolygon: ", typeof(turbine_to_face_distance))
     # get vector from turbine to the first vertex in first face
     turbine_to_first_facepoint = vertices[1, :] - point # dy/dp = -1
 
