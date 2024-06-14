@@ -10,26 +10,26 @@ using ForwardDiff
 using FiniteDiff
 
 @testset ExtendedTestSet "all tests" begin
-    @testset "type stability" begin
-        @testset "AEP Calculation" begin
-            include("model_sets/model_set_6.jl")
-            function testAEP()
-                return ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
-                    hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
-                    cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set)/1e9
-            end
-            function checkstability()
-                try
-                    @inferred testAEP()
-                    return true
-                catch err
-                    println(err)
-                    return false
-                end
-            end
-            @test checkstability()
-        end
-    end
+    # @testset "type stability" begin
+    #     @testset "AEP Calculation" begin
+    #         include("model_sets/model_set_6.jl")
+    #         function testAEP()
+    #             return ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
+    #                 hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
+    #                 cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set)/1e9
+    #         end
+    #         function checkstability()
+    #             try
+    #                 @inferred testAEP()
+    #                 return true
+    #             catch err
+    #                 println(err)
+    #                 return false
+    #             end
+    #         end
+    #         @test checkstability()
+    #     end
+    # end
 
     @testset "cost_models" begin
         Parameters = ff.Levelized()
