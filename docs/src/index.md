@@ -9,13 +9,13 @@
 - Smooth/continous model implementations
 - Runs on a single core, across multiple cores (threaded), or on multiple machines (distributed).
 - Designed so that new model implementations can be included by adding a single method
-- Allows for Wake Expansion Continuation (WEC) as described [here](http://flowlab.groups.et.byu.net/preprints/Thomas2021.pdf)
+- Allows for Wake Expansion Continuation (WEC) as described here
 
 ## Installation
 
 ### Install FLOWFarm
-
-```julia
+```
+julia
 (v1.x) pkg> dev https://github.com/byuflowlab/FLOWFarm.jl.git
 ```
 
@@ -23,7 +23,8 @@
 
 To test FLOWFarm, run the following from the top directory:
 
-```julia
+```
+julia
 julia
 ]
 activate .

@@ -1,6 +1,4 @@
 abstract type AbstractModelSet end
-# using CSV
-# using DataFrames
 
 """
     WindFarmModelSet(wakedeficitmodel, wake_deflection_model, wake_combination_model, local_ti_model)
@@ -32,20 +30,20 @@ Calculates the wind speed at a given point for a given state
 
 # Arguments
 - `loc::Array{TF,3}`: Location of interest
-- `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the state 
+- `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the state
     reference frame
-- `turbine_y::Array{TF,nTurbines}`: turbine north-south locations in the state 
+- `turbine_y::Array{TF,nTurbines}`: turbine north-south locations in the state
     reference frame
 - `turbine_z::Array{TF,nTurbines}`: turbine base height in the state reference frame
-- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in 
+- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in
     radians
 - `turbine_ct::Array{TF,nTurbines}`: turbine thrust coefficients for the given state
 - `turbine_ai::Array{TF,nTurbines}`: turbine axial induction for the given state
 - `rotor_diameter::Array{TF,nTurbines}`: turbine rotor diameters
 - `hub_height::Array{TF,nTurbines}`: turbine hub heights
-- `turbine_local_ti::Array{TF,nTurbines}`: turbine local turbulence intensity for 
+- `turbine_local_ti::Array{TF,nTurbines}`: turbine local turbulence intensity for
     the given state
-- `sorted_turbine_index::Array{TF,nTurbines}`: array containing indices of wind turbines 
+- `sorted_turbine_index::Array{TF,nTurbines}`: array containing indices of wind turbines
     from most upwind to most downwind turbine in the given state
 - `wtvelocities::Array{TF,nTurbines}`: effective inflow wind speed for given state
 - `wind_resource::DiscretizedWindResource`: contains wind resource discreption (directions,
@@ -59,12 +57,12 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
                     rotor_diameter, hub_height, turbine_local_ti, sorted_turbine_index, wtvelocities,
                     wind_resource, model_set::AbstractModelSet;
                     wind_farm_state_id=1, downwind_turbine_id=0)
-    
+
     # extract flow information
     wind_speed = wind_resource.wind_speeds[wind_farm_state_id]
     reference_height = wind_resource.measurement_heights[wind_farm_state_id]
 
-    # set ground height 
+    # set ground height
     ground_height = wind_resource.wind_shear_model.ground_height    # TODO: allow topology to be given
 
     # find order for wind shear and deficit calculations
@@ -127,7 +125,7 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
     elseif shear_order == "first"
         point_velocity_out = point_velocity
     else
-        point_velocity_out = adjust_for_wind_shear(locz, point_velocity, reference_height, ground_height, wind_resource.wind_shear_model)        
+        point_velocity_out = adjust_for_wind_shear(locz, point_velocity, reference_height, ground_height, wind_resource.wind_shear_model)
     end
 
     return point_velocity_out
@@ -141,26 +139,26 @@ end
     turbine_ct=nothing, turbine_ai=nothing, turbine_local_ti=nothing)
 
 # Arguments
-- `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the state 
+- `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the state
     reference frame
-- `turbine_y::Array{TF,nTurbines}`: turbine north-south locations in the state 
+- `turbine_y::Array{TF,nTurbines}`: turbine north-south locations in the state
     reference frame
 - `turbine_z::Array{TF,nTurbines}`: turbine base height in the state reference frame
 - `rotor_diameter::Array{TF,nTurbines}`: turbine rotor diameters
 - `hub_height::Array{TF,nTurbines}`: turbine hub heights
-- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in 
+- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in
     radians
-- `sorted_turbine_index::Array{TF,nTurbines}`: turbine sorted order upstream to downstream 
+- `sorted_turbine_index::Array{TF,nTurbines}`: turbine sorted order upstream to downstream
     for given state
-- `ct_model::AbstractThrustCoefficientModel`: defines how the thrust coefficient changes 
+- `ct_model::AbstractThrustCoefficientModel`: defines how the thrust coefficient changes
     with state etc
-- rotor_sample_points_y::Array{TF,N}`: horizontal wind location of points to sample across 
-    the rotor swept area when calculating the effective wind speed for the wind turbine. 
-    Points are centered at the hub (0,0) and scaled by the radius (1=tip of blades) 
-- rotor_sample_points_z::Array{TF,N}`: vertical wind location of points to sample across the 
+- rotor_sample_points_y::Array{TF,N}`: horizontal wind location of points to sample across
+    the rotor swept area when calculating the effective wind speed for the wind turbine.
+    Points are centered at the hub (0,0) and scaled by the radius (1=tip of blades)
+- rotor_sample_points_z::Array{TF,N}`: vertical wind location of points to sample across the
     rotor swept area when calculating the effective wind speed for the wind turbine. Points
     are centered at the hub (0,0) and scaled by the radius (1=tip of blades)
-- `wind_resource::DiscretizedWindResource`: wind resource discreption (directions, speeds, 
+- `wind_resource::DiscretizedWindResource`: wind resource discreption (directions, speeds,
     frequencies, etc)
 - `model_set::AbstractModelSet`: defines wake-realated models to be used in analysis
 - `wind_farm_state_id::Int`: index to correct state to use from wind resource provided.
@@ -170,7 +168,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
                     sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set::AbstractModelSet; wind_farm_state_id::Int=1, velocity_only::Bool=true, turbine_velocities=nothing,
                     turbine_ct=nothing, turbine_ai=nothing, turbine_local_ti=nothing)
-    
+
     # get number of turbines and rotor sample point
     n_turbines = length(turbine_x)
 
@@ -205,10 +203,10 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         turbine_ct, turbine_ai, turbine_local_ti; wind_farm_state_id=wind_farm_state_id, velocity_only=velocity_only)
     end
 
-    
+
 
     if velocity_only
-        return turbine_velocities 
+        return turbine_velocities
     else
         return turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti
     end
@@ -233,7 +231,7 @@ function turbine_velocities_one_direction!(turbine_x::Vector{T0}, turbine_y::Vec
         # initialize downstream wind turbine velocity to zero
         wind_turbine_velocity = 0.0
 
-        # initialize point vel with shear 
+        # initialize point vel with shear
         point_velocity_with_shear = 0.0
 
         # loop over all rotor sample points to approximate the effective inflow velocity
@@ -272,7 +270,7 @@ function turbine_velocities_one_direction!(turbine_x::Vector{T0}, turbine_y::Vec
 
         # get local turbulence intensity for this wind state
         ambient_ti = wind_resource.ambient_tis[wind_farm_state_id]
-        
+
         # update local turbulence intensity for downstream turbine
         turbine_local_ti[downwind_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
                             turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=downwind_turbine_id, tol=1E-6)
@@ -343,7 +341,7 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
 
             # update local TI for current turbine
             turbine_local_ti[current_turbine_id] = calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hub_height, turbine_yaw, turbine_local_ti, sorted_turbine_index,
-                                            turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=current_turbine_id, tol=1E-6)                     
+                                            turbine_velocities, turbine_ct, model_set.local_ti_model; turbine_id=current_turbine_id, tol=1E-6)
 
             for d = n+1:n_turbines
                 downwind_turbine_id = Int(sorted_turbine_index[d])
@@ -376,7 +374,7 @@ function turbine_velocities_one_direction_CC!(turbine_x::Vector{T0}, turbine_y::
 
                     if p == 1
                         if no_yaw == false
-                            deflections[current_turbine_id,downwind_turbine_id] = wake_deflection_model(x, y, z, turbine_x, turbine_yaw, turbine_ct, current_turbine_id, 
+                            deflections[current_turbine_id,downwind_turbine_id] = wake_deflection_model(x, y, z, turbine_x, turbine_yaw, turbine_ct, current_turbine_id,
                                     rotor_diameter, turbine_local_ti, model_set.wake_deflection_model)
                         end
                         sigma2[current_turbine_id,downwind_turbine_id] = wake_expansion(turbine_ct[current_turbine_id],turbine_local_ti[current_turbine_id],x_tilde_n,model_set.wake_deficit_model)
@@ -444,7 +442,7 @@ end
 
 #     n_turbines = Int(length(x)/2)
 #     # println(typeof(x), n_turbines)
-#     turbine_x = x[1:n_turbines] 
+#     turbine_x = x[1:n_turbines]
 #     turbine_y = x[n_turbines+1:end]
 #     # println(turbine_x)
 #     # println("turbine_x type ", typeof(turbine_x))
@@ -513,7 +511,7 @@ end
 #     end
 
 #     if velocity_only
-#         return turbine_velocities 
+#         return turbine_velocities
 #     else
 #         return turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti
 #     end
@@ -524,8 +522,8 @@ end
 # model_set::AbstractModelSet, problem_description::AbstractWindFarmProblem; wind_farm_state_id=1)
 
 """
-calculate_flow_field(xrange, yrange, zrange, model_set::AbstractModelSet, turbine_x, 
-    turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, rotor_diameter, hub_height, 
+calculate_flow_field(xrange, yrange, zrange, model_set::AbstractModelSet, turbine_x,
+    turbine_y, turbine_z, turbine_yaw, turbine_ct, turbine_ai, rotor_diameter, hub_height,
     turbine_local_ti, sorted_turbine_index, wtvelocities, wind_resource; wind_farm_state_id=1)
 
 Generates a flow field for a given state and cross section
@@ -535,23 +533,23 @@ Generates a flow field for a given state and cross section
 - `yrange::Range`: range defining north-west locations to sample in global reference frame
 - `zrange::Range`: range defining vertical locations to sample in global reference frame
 - `model_set::AbstractModelSet`: defines wake-realated models to be used in analysis
-- `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the global 
+- `turbine_x::Array{TF,nTurbines}`: turbine east-west locations in the global
     reference frame
-- `turbine_y::Array{TF,nTurbines}`: turbine north-south locations in the global 
+- `turbine_y::Array{TF,nTurbines}`: turbine north-south locations in the global
     reference frame
 - `turbine_z::Array{TF,nTurbines}`: turbine base height in the global reference frame
-- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in 
+- `turbine_yaw::Array{TF,nTurbines}`: turbine yaw for the given wind direction in
     radians
 - `turbine_ct::Array{TF,nTurbines}`: thrust coefficient of each turbine for the given state
 - `turbine_ai::Array{TF,nTurbines}`: turbine axial induction for the given state
 - `rotor_diameter::Array{TF,nTurbines}`: turbine rotor diameters
 - `hub_height::Array{TF,nTurbines}`: turbine hub heights
-- `turbine_local_ti::Array{TF,nTurbines}`: turbine local turbulence intensity for 
+- `turbine_local_ti::Array{TF,nTurbines}`: turbine local turbulence intensity for
     the given state
-- `sorted_turbine_index::Array{TF,nTurbines}`: turbine north-south locations in the 
+- `sorted_turbine_index::Array{TF,nTurbines}`: turbine north-south locations in the
     global reference frame
 - `wtvelocities::Array{TF,nTurbines}`: effective inflow wind speed for given state
-- `wind_resource::DiscretizedWindResource`: wind resource discreption (directions, speeds, 
+- `wind_resource::DiscretizedWindResource`: wind resource discreption (directions, speeds,
     frequencies, etc)
 - `wind_farm_state_id::Int`: index to correct state to use from wind resource provided.
     Defaults to 1
@@ -591,7 +589,7 @@ function calculate_flow_field(xrange, yrange, zrange,
         end
     end
 
-    
+
 
     # if zlen == 1
     #     return point_velocities[1,1:ylen,1:xlen]

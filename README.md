@@ -20,7 +20,8 @@
 
 ### Install FLOWFarm
 
-```julia
+```
+julia
 (v1.x) pkg> dev https://github.com/byuflowlab/FLOWFarm.jl.git
 ```
 
@@ -28,7 +29,8 @@
 
 To test FLOWFarm, run the following from the top directory:
 
-```julia
+```
+julia
 julia
 ]
 activate .

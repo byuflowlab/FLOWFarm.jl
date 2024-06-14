@@ -73,6 +73,3 @@ end
 #     boundary = PolygonBoundary(vertices, normals)
 #     return boundary
 # end
-
-
-

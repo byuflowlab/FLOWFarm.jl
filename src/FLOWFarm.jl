@@ -1,24 +1,14 @@
 module FLOWFarm
-using ForwardDiff: Iterators
-using Geodesy: bound_thetad
-using Geodesy; const gd = Geodesy
 using ForwardDiff
 using LinearAlgebra
-
-# using CCBlade
-using PyPlot; const plt = PyPlot
-using FLOWMath: linear,trapz,Akima,ksmax,abs_smooth
-# using Statistics
+using FLOWMath
 using Distributed
-using YAML
-using XLSX
-using DataFrames
-using CSV
 using SpecialFunctions
+using Geodesy; const gd = Geodesy
+using YAML
 
 include("io.jl")
 include("utilities.jl")
-include("turbines.jl")
 include("windfarms.jl")
 include("wind_resources.jl")
 include("wind_shear_models.jl")
@@ -31,8 +21,8 @@ include("general_models.jl")
 include("power_models.jl")
 include("user_functions.jl")
 include("optimization_functions.jl")
-include("fatigue_model.jl")
 include("tip.jl")
 include("cost_models.jl")
 include("plotting.jl")
+include("fatigue_model.jl")
 end # module
