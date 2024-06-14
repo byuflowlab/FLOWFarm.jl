@@ -20,7 +20,7 @@ function get_turb_loc_YAML(file_name; returnaep=false)
     nturbs = length(turb_coords)
     turbine_x = zeros(nturbs)
     turbine_y = zeros(nturbs)
-    
+
     for i in 1:nturbs
         turbine_x[i] = turb_coords[i][1]
         turbine_y[i] = turb_coords[i][2]
@@ -38,7 +38,7 @@ function get_turb_loc_YAML(file_name; returnaep=false)
         return turbine_x, turbine_y, fname_turb, fname_wr, AEP
     else
         return turbine_x, turbine_y, fname_turb, fname_wr
-    end 
+    end
 end
 
 """
@@ -128,8 +128,8 @@ write turbine locations and related information to .yaml
 # Arguments
 - `file_name::String`: path/and/name/of/location/file.yaml
 """
-function write_turb_loc_YAML(filename, turbinex, turbiney; title="", titledescription="", 
-    turbinefile="", locunits="m", wakemodelused="", windresourcefile="", aeptotal=[], 
+function write_turb_loc_YAML(filename, turbinex, turbiney; title="", titledescription="",
+    turbinefile="", locunits="m", wakemodelused="", windresourcefile="", aeptotal=[],
     aepdirs=[], aepunits="MWh", baseyaml=string(@__DIR__, "/default.yaml"))
 
     ### Retrieve turbine locations and auxiliary file names from <.yaml> file.
@@ -146,23 +146,23 @@ function write_turb_loc_YAML(filename, turbinex, turbiney; title="", titledescri
     base["description"] = titledescription
 
     # save the title and description to the yaml database
-    base["definitions"]["plant_energy"]["properties"]["wake_model"]["items"][1]["\$ref"] = wakemodelused  
+    base["definitions"]["plant_energy"]["properties"]["wake_model"]["items"][1]["\$ref"] = wakemodelused
 
     # save positions in yaml database
     turb_coords = fill(zeros(2), nturbines)
     for i in 1:nturbines
         turb_coords[i] = [turbinex[i], turbiney[i]]
-    end    
-    
+    end
+
     base["definitions"]["position"]["items"] = turb_coords
-    
+
     # save the AEP in yaml database
     base["definitions"]["plant_energy"]["properties"]["annual_energy_production"]["default"] = aeptotal
 
-    # save the directional AEPs in the yaml database 
+    # save the directional AEPs in the yaml database
     base["definitions"]["plant_energy"]["properties"]["annual_energy_production"]["binned"] = aepdirs
 
-    # save the directional AEP units in the yaml database 
+    # save the directional AEP units in the yaml database
     base["definitions"]["plant_energy"]["properties"]["annual_energy_production"]["units"] = aepunits
 
     # save the auxiliary filenames for the windrose and the turbine attributes
@@ -241,7 +241,7 @@ end
     get_boundary_yaml(filename)
 
 Returns the boundaries of a wind farm as defined in a yaml file in the format
-used in FLOWFarm. Returns N by 2 array for single region farm and an array of 
+used in FLOWFarm. Returns N by 2 array for single region farm and an array of
 N by 2 arrays for multiple regions. Returned regions are sorted alphabetically
 by the keys provided in the yaml file.
 
@@ -277,5 +277,5 @@ function get_boundary_yaml(filename)
     end
 
     return boundary_vertices
-    
+
 end

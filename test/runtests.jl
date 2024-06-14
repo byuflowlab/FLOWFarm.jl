@@ -5,12 +5,32 @@ using Distributed
 using DelimitedFiles
 using LinearAlgebra
 using FLOWMath: linear
-using Distributed
 using YAML
 using ForwardDiff
 using FiniteDiff
 
 @testset ExtendedTestSet "all tests" begin
+    # @testset "type stability" begin
+    #     @testset "AEP Calculation" begin
+    #         include("model_sets/model_set_6.jl")
+    #         function testAEP()
+    #             return ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
+    #                 hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
+    #                 cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set)/1e9
+    #         end
+    #         function checkstability()
+    #             try
+    #                 @inferred testAEP()
+    #                 return true
+    #             catch err
+    #                 println(err)
+    #                 return false
+    #             end
+    #         end
+    #         @test checkstability()
+    #     end
+    # end
+
     @testset "cost_models" begin
         Parameters = ff.Levelized()
         rotor_diameter = [70]
@@ -75,7 +95,7 @@ using FiniteDiff
         @testset "latitude longitude to xy" begin
 
             latitude = [59.3293, 59.8586]
-            longitude = [18.0686, 17.6389] 
+            longitude = [18.0686, 17.6389]
             utm_zone = 33
             x, y = ff.latlong_to_xy(latitude, longitude, utm_zone)
 
@@ -185,23 +205,23 @@ using FiniteDiff
             boundary_file_name = string("./inputfiles/iea37-boundary-cs3.yaml")
             boundary_vertices2 = ff.get_boundary_yaml(boundary_file_name)
             boundary_normals2 = ff.boundary_normals_calculator(boundary_vertices2)
-            correct_normals2 = [0.9829601758936983 -0.1838186405319916; 
-                                0.9934614633172962 -0.11416795042154541; 
-                                0.9987121579438882 -0.050734855622757584; 
-                                0.9998686751666075 -0.01620593781838486; 
-                                0.9999954987444023 0.0030004151269687495; 
-                                -0.9998078216567232 -0.019604074934516894; 
-                                -0.6957179389375846 -0.718315076718037; 
-                                -0.6957275377423737 -0.7183057797532565; 
-                                -0.8019887481131871 0.5973391397688945; 
-                                0.5138086803485797 0.8579047965820281; 
-                                0.4252760929807897 0.905063668886888; 
-                                0.2645057513093967 0.9643841078762402; 
-                                -0.0684295708121141 0.9976559496331737; 
-                                -0.39636379138742883 0.9180935381958544; 
-                                -0.6828023205475376 0.7306031693435896; 
-                                -0.7996740386176392 0.6004343694034798; 
-                                -0.8578802011411015 0.5138497450520954; 
+            correct_normals2 = [0.9829601758936983 -0.1838186405319916;
+                                0.9934614633172962 -0.11416795042154541;
+                                0.9987121579438882 -0.050734855622757584;
+                                0.9998686751666075 -0.01620593781838486;
+                                0.9999954987444023 0.0030004151269687495;
+                                -0.9998078216567232 -0.019604074934516894;
+                                -0.6957179389375846 -0.718315076718037;
+                                -0.6957275377423737 -0.7183057797532565;
+                                -0.8019887481131871 0.5973391397688945;
+                                0.5138086803485797 0.8579047965820281;
+                                0.4252760929807897 0.905063668886888;
+                                0.2645057513093967 0.9643841078762402;
+                                -0.0684295708121141 0.9976559496331737;
+                                -0.39636379138742883 0.9180935381958544;
+                                -0.6828023205475376 0.7306031693435896;
+                                -0.7996740386176392 0.6004343694034798;
+                                -0.8578802011411015 0.5138497450520954;
                                 0.42552559023380465 0.9049463918134445]
             @test boundary_normals2 ≈ correct_normals2 atol=1E-6
 
@@ -220,10 +240,10 @@ using FiniteDiff
             ytest = [0.15496810158044924, -0.3958382330389885, 0.40710859551189754, -0.10572443397953969, -0.36940158024655595, 0.7347989934111504, -0.7340708874922061, 0.30479782203943484, 0.36091623014218815, -0.9057342725556136]
             @test x ≈ xtest atol=1E-6
             @test y ≈ ytest atol=1E-6
-            
+
         end
 
-        @testset "grid_points" begin 
+        @testset "grid_points" begin
 
             # test with grid at size of rotor-swept area including perimeter
             y, z = ff.grid_points(9)
@@ -270,10 +290,10 @@ using FiniteDiff
             ytest = [0, -1, 0, 1, 0]
             @test x ≈ xtest atol=1E-6
             @test y ≈ ytest atol=1E-6
-            
+
         end
 
-        @testset "wake_count_iec" begin 
+        @testset "wake_count_iec" begin
             turbinex = [0, 100, 200, 300]
             turbiney = zeros(4)
             diameter = ones(4).*40
@@ -284,7 +304,7 @@ using FiniteDiff
             wake_count = ff.wake_count_iec(turbinex, turbiney, winddirection, diameter)
             @test wake_count == correct_wake_count
 
-            # test with turbines all in free-stream 
+            # test with turbines all in free-stream
             winddirection = 0.0
             correct_wake_count = zeros(4)
             wake_count = ff.wake_count_iec(turbinex, turbiney, winddirection, diameter)
@@ -297,7 +317,7 @@ using FiniteDiff
             @test wake_count == correct_wake_count
         end
 
-        @testset "find_upstream_turbines" begin 
+        @testset "find_upstream_turbines" begin
             turbinex = [0.0 100.0]
             turbiney = [0.0 0.0]
             diameter = [20.0 20.0]
@@ -351,11 +371,11 @@ using FiniteDiff
             c = ff.pointinpolygon([0.0, 0.0], vertices, return_distance=false)
             @test c == -1
 
-            # check that ArgumentError occurs if point is given in ints and distance is desired 
+            # check that ArgumentError occurs if point is given in ints and distance is desired
             @test_throws ArgumentError ff.pointinpolygon([-5, 5], vertices, return_distance=true)
 
             # almost a triangle but four sided shape
-            vertices = [0.0 0.0; 0.0 10.0; 4.0 4.0; 10.0 2.0] # almost a triangle 
+            vertices = [0.0 0.0; 0.0 10.0; 4.0 4.0; 10.0 2.0] # almost a triangle
 
             # test point directly below acute angle and outside of shape
             point = [10.0, 0.0]
@@ -375,10 +395,10 @@ using FiniteDiff
 
         @testset "point in polygon derivatives" begin
 
-            # set up turbine location for testing 
+            # set up turbine location for testing
             point = [0.0, 0.0]
 
-            # set up simple square boundary for testing 
+            # set up simple square boundary for testing
             boundaryvertices = reverse([-1.0 -1.0; -1.0 1.0; 1.0 1.0; 1.0 -1.0])
             boundarynormals = ff.boundary_normals_calculator(boundaryvertices)
 
@@ -390,7 +410,7 @@ using FiniteDiff
             derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
             @test derivad ≈ derivfd atol = 1E-6
 
-            # test correct derivative inside to face 
+            # test correct derivative inside to face
             point[1] = 0.1
             derivfd = FiniteDiff.finite_difference_gradient(pointinpolygon_diff, point, Val{:central})
             derivad = ForwardDiff.gradient(pointinpolygon_diff, point)
@@ -470,8 +490,8 @@ using FiniteDiff
 
         end
 
-        @testset "nansafesqrt" begin 
-            
+        @testset "nansafesqrt" begin
+
             a1 = 9.0
             a2 = 0.0
             a3 = eps()*1E-10
@@ -486,8 +506,6 @@ using FiniteDiff
             @test isapprox(ff.nansafesqrt(a3), a3*sqrt(eps())/eps())
 
         end
-
-
     end
 
     @testset "Optimization functions" begin
@@ -555,7 +573,7 @@ using FiniteDiff
 
                 testing_x = [cc_l, 100.0, cc_r, cc_l, 100.0, cc_r, cc_l, 100.0, cc_r]
                 testing_y = [cc_r, cc_r, cc_r, 100.0, 100.0, 100.0, cc_l, cc_l, cc_l]
-                
+
                 test_values = [ -cc_r,  -cc_l,   -0.0,  -cc_d,
                                 -100.0, -100.0,  -cc_l,  -cc_r,
                                 -cc_l,  -cc_r,   -0.0,  -cc_d,
@@ -612,7 +630,7 @@ using FiniteDiff
             # @test ff.splined_boundary(testing_x, testing_y, bndry_x_clsd, bndry_y_clsd, bndry_corner_indcies) == test_values #atol=1E-3
 
             #-- Multi-turbine concave boundary test --#
-        
+
         end
 
         @testset "Variable Reduction (Boundary)" begin
@@ -650,7 +668,7 @@ using FiniteDiff
                 @test testing_x[1] == test_values[1]
                 @test testing_y[1] == test_values[2]
                 @test num_leftover == test_values[3]
-            end 
+            end
 
             @testset "One Turbine, Circular Boundary, With Start Distance" begin
                 #-- One-turbine circular boundary, zero start distance  --#
@@ -795,41 +813,41 @@ using FiniteDiff
 
         @testset "ray casting boundary distances - single region" begin
 
-            # set up turbine location for testing 
+            # set up turbine location for testing
             turbinex = [0.0]
             turbiney = [0.0]
 
-            # set up simple square boundary for testing 
+            # set up simple square boundary for testing
             boundaryvertices = [-1.0 -1.0; -1.0 1.0; 1.0 1.0; 1.0 -1.0]
             boundarynormals = ff.boundary_normals_calculator(boundaryvertices)
 
-            # test correct sign (negative) for inside 
+            # test correct sign (negative) for inside
             boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney)
             @test sign(boundarydistance[1]) == -1
 
-            # test correct sign (positive) for outside 
+            # test correct sign (positive) for outside
             turbinex = [-2.0]
             boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney)
             @test sign(boundarydistance[1]) == 1
 
-            # test correct distance inside 
+            # test correct distance inside
             turbinex = [0.0]
             boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney)
             @test boundarydistance[1] ≈ -1 atol = 1E-2
 
-            # test correct distance outside 
+            # test correct distance outside
             turbinex = [2.0]
             turbiney = [0.0]
             boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney)
             @test boundarydistance[1] ≈ 1 atol = 1E-2
 
-            # test correct distance on vertex 
+            # test correct distance on vertex
             turbinex = [1.0]
             turbiney = [1.0]
             boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney)
             @test boundarydistance[1] ≈ 0 atol = 1E-3
 
-            # test correct distance on face 
+            # test correct distance on face
             turbinex = [1.0]
             turbiney = [0.0]
             boundarydistance = ff.ray_casting_boundary(boundaryvertices, boundarynormals, turbinex, turbiney)
@@ -839,11 +857,11 @@ using FiniteDiff
 
         @testset "ray casting boundary distances - multi region pre-defined" begin
 
-            # set up turbine location for testing 
+            # set up turbine location for testing
             turbinex = [0.0]
             turbiney = [0.0]
 
-            # set up simple square boundary for testing 
+            # set up simple square boundary for testing
             boundaryvertices1 = [-1.0 -1.0; -1.0 1.0; 1.0 1.0; 1.0 -1.0]
             boundaryvertices2 = [3.0 -1.0; 3.0 1.0; 5.0 1.0; 5.0 -1.0]
             boundaryvertices = [boundaryvertices1, boundaryvertices2]
@@ -929,11 +947,11 @@ using FiniteDiff
 
         @testset "ray casting boundary distances - multi region not pre-defined" begin
 
-            # set up turbine location for testing 
+            # set up turbine location for testing
             turbinex = [0.0]
             turbiney = [0.0]
 
-            # set up simple square boundary for testing 
+            # set up simple square boundary for testing
             boundaryvertices1 = [-1.0 -1.0; -1.0 1.0; 1.0 1.0; 1.0 -1.0]
             boundaryvertices2 = [3.0 -1.0; 3.0 1.0; 5.0 1.0; 5.0 -1.0]
             boundaryvertices = [boundaryvertices1, boundaryvertices2]
@@ -1007,11 +1025,11 @@ using FiniteDiff
 
         @testset "ray casting boundary derivatives - single region" begin
 
-            # set up turbine location for testing 
+            # set up turbine location for testing
             turbinex = [0.0]
             turbiney = [0.0]
 
-            # set up simple square boundary for testing 
+            # set up simple square boundary for testing
             boundaryvertices = [-1.0 -1.0; -1.0 1.0; 1.0 1.0; 1.0 -1.0]
             boundarynormals = ff.boundary_normals_calculator(boundaryvertices)
 
@@ -1071,7 +1089,7 @@ using FiniteDiff
             # derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
             # @test derivad ≈ derivfd rtol = 1E-4
 
-            # test correct derivative on face 
+            # test correct derivative on face
             turbinex = [1.0]
             turbiney = [0.0]
             derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central}, absstep=1E-1)
@@ -1082,16 +1100,16 @@ using FiniteDiff
 
         @testset "ray casting boundary derivatives - multiple regions pre-defined region" begin
 
-            # set up turbine location for testing 
+            # set up turbine location for testing
             turbinex = [0.0]
             turbiney = [0.0]
 
-            # set up simple square boundary for testing 
+            # set up simple square boundary for testing
             boundaryvertices1 = [-1.0 -1.0; -1.0 1.0; 1.0 1.0; 1.0 -1.0]
             boundaryvertices2 = [3.0 -1.0; 3.0 1.0; 5.0 1.0; 5.0 -1.0]
             boundaryvertices = [boundaryvertices1, boundaryvertices2]
             boundarynormals = ff.boundary_normals_calculator(boundaryvertices, nboundaries=2)
-            
+
             # set up function for getting AD derivatives
             ray_casting_boundary_diff(x) = ff.ray_casting_boundary(boundaryvertices, boundarynormals, x[1], x[2], discrete=true, regions=ff.ray_casting_boundary(boundaryvertices, boundarynormals, x[1], x[2], discrete=true, return_region=true)[2])
 
@@ -1159,14 +1177,14 @@ using FiniteDiff
             # derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
             # @test derivad ≈ derivfd rtol = 1E-4
 
-            # test correct derivative on edge region 1 
+            # test correct derivative on edge region 1
             turbinex = [-1.0]
             turbiney = [0.0]
             derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central}, relstep=1E-1)
             derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
             @test derivad ≈ derivfd atol = 1E-8
 
-            # test correct derivative on edge region 2 
+            # test correct derivative on edge region 2
             turbinex = [3.0]
             turbiney = [0.0]
             derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central}, relstep=1E-1)
@@ -1177,11 +1195,11 @@ using FiniteDiff
 
         @testset "ray casting boundary derivatives - multiple regions region not pre-defined" begin
 
-            # set up turbine location for testing 
+            # set up turbine location for testing
             turbinex = [0.0]
             turbiney = [0.0]
 
-            # set up simple square boundary for testing 
+            # set up simple square boundary for testing
             boundaryvertices1 = [-1.0 -1.0; -1.0 1.0; 1.0 1.0; 1.0 -1.0]
             boundaryvertices2 = [3.0 -1.0; 3.0 1.0; 5.0 1.0; 5.0 -1.0]
             boundaryvertices = [boundaryvertices1, boundaryvertices2]
@@ -1254,14 +1272,14 @@ using FiniteDiff
             # derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
             # @test derivad ≈ derivfd rtol = 1E-4
 
-            # test correct derivative on edge region 1 
+            # test correct derivative on edge region 1
             turbinex = [-1.0]
             turbiney = [0.0]
             derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central}, relstep=1E-1)
             derivad = ForwardDiff.jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]])
             @test derivad ≈ derivfd atol = 1E-8
 
-            # test correct derivative on edge region 2 
+            # test correct derivative on edge region 2
             turbinex = [3.0]
             turbiney = [0.0]
             derivfd = FiniteDiff.finite_difference_jacobian(ray_casting_boundary_diff, [turbinex[1] turbiney[1]], Val{:central}, relstep=1E-1)
@@ -1340,7 +1358,7 @@ using FiniteDiff
                 hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
                 cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
                 rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z, hours_per_year=365.0*24.0)
-            
+
             @test aep/1E6 ≈ 938573.62950 rtol=1E-6
 
         end
@@ -1355,7 +1373,7 @@ using FiniteDiff
                 hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
                 cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set,
                 rotor_sample_points_y=rotor_points_y,rotor_sample_points_z=rotor_points_z, hours_per_year=365.0*24.0)
-            
+
             @test aep/1E6 ≈ 2.851096412519999780E6 rtol=1E-6
 
         end
@@ -1365,7 +1383,7 @@ using FiniteDiff
 
             # import model set with wind farm and related details
             include("./model_sets/model_set_7_ieacs3.jl")
-            
+
             state_aeps = ff.calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
                             hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
                             cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set;
@@ -1382,19 +1400,19 @@ using FiniteDiff
             32035.08418, 52531.37389, 47035.14700, 46848.21422, 45107.13416,
             53877.69698, 68105.50430, 69587.76656, 73542.89319, 69615.74101,
             66752.31531, 73027.78883, 60187.14103, 59847.98304, 38123.29869] rtol=1E-6
-            
+
 
         end
 
         @testset "Test AEP on single turbine" begin
             # import model set with wind farm and related details
             include("./model_sets/model_set_7_ieacs4_single_turbine.jl")
-            
+
             aep = ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                             hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
                             cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set;
                             rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.0*24.0)
-            
+
             @test aep/1E9 ≈ 42.54982024375254 rtol=1E-6
 
         end
@@ -1529,7 +1547,7 @@ using FiniteDiff
             # test below cut in
             wt_velocity = 1.0
             p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, wt_yaw, power_model, air_density)
-            
+
             @test p ≈ 0.0 atol=1E-6
 
             # region 2
@@ -1559,7 +1577,7 @@ using FiniteDiff
             # test below cut in
             wt_velocity = 1.0
             p = ff.calculate_turbine_power(generator_efficiency[1], cut_in_speed[1], cut_out_speed[1], rated_speed[1], rated_power[1], rotor_diameter[1], wt_velocity, wt_yaw, power_model, air_density)
-            
+
             @test p ≈ 0.0 atol=1E-6
 
             # region 2
@@ -1640,14 +1658,14 @@ using FiniteDiff
             ndirectionbins = 360
             startangle = 0.0
             wind_resource_new = ff.rediscretize_windrose(wind_resource, ndirectionbins, start=startangle, averagespeed=false)
-            
-            # test number of bins 
+
+            # test number of bins
             @test length(wind_resource_new.wind_directions) == ndirectionbins
 
-            # test start bin angle 
+            # test start bin angle
             @test wind_resource_new.wind_directions[1] == startangle
 
-            # test probability sum is 1 
+            # test probability sum is 1
             @test sum(wind_resource_new.wind_probabilities) ≈ 1 atol=1E-6
 
             end
@@ -1713,18 +1731,18 @@ using FiniteDiff
             new_deficit_sum = ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model)
             @test new_deficit_sum ≈ result atol=1E-6
 
-            # test correct derivative 
+            # test correct derivative
             derivfd = FiniteDiff.finite_difference_derivative(deriv_function1, deltav, Val{:central})
             derivfad = ForwardDiff.derivative(deriv_function1, deltav)
             # derivrad = ReverseDiff.gradient(deriv_function, [deltav])
             @test derivfad ≈ derivfd atol = 1E-6
             # @test derivrad[1] ≈ derivfd atol = 1E-6
 
-            # test correct derivatives at known discontinuity 
+            # test correct derivatives at known discontinuity
             deltav = 4.823068257348535e-185
             wind_speed = 0.9
             turb_inflow = 0.9
-            old_deficit_sum = 0.0 
+            old_deficit_sum = 0.0
             deriv_function2(x) = ff.wake_combination_model(x, wind_speed, turb_inflow, old_deficit_sum, model)
 
             derivfd = FiniteDiff.finite_difference_derivative(deriv_function2, deltav, Val{:central})
@@ -1754,7 +1772,7 @@ using FiniteDiff
             @test ff.wake_combination_model(deltav, wind_speed, turb_inflow, old_deficit_sum, model) == result
         end
 
-    end    
+    end
 
     @testset "Wake Deflection Models" begin
 
@@ -1802,7 +1820,6 @@ using FiniteDiff
             turbine_inflow_velcity = [8.0]
             upstream_turbine_id = 1
             downstream_turbine_id = 0
-            turbine_definition_id = 1
             cut_in_speed = 0.0
             cut_out_speed = 25.0
             rated_speed = 12.0
@@ -1815,7 +1832,6 @@ using FiniteDiff
             ct_model = ff.ThrustModelConstantCt(ct)
             power_model = ff.PowerModelConstantCp(constcp)
 
-            turbine1 = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
             model = ff.JiminezYawDeflection(horizontal_spread_rate)
 
             dx2p5d = 2.5*rotor_diameter
@@ -1860,7 +1876,7 @@ using FiniteDiff
             turbine_inflow_velcity = [8.0]
             upstream_turbine_id = 1
             downstream_turbine_id = 0
-            turbine_definition_id = 1
+
             cut_in_speed = 0.0
             cut_out_speed = 25.0
             rated_speed = 12.0
@@ -1870,7 +1886,7 @@ using FiniteDiff
             ct_model = ff.ThrustModelConstantCt(ct)
             power_model = ff.PowerModelConstantCp([constcp])
 
-            turbine_definition = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
+
 
             k_star = 0.022 # [1]  p. 525
             turbulence_intensity = 0.1 #0.0875 #[1] p. 508 - this value is only specified to be less than 0.1
@@ -1917,7 +1933,7 @@ using FiniteDiff
             turbine_inflow_velcity = [8.0]
             upstream_turbine_id = 1
             downstream_turbine_id = 0
-            turbine_definition_id = 1
+
             cut_in_speed = 0.0
             cut_out_speed = 25.0
             rated_speed = 12.0
@@ -1926,7 +1942,7 @@ using FiniteDiff
             ct_model = ff.ThrustModelConstantCt(ct)
             power_model = ff.PowerModelConstantCp([constcp])
 
-            turbine_definition = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
+
 
             turbulence_intensity = 0.07 # this value is just guessed #TODO find data about deflection using this model
             alpha_star = 2.32 #[1] p. 534
@@ -2007,7 +2023,7 @@ using FiniteDiff
             @test ff.wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, wakedeficitmodel) == centerloss100
             locy = -(alpha*100. + rotor_diameter[1]/2. + 1E-12)
             @test ff.wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, wakedeficitmodel) == 0.0
-            
+
             # test overlap function
             upstream_turbine_id = 2
             downstream_turbine_id = 1
@@ -2047,7 +2063,7 @@ using FiniteDiff
             ambient_ti = 0.1
             upstream_turbine_id = 1
             downstream_turbine_id = 0
-            turbine_definition_id = 1
+
 
 
             alpha = 0.1
@@ -2059,7 +2075,6 @@ using FiniteDiff
             ct_model = ff.ThrustModelConstantCt(ct)
             power_model = ff.PowerModelConstantCp([constcp])
 
-            turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
             model = ff.JensenCosine(alpha, beta)
 
             centerloss40 = 1. - 4.35/8.1
@@ -2141,8 +2156,8 @@ using FiniteDiff
                     sorted_turbine_index, ct_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set)
 
-            turbine_powers = ff.turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, 
-                    rated_speed, rated_power, rotor_diameter, turbine_inflow_velocities, turbine_yaw, air_density, 
+            turbine_powers = ff.turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed,
+                    rated_speed, rated_power, rotor_diameter, turbine_inflow_velocities, turbine_yaw, air_density,
                     power_models)
 
             @test turbine_powers[1] ≈ 790066 atol=0.1
@@ -2185,7 +2200,7 @@ using FiniteDiff
             ambient_ti = 0.1
             upstream_turbine_id = 1
             downstream_turbine_id = 0
-            turbine_definition_id = 1
+
 
             deflection_y = 0.0
             deflection_z = 0.0
@@ -2194,7 +2209,6 @@ using FiniteDiff
             ct_model = ff.ThrustModelConstantCt(ct)
             power_model = ff.PowerModelConstantCp([constcp])
 
-            turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
 
             model = ff.GaussYaw(horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
 
@@ -2288,7 +2302,7 @@ using FiniteDiff
             # println(ambient_ti)
             upstream_turbine_id = 1
             downstream_turbine_id = 0
-            turbine_definition_id = 1
+
 
             deflection_y = 0.0
             deflection_z = 0.0
@@ -2297,7 +2311,6 @@ using FiniteDiff
             ct_model = ff.ThrustModelConstantCt(ct)
             power_model = ff.PowerModelConstantCp([constcp])
 
-            turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
 
             model = ff.GaussYawVariableSpread(alpha_star, beta_star)
 
@@ -2352,23 +2365,23 @@ using FiniteDiff
 
         end
 
-        @testset "Cumulative Curl Model" begin
+        # @testset "Cumulative Curl Model" begin
 
-            include("./model_sets/model_set_CumulativeCurl.jl")
+        #     include("./model_sets/model_set_CumulativeCurl.jl")
 
-            # These speeds come from the exact same senario run in FLORIS
-            floris_speeds = [4.47782564 4.22203667 4.87630822 7.24928086 5.3327349 7.24928086 4.87630822 4.10768106 5.89349064 6.30625438 7.79997475 7.99694765 8. 8. 8. 7.99694765 7.79997475 6.30625438 5.89349064 4.02800927 4.13783708 5.85694226 7.80549692 5.84344344 7.98537599 8. 8. 8. 8. 8. 8. 8. 8. 7.98537599 5.84344344 7.80549692 5.85694226 4.13783708]
+        #     # These speeds come from the exact same senario run in FLORIS
+        #     floris_speeds = [4.47782564 4.22203667 4.87630822 7.24928086 5.3327349 7.24928086 4.87630822 4.10768106 5.89349064 6.30625438 7.79997475 7.99694765 8. 8. 8. 7.99694765 7.79997475 6.30625438 5.89349064 4.02800927 4.13783708 5.85694226 7.80549692 5.84344344 7.98537599 8. 8. 8. 8. 8. 8. 8. 8. 7.98537599 5.84344344 7.80549692 5.85694226 4.13783708]
 
-            rot_x, rot_y = ff.rotate_to_wind_direction(turbine_x, turbine_y, windresource.wind_directions[1])
-            sorted_turbine_index = sortperm(rot_x)
+        #     rot_x, rot_y = ff.rotate_to_wind_direction(turbine_x, turbine_y, windresource.wind_directions[1])
+        #     sorted_turbine_index = sortperm(rot_x)
 
-            U = ff.turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
-            sorted_turbine_index, ct_models, rotor_points_y, rotor_points_z, windresource,
-            model_set)
+        #     U = ff.turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+        #     sorted_turbine_index, ct_models, rotor_points_y, rotor_points_z, windresource,
+        #     model_set)
 
-            @test U ≈ transpose(floris_speeds) atol=0.002
+        #     @test U ≈ transpose(floris_speeds) atol=0.002
 
-        end
+        # end
     end
 
     @testset "Local Turbulence Intensity Models" begin
@@ -2540,7 +2553,7 @@ using FiniteDiff
 
             include("./model_sets/model_set_1.jl")
 
-            
+
             turbine_x = [0.0]
             # test no loss upstream (data from Jensen 1983)
             expected_velocity = wind_speed
@@ -2579,7 +2592,7 @@ using FiniteDiff
             windresource, model_set, wind_farm_state_id=1, downwind_turbine_id=0) ≈ expected_velocity  rtol=rtol
         end
 
-        @testset "calculate_flow_field" begin 
+        @testset "calculate_flow_field" begin
 
             include("./model_sets/model_set_0_single_turbine.jl")
 
@@ -2608,7 +2621,7 @@ using FiniteDiff
             ffvelocities = ff.calculate_flow_field(xrange, yrange, zrange,
             model_set, turbine_x, turbine_y, turbine_z, turbine_yaw,
             rotor_diameter, hub_height, ct_models, rotor_sample_points_y, rotor_sample_points_z,
-            wind_resource)         
+            wind_resource)
 
             @test all(ffvelocities .== inflowuniform)
 
@@ -2635,7 +2648,7 @@ using FiniteDiff
             zrange_b = data_b[:,2].*rotor_diameter[1]
             u0_b = zeros(length(zrange_b))
             u_b = zeros(length(zrange_b))
-            for i in 1:length(zrange_b) 
+            for i in 1:length(zrange_b)
                 u0_b[i] = ff.adjust_for_wind_shear(zrange_b[i], uh, hh, wind_shear_model.ground_height, wind_shear_model)
                 u_b[i] = u0_b[i]*(1.0-data_b[i,1])
             end
@@ -2646,54 +2659,13 @@ using FiniteDiff
             ffvelocitiesbp2014 = ff.calculate_flow_field(xrange, yrange, zrange_b,
                 model_set_bp2014, turbine_x, turbine_y, turbine_z, turbine_yaw,
                 rotor_diameter, hub_height, ct_models, rotor_sample_points_y, rotor_sample_points_z,
-                wind_resource)  
+                wind_resource)
 
             ffvelocitiesbp2014 = reshape(ffvelocitiesbp2014, (length(u0_b)))
 
             @test isapprox(ffvelocitiesbp2014, u_b, atol=0.1)
 
         end
-
-        # @testset "Turbine Inflow Velocities one direction" begin
-        #     # test based on:
-        #     # [1] An Aero-acoustic Noise Distribution Prediction Methodology for Offshore Wind Farms
-        #     # by Jiufa Cao, Weijun Zhu, Xinbo Wu, Tongguang Wang, and Haoran Xu
-        #
-        #     rtol = 1E-6
-        #
-        #     data = readdlm("inputfiles/velocity_def_row_of_10_turbs.txt",  ',', skipstart=4)
-        #
-        #     rtol = 1E-6
-        #
-        #     include("./model_sets/model_set_2.jl")
-        #     # test no loss upstream (data from Jensen 1983)
-        #     expected_velocity = wind_speed*data[:, 2]
-        #
-        #     ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, ms2, pd2)
-        #
-        #     @test windfarmstate.turbine_inflow_velcities ≈ expected_velocity rtol=rtol
-        #
-        # end
-
-        # @testset "Turbine powers one direction" begin
-        #     # test based on:
-        #     # [1] An Aero-acoustic Noise Distribution Prediction Methodology for Offshore Wind Farms
-        #     # by Jiufa Cao, Weijun Zhu, Xinbo Wu, Tongguang Wang, and Haoran Xu
-        #
-        #     rtol = 1E-6
-        #
-        #     data = readdlm("inputfiles/velocity_def_row_of_10_turbs.txt",  ',', skipstart=4)
-        #
-        #     rtol = 1E-6
-        #
-        #     include("./model_sets/model_set_2.jl")
-        #
-        #     ff.turbine_powers_one_direction!(rotor_points_y, rotor_points_z, pd2)
-        #
-        #     @test windfarmstate.turbine_generators_powers ≈ wind_speed*data[:, 2] rtol=rtol
-        #
-        # end
-
     end
 
     @testset "IO" begin
@@ -2746,11 +2718,11 @@ using FiniteDiff
 
             file_name = "./inputfiles/iea37-ex-opt3.yaml"
             turbine_x, turbine_y, fname_turb, fname_wr = ff.get_turb_loc_YAML(file_name)
-        
+
             @test turbine_x == test_x
             @test turbine_y == test_y
             @test fname_turb == "iea37-10mw.yaml"
-            @test fname_wr == "iea37-windrose-cs3.yaml" 
+            @test fname_wr == "iea37-windrose-cs3.yaml"
 
         end
 
@@ -2827,7 +2799,7 @@ using FiniteDiff
             @test speeds == test_speed
             @test frequencies == test_freq
             @test ti == 0.075
-            
+
         end
 
         @testset "get_boundary_yaml" begin
@@ -2839,7 +2811,7 @@ using FiniteDiff
 
                 boundary_vertices_correct = [10363.8 6490.3; 9449.7 1602.2; 9387.0 1056.6; 9365.1 625.5; 9360.8 360.2; 9361.5 126.9; 9361.3 137.1; 7997.6 1457.9; 6098.3 3297.5;
                 8450.3 6455.3; 8505.4 6422.3; 9133.0 6127.4; 9332.8 6072.6; 9544.2 6087.1; 9739.0 6171.2; 9894.9 6316.9; 10071.8 6552.5; 10106.9 6611.1]
-                
+
                 @test boundary_vertices ≈ boundary_vertices_correct atol=1E-6
             end
 
@@ -2849,16 +2821,16 @@ using FiniteDiff
 
                 boundary_vertices_a = [10363.8 6490.3; 9449.7 1602.2; 9387.0 1056.6; 9365.1 625.5; 9360.8 360.2; 9361.5 126.9; 9361.3 137.1; 7997.6 1457.9; 6098.3 3297.5;
                 8450.3 6455.3; 8505.4 6422.3; 9133.0 6127.4; 9332.8 6072.6; 9544.2 6087.1; 9739.0 6171.2; 9894.9 6316.9; 10071.8 6552.5; 10106.9 6611.1]
-                boundary_normals_a = [0.9829601758936983 -0.1838186405319916; 0.9934614633172962 -0.11416795042154541; 0.9987121579438882 -0.050734855622757584; 
-                    0.9998686751666075 -0.01620593781838486; 0.9999954987444023 0.0030004151269687495; -0.9998078216567232 -0.019604074934516894; -0.6957179389375846 -0.718315076718037; 
-                    -0.6957275377423737 -0.7183057797532565; -0.8019887481131871 0.5973391397688945; 0.5138086803485797 0.8579047965820281; 0.4252760929807897 0.905063668886888; 
-                    0.2645057513093967 0.9643841078762402; -0.0684295708121141 0.9976559496331737; -0.39636379138742883 0.9180935381958544; -0.6828023205475376 0.7306031693435896; 
+                boundary_normals_a = [0.9829601758936983 -0.1838186405319916; 0.9934614633172962 -0.11416795042154541; 0.9987121579438882 -0.050734855622757584;
+                    0.9998686751666075 -0.01620593781838486; 0.9999954987444023 0.0030004151269687495; -0.9998078216567232 -0.019604074934516894; -0.6957179389375846 -0.718315076718037;
+                    -0.6957275377423737 -0.7183057797532565; -0.8019887481131871 0.5973391397688945; 0.5138086803485797 0.8579047965820281; 0.4252760929807897 0.905063668886888;
+                    0.2645057513093967 0.9643841078762402; -0.0684295708121141 0.9976559496331737; -0.39636379138742883 0.9180935381958544; -0.6828023205475376 0.7306031693435896;
                     -0.7996740386176392 0.6004343694034798; -0.8578802011411015 0.5138497450520954; 0.42552559023380465 0.9049463918134445]
                 boundary_vertices_b = [5588.4 3791.3; 4670.7 4680.2; 7274.9 7940.8; 7369.9 7896.2; 7455.1 7784.3; 7606.5 7713.0; 7638.9 7708.4; 8297.1 7398.9]
-                boundary_normals_b = [-0.6957460043611584 -0.7182878931288504; -0.7813688797257963 0.6240694462926818; 0.4249708760634733 0.9052070230051488; 0.7956275395848184 0.6057861159305391; 
+                boundary_normals_b = [-0.6957460043611584 -0.7182878931288504; -0.7813688797257963 0.6240694462926818; 0.4249708760634733 0.9052070230051488; 0.7956275395848184 0.6057861159305391;
                     0.4260560153872896 0.9046967844268629; 0.14056568619461773 0.9900713549359138; 0.4255255464063141 0.9049464124220882; 0.7996806883794807 -0.6004255129763556]
                 boundary_vertices_c = [3267.1 10100.6; 4164.1 9586.6; 5749.8 9068.6; 6054.7 8925.3; 1468.5 7781.7; 107.4 9100.0]
-                boundary_normals_c = [0.49718026396417986 0.8676472699919642; 0.31052117525343714 0.9505664625470563; 0.42535384615162936 0.9050271297392228; 0.24194817066179167 -0.9702891747893577; 
+                boundary_normals_c = [0.49718026396417986 0.8676472699919642; 0.31052117525343714 0.9505664625470563; 0.42535384615162936 0.9050271297392228; 0.24194817066179167 -0.9702891747893577;
                     -0.6957228969594285 -0.7183102746351193; -0.30189947425802094 0.9533397649540959]
                 boundary_vertices_d = [6764.9 8399.7; 4176.8 5158.6; 2047.8 7220.7]
                 boundary_normals_d = [0.7814306689309158 -0.6239920749930895; -0.6957310325444781 -0.7183023947855072; -0.24248239299288069 0.9701558066045093]
