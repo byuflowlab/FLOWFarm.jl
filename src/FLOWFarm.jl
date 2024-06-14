@@ -9,6 +9,7 @@ using YAML
 using SparseDiffTools
 using SparseArrays
 using DiffResults
+using ReverseDiff
 
 include("io.jl")
 include("utilities.jl")

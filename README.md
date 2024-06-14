@@ -29,7 +29,8 @@ julia
 
 To test FLOWFarm, run the following from the top directory:
 
-```julia
+```
+julia
 julia
 ]
 activate .
