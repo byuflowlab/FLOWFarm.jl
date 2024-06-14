@@ -24,11 +24,11 @@ Porte Agel (2015, 2016)
 - `k1::Float`: slope of k vs TI curve
 - `k2::Float`: vertical offset of k vs TI curve
 """
-struct LocalTIModelMaxTI{TF} <: AbstractLocalTurbulenceIntensityModel
-    astar::TF
-    bstar::TF
-    k1::TF
-    k2::TF
+struct LocalTIModelMaxTI{T1,T2,T3,T4} <: AbstractLocalTurbulenceIntensityModel
+    astar::T1
+    bstar::T2
+    k1::T3
+    k2::T4
 end
 LocalTIModelMaxTI(x, y) = LocalTIModelMaxTI(x, y, 0.3837, 0.003678)
 LocalTIModelMaxTI() = LocalTIModelMaxTI(2.32, 0.154, 0.3837, 0.003678)

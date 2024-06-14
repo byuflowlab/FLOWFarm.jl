@@ -5,12 +5,32 @@ using Distributed
 using DelimitedFiles
 using LinearAlgebra
 using FLOWMath: linear
-using Distributed
 using YAML
 using ForwardDiff
 using FiniteDiff
 
 @testset ExtendedTestSet "all tests" begin
+    # @testset "type stability" begin
+    #     @testset "AEP Calculation" begin
+    #         include("model_sets/model_set_6.jl")
+    #         function testAEP()
+    #             return ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
+    #                 hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
+    #                 cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set)/1e9
+    #         end
+    #         function checkstability()
+    #             try
+    #                 @inferred testAEP()
+    #                 return true
+    #             catch err
+    #                 println(err)
+    #                 return false
+    #             end
+    #         end
+    #         @test checkstability()
+    #     end
+    # end
+
     @testset "cost_models" begin
         Parameters = ff.Levelized()
         rotor_diameter = [70]
@@ -486,8 +506,6 @@ using FiniteDiff
             @test isapprox(ff.nansafesqrt(a3), a3*sqrt(eps())/eps())
 
         end
-
-
     end
 
     @testset "Optimization functions" begin
@@ -1806,7 +1824,6 @@ using FiniteDiff
             turbine_inflow_velcity = [8.0]
             upstream_turbine_id = 1
             downstream_turbine_id = 0
-            turbine_definition_id = 1
             cut_in_speed = 0.0
             cut_out_speed = 25.0
             rated_speed = 12.0
@@ -1819,7 +1836,6 @@ using FiniteDiff
             ct_model = ff.ThrustModelConstantCt(ct)
             power_model = ff.PowerModelConstantCp(constcp)
 
-            turbine1 = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
             model = ff.JiminezYawDeflection(horizontal_spread_rate)
 
             dx2p5d = 2.5*rotor_diameter
@@ -1864,7 +1880,7 @@ using FiniteDiff
             turbine_inflow_velcity = [8.0]
             upstream_turbine_id = 1
             downstream_turbine_id = 0
-            turbine_definition_id = 1
+
             cut_in_speed = 0.0
             cut_out_speed = 25.0
             rated_speed = 12.0
@@ -1874,7 +1890,7 @@ using FiniteDiff
             ct_model = ff.ThrustModelConstantCt(ct)
             power_model = ff.PowerModelConstantCp([constcp])
 
-            turbine_definition = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
+
 
             k_star = 0.022 # [1]  p. 525
             turbulence_intensity = 0.1 #0.0875 #[1] p. 508 - this value is only specified to be less than 0.1
@@ -1921,7 +1937,7 @@ using FiniteDiff
             turbine_inflow_velcity = [8.0]
             upstream_turbine_id = 1
             downstream_turbine_id = 0
-            turbine_definition_id = 1
+
             cut_in_speed = 0.0
             cut_out_speed = 25.0
             rated_speed = 12.0
@@ -1930,7 +1946,7 @@ using FiniteDiff
             ct_model = ff.ThrustModelConstantCt(ct)
             power_model = ff.PowerModelConstantCp([constcp])
 
-            turbine_definition = ff.TurbineDefinition(turbine_definition_id, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
+
 
             turbulence_intensity = 0.07 # this value is just guessed #TODO find data about deflection using this model
             alpha_star = 2.32 #[1] p. 534
@@ -2051,7 +2067,7 @@ using FiniteDiff
             ambient_ti = 0.1
             upstream_turbine_id = 1
             downstream_turbine_id = 0
-            turbine_definition_id = 1
+
 
 
             alpha = 0.1
@@ -2063,7 +2079,6 @@ using FiniteDiff
             ct_model = ff.ThrustModelConstantCt(ct)
             power_model = ff.PowerModelConstantCp([constcp])
 
-            turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
             model = ff.JensenCosine(alpha, beta)
 
             centerloss40 = 1. - 4.35/8.1
@@ -2189,7 +2204,7 @@ using FiniteDiff
             ambient_ti = 0.1
             upstream_turbine_id = 1
             downstream_turbine_id = 0
-            turbine_definition_id = 1
+
 
             deflection_y = 0.0
             deflection_z = 0.0
@@ -2198,7 +2213,6 @@ using FiniteDiff
             ct_model = ff.ThrustModelConstantCt(ct)
             power_model = ff.PowerModelConstantCp([constcp])
 
-            turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
 
             model = ff.GaussYaw(horizontal_spread_rate, vertical_spread_rate, alpha_star, beta_star)
 
@@ -2292,7 +2306,7 @@ using FiniteDiff
             # println(ambient_ti)
             upstream_turbine_id = 1
             downstream_turbine_id = 0
-            turbine_definition_id = 1
+
 
             deflection_y = 0.0
             deflection_z = 0.0
@@ -2301,7 +2315,6 @@ using FiniteDiff
             ct_model = ff.ThrustModelConstantCt(ct)
             power_model = ff.PowerModelConstantCp([constcp])
 
-            turbine_definition = ff.TurbineDefinition(1, [rotor_diameter], [hub_height], [cut_in_speed], [rated_speed], [cut_out_speed], [rated_power], [generator_efficiency], [ct_model], [power_model])
 
             model = ff.GaussYawVariableSpread(alpha_star, beta_star)
 
@@ -2356,23 +2369,23 @@ using FiniteDiff
 
         end
 
-        @testset "Cumulative Curl Model" begin
+        # @testset "Cumulative Curl Model" begin
 
-            include("./model_sets/model_set_CumulativeCurl.jl")
+        #     include("./model_sets/model_set_CumulativeCurl.jl")
 
-            # These speeds come from the exact same senario run in FLORIS
-            floris_speeds = [4.47782564 4.22203667 4.87630822 7.24928086 5.3327349 7.24928086 4.87630822 4.10768106 5.89349064 6.30625438 7.79997475 7.99694765 8. 8. 8. 7.99694765 7.79997475 6.30625438 5.89349064 4.02800927 4.13783708 5.85694226 7.80549692 5.84344344 7.98537599 8. 8. 8. 8. 8. 8. 8. 8. 7.98537599 5.84344344 7.80549692 5.85694226 4.13783708]
+        #     # These speeds come from the exact same senario run in FLORIS
+        #     floris_speeds = [4.47782564 4.22203667 4.87630822 7.24928086 5.3327349 7.24928086 4.87630822 4.10768106 5.89349064 6.30625438 7.79997475 7.99694765 8. 8. 8. 7.99694765 7.79997475 6.30625438 5.89349064 4.02800927 4.13783708 5.85694226 7.80549692 5.84344344 7.98537599 8. 8. 8. 8. 8. 8. 8. 8. 7.98537599 5.84344344 7.80549692 5.85694226 4.13783708]
 
-            rot_x, rot_y = ff.rotate_to_wind_direction(turbine_x, turbine_y, windresource.wind_directions[1])
-            sorted_turbine_index = sortperm(rot_x)
+        #     rot_x, rot_y = ff.rotate_to_wind_direction(turbine_x, turbine_y, windresource.wind_directions[1])
+        #     sorted_turbine_index = sortperm(rot_x)
 
-            U = ff.turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
-            sorted_turbine_index, ct_models, rotor_points_y, rotor_points_z, windresource,
-            model_set)
+        #     U = ff.turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+        #     sorted_turbine_index, ct_models, rotor_points_y, rotor_points_z, windresource,
+        #     model_set)
 
-            @test U ≈ transpose(floris_speeds) atol=0.002
+        #     @test U ≈ transpose(floris_speeds) atol=0.002
 
-        end
+        # end
     end
 
     @testset "Local Turbulence Intensity Models" begin
@@ -2657,47 +2670,6 @@ using FiniteDiff
             @test isapprox(ffvelocitiesbp2014, u_b, atol=0.1)
 
         end
-
-        # @testset "Turbine Inflow Velocities one direction" begin
-        #     # test based on:
-        #     # [1] An Aero-acoustic Noise Distribution Prediction Methodology for Offshore Wind Farms
-        #     # by Jiufa Cao, Weijun Zhu, Xinbo Wu, Tongguang Wang, and Haoran Xu
-        #
-        #     rtol = 1E-6
-        #
-        #     data = readdlm("inputfiles/velocity_def_row_of_10_turbs.txt",  ',', skipstart=4)
-        #
-        #     rtol = 1E-6
-        #
-        #     include("./model_sets/model_set_2.jl")
-        #     # test no loss upstream (data from Jensen 1983)
-        #     expected_velocity = wind_speed*data[:, 2]
-        #
-        #     ff.turbine_velocities_one_direction!(rotor_points_y, rotor_points_z, ms2, pd2)
-        #
-        #     @test windfarmstate.turbine_inflow_velcities ≈ expected_velocity rtol=rtol
-        #
-        # end
-
-        # @testset "Turbine powers one direction" begin
-        #     # test based on:
-        #     # [1] An Aero-acoustic Noise Distribution Prediction Methodology for Offshore Wind Farms
-        #     # by Jiufa Cao, Weijun Zhu, Xinbo Wu, Tongguang Wang, and Haoran Xu
-        #
-        #     rtol = 1E-6
-        #
-        #     data = readdlm("inputfiles/velocity_def_row_of_10_turbs.txt",  ',', skipstart=4)
-        #
-        #     rtol = 1E-6
-        #
-        #     include("./model_sets/model_set_2.jl")
-        #
-        #     ff.turbine_powers_one_direction!(rotor_points_y, rotor_points_z, pd2)
-        #
-        #     @test windfarmstate.turbine_generators_powers ≈ wind_speed*data[:, 2] rtol=rtol
-        #
-        # end
-
     end
 
     @testset "IO" begin

@@ -21,17 +21,16 @@ Container for parameters related to the Gaussian deflection model presented by B
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 - `interpolation::Bool`: boolean stating if the the near wake should be interpolated. Default value is true.
 """
-struct GaussYawDeflection{TF, BO} <: AbstractWakeDeflectionModel
-    horizontal_spread_rate::TF
-    vertical_spread_rate::TF
-    alpha_star::TF
-    beta_star::TF
+struct GaussYawDeflection{TF1, TF2, TF3, TF4, BO} <: AbstractWakeDeflectionModel
+    horizontal_spread_rate::TF1
+    vertical_spread_rate::TF2
+    alpha_star::TF3
+    beta_star::TF4
     interpolate_sigma::BO
 end
 GaussYawDeflection() = GaussYawDeflection(0.022, 0.022, 2.32, 0.154, true)
 GaussYawDeflection(interp) = GaussYawDeflection(0.022, 0.022, 2.32, 0.154, interp)
 GaussYawDeflection(a,b,c,d) = GaussYawDeflection(a, b, c, d, true)
-GaussYawDeflection(a,b,c,d,interp) = GaussYawDeflection(a, b, c, d, interp)
 
 """
     GaussYawDeflectionVariableSpread(alpha_star, beta_star, k1, k2, interpolation)
@@ -45,11 +44,11 @@ Container for parameters related to the Gaussian deflection model with yaw prese
 - `k2::Float`: second parameter tuning wake spread as based on turbulence intensity
 - `interpolation::Bool`: boolean stating if the the near wake should be interpolated. Default value is true.
 """
-struct GaussYawVariableSpreadDeflection{TF, BO} <: AbstractWakeDeflectionModel
-    alpha_star::TF
-    beta_star::TF
-    k1::TF
-    k2::TF
+struct GaussYawVariableSpreadDeflection{TF1, TF2, TF3, TF4, BO} <: AbstractWakeDeflectionModel
+    alpha_star::TF1
+    beta_star::TF2
+    k1::TF3
+    k2::TF4
     interpolate_sigma::BO
 end
 GaussYawVariableSpreadDeflection() = GaussYawVariableSpreadDeflection(2.32, 0.154, 0.3837, 0.003678, true)
@@ -80,10 +79,10 @@ Container for parameters related to the Jiminez deflection model
 - `ad::Float`:Helps define the horizontal deflection of the wake at 0 deg yaw
 - `bd::Float`:Helps define the horizontal deflection of the wake due to downwind distance at 0 deg yaw
 """
-struct MultizoneDeflection{TF} <: AbstractWakeDeflectionModel
-    horizontal_spread_rate::TF
-    ad::TF
-    bd::TF
+struct MultizoneDeflection{TF1, TF2, TF3} <: AbstractWakeDeflectionModel
+    horizontal_spread_rate::TF1
+    ad::TF2
+    bd::TF3
 end
 MultizoneDeflection() = MultizoneDeflection(0.15, -4.5, -0.01)
 

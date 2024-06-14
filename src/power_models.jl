@@ -26,9 +26,9 @@ Models will use adjust cp based on cp curve using linear interpolation of provid
 - `cp_points::Array{N,Float}`: power coefficient values corresponding to the provided speeds
 - 'pp::TF': exponent for adjusting power for wind turbine yaw
 """
-struct PowerModelCpPoints{ATF,TF} <: AbstractPowerModel
-    vel_points::ATF
-    cp_points::ATF
+struct PowerModelCpPoints{ATF1,ATF2,TF} <: AbstractPowerModel
+    vel_points::ATF1
+    cp_points::ATF2
     pp::TF
 end
 PowerModelCpPoints(x,y) = PowerModelCpPoints(x, y, 2)
@@ -44,9 +44,9 @@ provided points
 - `power_points::Array{N,Float}`: power values corresponding to the provided speeds
 - 'pp::TF': exponent for adjusting power for wind turbine yaw
 """
-struct PowerModelPowerPoints{ATF, TF} <: AbstractPowerModel
-    vel_points::ATF
-    power_points::ATF
+struct PowerModelPowerPoints{ATF1,ATF2, TF} <: AbstractPowerModel
+    vel_points::ATF1
+    power_points::ATF2
     pp::TF
 end
 PowerModelPowerPoints(x,y) = PowerModelPowerPoints(x, y, 2)
@@ -519,8 +519,7 @@ function calculate_state_aep(turbine_x::T0, turbine_y::T1, turbine_z::T2, rotor_
         prealloc_turbine_velocities = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
                             sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                             model_set; turbine_velocities=prealloc_turbine_velocities, turbine_ct=prealloc_turbine_ct, turbine_ai=prealloc_turbine_ai, turbine_local_ti=prealloc_turbine_local_ti,
-                            wind_farm_state_id=wind_farm_state_id, velocity_only=true, wake_deficits=prealloc_wake_deficits,
-                            contribution_matrix=prealloc_contribution_matrix,deflections=prealloc_deflections,sigma_squared=prealloc_sigma_squared)
+                            wind_farm_state_id=wind_farm_state_id, velocity_only=true)
 
         # calculate wind turbine powers for given state
         wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
@@ -640,6 +639,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
         ndirections = length(unique_directions)
     end
 
+    # state_energy = Vector{typeof(wind_farm.turbine_x[1])}(undef,nstates)
     arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),typeof(hub_height[1]),typeof(turbine_yaw[1]),
                 typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),typeof(rated_power[1]))
 

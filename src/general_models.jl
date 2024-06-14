@@ -238,6 +238,10 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
 
     wake_deficits .= wake_deficits'
 
+
+
+    if velocity_only
+        return turbine_velocities
     if using_sparsity
         return turbine_velocities, wake_deficits
     elseif velocity_only

@@ -17,14 +17,14 @@ abstract type AbstractWindResourceModel end
 - `ambient_ti::Array{Float,1}`: an array of the ambient turbulence intensity for each wind direction
 - `wind_shear_model::Array{AbstractWindShearModel}(1)`: contains a struct defining the desired turbulence intensity model
 """
-struct DiscretizedWindResource{AF, TF, ASM} <: AbstractWindResourceModel
+struct DiscretizedWindResource{AF1, AF2, AF3, AF4, AF5, TF, ASM} <: AbstractWindResourceModel
 
-    wind_directions::AF
-    wind_speeds::AF
-    wind_probabilities::AF
-    measurement_heights::AF
+    wind_directions::AF1
+    wind_speeds::AF2
+    wind_probabilities::AF3
+    measurement_heights::AF4
     air_density::TF
-    ambient_tis::AF
+    ambient_tis::AF5
     wind_shear_model::ASM
 
 end

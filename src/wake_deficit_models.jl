@@ -23,9 +23,9 @@ Container for parameters related to the Jensen Cosine deficit model
 - `alpha::Float`: parameter controlling the wake deficit decay rate. Default value is 0.1
 - `beta::Float`: parameter controlling the width of the cosine function. Default value is 20.0 deg., given in radians.
 """
-struct JensenCosine{TF,ATF} <: AbstractWakeDeficitModel
-    alpha::TF
-    beta::TF
+struct JensenCosine{TF1,TF2,ATF} <: AbstractWakeDeficitModel
+    alpha::TF1
+    beta::TF2
     wec_factor::ATF
 end
 JensenCosine() = JensenCosine(0.1, 20.0*pi/180.0, [1.0])
@@ -44,12 +44,12 @@ Container for parameters related to the MultiZone deficit model
 - `aU::Float`: parameter impacting the wake deficit decay for a constant wake deflection. Default value is 5.0.
 - `bU::Float`: parameter changing the wake deficit decay under yawed conditions. Default value is 1.66.
 """
-struct MultiZone{ATF, TF} <: AbstractWakeDeficitModel
-    me::ATF
-    ke::TF
-    MU::ATF
-    aU::TF
-    bU::TF
+struct MultiZone{ATF1,ATF2,TF1,TF2,TF3} <: AbstractWakeDeficitModel
+    me::ATF1
+    ke::TF1
+    MU::ATF2
+    aU::TF2
+    bU::TF3
 end
 MultiZone() = MultiZone([-0.5 0.22 1.0], 0.065, [0.5 1.0 5.5], 5.0, 1.66)
 
@@ -78,11 +78,11 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 - `interpolation::Bool`: boolean stating if the the near wake should be interpolated. Default value is true.
 """
-struct GaussYaw{TF, ATF, BO} <: AbstractWakeDeficitModel
-    horizontal_spread_rate::TF
-    vertical_spread_rate::TF
-    alpha_star::TF
-    beta_star::TF
+struct GaussYaw{TF1, TF2, TF3, TF4, ATF, BO} <: AbstractWakeDeficitModel
+    horizontal_spread_rate::TF1
+    vertical_spread_rate::TF2
+    alpha_star::TF3
+    beta_star::TF4
     wec_factor::ATF
     interpolate_sigma::BO
 end
@@ -102,11 +102,11 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 - `interpolation::Bool`: boolean stating if the the near wake should be interpolated. Default value is true.
 """
-struct GaussYawVariableSpread{TF, ATF, BO} <: AbstractWakeDeficitModel
-    alpha_star::TF
-    beta_star::TF
-    k1::TF
-    k2::TF
+struct GaussYawVariableSpread{TF1, TF2, TF3, TF4, ATF, BO} <: AbstractWakeDeficitModel
+    alpha_star::TF1
+    beta_star::TF2
+    k1::TF3
+    k2::TF4
     wec_factor::ATF
     interpolate_sigma::BO
 end
@@ -147,14 +147,14 @@ Container for parameters related to the Cumulative Curl model used in FLORIS v3 
 - `c_f::Float`: Default value is 2.41
 - 'wec_factor': paramter for the wake expansion continuation Default is [1.0]
 """
-struct CumulativeCurl{TF,ATF} <: AbstractWakeDeficitModel
-    a_s::TF
-    b_s::TF
-    c_s1::TF
-    c_s2::TF
-    a_f::TF
-    b_f::TF
-    c_f::TF
+struct CumulativeCurl{T1,T2,T3,T4,T5,T6,T7,ATF} <: AbstractWakeDeficitModel
+    a_s::T1
+    b_s::T2
+    c_s1::T3
+    c_s2::T4
+    a_f::T5
+    b_f::T6
+    c_f::T7
     wec_factor::ATF
 end
 CumulativeCurl() = CumulativeCurl(0.179367259, 0.0118889215, 0.0563691592, 0.13290157, 3.11, -0.68, 2.41, [1.0])

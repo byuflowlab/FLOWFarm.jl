@@ -500,11 +500,9 @@ plt.savefig("optlayout.png") # hide
 ```
 ![](optlayout.png)
 
-## (5) Calculating and visualizing a flow field
+## (5) Calculating a flow field
 
-It is helpful to visualize the whole flow-field, not just the turbine powers. Here we will 
-visualize the flow field for a 2D horizontal cross-section at the hub height. FLOWFarm is 
-capable of generating flow fields in 1D, 2D, and 3D.
+It is helpful to visualize the whole flow-field, not just the turbine powers.
 
 ```@example 1
 # define how many points should be in the flow field
@@ -529,27 +527,4 @@ ffvelocities = ff.calculate_flow_field(xrange, yrange, zrange,
     rotordiameter, hubheight, ctmodels, rotorsamplepointsy, rotorsamplepointsz,
     windresource, wind_farm_state_id=5)
 
-# visualize 
-
-# initialize figure
-fig, ax = plt.subplots(1)
-
-# generate meshgrid from ranges for passing to pyplots
-xg, yg = meshgrid(collect(xrange), collect(yrange))
-
-# plot as filled contours
-cs = ax.contourf(xg, yg, ffvelocities[1,:,:], cmap="Blues_r")
-
-# add colorbar 
-cbar = ax.figure.colorbar(cs, ax=ax, label="Wind Speed (m/s)", orientation="vertical")
-
-# label the axes
-ax.set(xlabel="Easting (m)", ylabel="Northing (m)")
-
-# add the wind farm boundary
-circle = matplotlib.patches.Circle((0.0, 0.0), boundaryradius, fill=false, color="k")
-ax.add_patch(circle)
-
-plt.savefig("flowfield.png") # hide
 ```
-![](flowfield.png)

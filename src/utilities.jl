@@ -664,9 +664,9 @@ function rotor_sample_points(nsamplepoints=1; method="sunflower", alpha=0.0, use
 
     if nsamplepoints > 1
         if method == "sunflower"
-            rotor_sample_points_y, rotor_sample_points_z = ff.sunflower_points(nsamplepoints, alpha=alpha)
+            rotor_sample_points_y, rotor_sample_points_z = sunflower_points(nsamplepoints, alpha=alpha)
         elseif method == "grid"
-            rotor_sample_points_y, rotor_sample_points_z = ff.grid_points(nsamplepoints)
+            rotor_sample_points_y, rotor_sample_points_z = grid_points(nsamplepoints)
         end
 
         # adjust to desired radius
@@ -683,64 +683,64 @@ function rotor_sample_points(nsamplepoints=1; method="sunflower", alpha=0.0, use
     return rotor_sample_points_y, rotor_sample_points_z
 end
 
-"""
-    print_state_layouts_in_cartesian_frame(turbinex, turbiney, winddirections)
+# """
+#     print_state_layouts_in_cartesian_frame(turbinex, turbiney, winddirections)
 
-Given a wind farm layout in the global reference frame, print the layout rotated to the
-cartesian frame with wind to the positive x axis (right) for all wind directions.
+# Given a wind farm layout in the global reference frame, print the layout rotated to the
+# cartesian frame with wind to the positive x axis (right) for all wind directions.
 
-# Arguments
-- `turbinex::Array{T,1}`: x locations of turbines in global reference frame
-- `turbiney::Array{T,1}`: y locations of turbines in global reference frame
-- `winddirections::Array{T,1}`: all wind directions in radians in meteorological coordinates (0 rad. = from North)
-"""
-function print_layout_in_cartesian_frame_excel(turbinex, turbiney, rotordiameter, winddirections, outfile; center=[0.0,0.0], plot_layouts=false, round_locations=false)
-    # get number of directions
-    ndirections = length(winddirections)
+# # Arguments
+# - `turbinex::Array{T,1}`: x locations of turbines in global reference frame
+# - `turbiney::Array{T,1}`: y locations of turbines in global reference frame
+# - `winddirections::Array{T,1}`: all wind directions in radians in meteorological coordinates (0 rad. = from North)
+# """
+# function print_layout_in_cartesian_frame_excel(turbinex, turbiney, rotordiameter, winddirections, outfile; center=[0.0,0.0], plot_layouts=false, round_locations=false)
+#     # get number of directions
+#     ndirections = length(winddirections)
 
-    # initialize excel file
-    XLSX.openxlsx(outfile, mode="w") do xf
+#     # initialize excel file
+#     XLSX.openxlsx(outfile, mode="w") do xf
 
-        sheet = xf[1]
-        sheet["A1"] = "wind direction"
-        sheet["B1"] = "turbine x"
-        sheet["C1"] = "turbine y"
+#         sheet = xf[1]
+#         sheet["A1"] = "wind direction"
+#         sheet["B1"] = "turbine x"
+#         sheet["C1"] = "turbine y"
 
-        # loop through directions
-        for i in 1:ndirections
+#         # loop through directions
+#         for i in 1:ndirections
 
-            # rotate turbinex and turbiney to current direction
-            rotx, roty = rotate_to_wind_direction(turbinex, turbiney, winddirections[i], center=center)
+#             # rotate turbinex and turbiney to current direction
+#             rotx, roty = rotate_to_wind_direction(turbinex, turbiney, winddirections[i], center=center)
 
-            # round if desired
-            if round_locations
-                rotx = round.(rotx)
-                roty = round.(roty)
-            end
+#             # round if desired
+#             if round_locations
+#                 rotx = round.(rotx)
+#                 roty = round.(roty)
+#             end
 
-            # plot layouts if desired, pause for 5 seconds on each
-            if plot_layouts
-                fig, ax = plt.subplots()
-                ax.set(aspect="equal", xlim=[minimum(turbinex)-200,maximum(turbinex)+200], ylim=[minimum(turbiney)-200,maximum(turbiney)+200])
-                ff.plotlayout!(ax, rotx, roty, rotordiameter)
-                ff.plotlayout!(ax, [rotx[1], rotx[20]], [roty[1], roty[20]], rotordiameter, fill=true, color="r")
-                plt.title("$(winddirections[i]*180.0/pi)")
-                plt.show()
+#             # plot layouts if desired, pause for 5 seconds on each
+#             if plot_layouts
+#                 fig, ax = plt.subplots()
+#                 ax.set(aspect="equal", xlim=[minimum(turbinex)-200,maximum(turbinex)+200], ylim=[minimum(turbiney)-200,maximum(turbiney)+200])
+#                 plotlayout!(ax, rotx, roty, rotordiameter)
+#                 plotlayout!(ax, [rotx[1], rotx[20]], [roty[1], roty[20]], rotordiameter, fill=true, color="r")
+#                 plt.title("$(winddirections[i]*180.0/pi)")
+#                 plt.show()
 
-                # sleep(1)
+#                 # sleep(1)
 
-            end
+#             end
 
-            XLSX.rename!(sheet, "rotated layouts")
+#             XLSX.rename!(sheet, "rotated layouts")
 
-            # print rotated coordinates to specified output
-            sheet["A$(i+1)"] = winddirections[i]*180.0/pi
-            sheet["B$(i+1)"] = join(rotx, ",")
-            sheet["C$(i+1)"] = join(roty, ",")
+#             # print rotated coordinates to specified output
+#             sheet["A$(i+1)"] = winddirections[i]*180.0/pi
+#             sheet["B$(i+1)"] = join(rotx, ",")
+#             sheet["C$(i+1)"] = join(roty, ",")
 
-        end
-    end
-end
+#         end
+#     end
+# end
 
 function wrap_180(x)
     """
@@ -754,7 +754,7 @@ function wrap_180(x)
     return(x)
 end
 
-# the following is from floris for calcculating wake counts
+# the following is from floris for calculating wake counts
 """
     wake_count_iec(turbinex, turbiney, winddirection, diameter; return_turbines=true)
 
@@ -1197,60 +1197,60 @@ function round_farm_random_start(rotor_diameter, center, radius; nturbines=nothi
     return turbinex.*rotor_diameter, turbiney.*rotor_diameter
 end
 
-function generate_round_layouts(nlayouts, rotor_diameter; farm_center=0., farm_diameter=4000., base_spacing=5., min_spacing=1.,
-                           output_directory=nothing, show=false, save_layouts=false, startingindex=1, method="individual")
+# function generate_round_layouts(nlayouts, rotor_diameter; farm_center=0., farm_diameter=4000., base_spacing=5., min_spacing=1.,
+#                            output_directory=nothing, show=false, save_layouts=false, startingindex=1, method="individual")
 
-    if nlayouts > 10 && show == true
-        error("do you really want to see $nlayouts plots in serial?")
-    end
+#     if nlayouts > 10 && show == true
+#         error("do you really want to see $nlayouts plots in serial?")
+#     end
 
-    boundary_radius = 0.5*(farm_diameter - rotor_diameter)
-    # println(boundary_radius)
-    area = pi * boundary_radius^2
+#     boundary_radius = 0.5*(farm_diameter - rotor_diameter)
+#     # println(boundary_radius)
+#     area = pi * boundary_radius^2
 
-    turbinex, turbiney = round_farm_concentric_start(copy(rotor_diameter), copy(farm_center), copy(boundary_radius), min_spacing=copy(base_spacing))
+#     turbinex, turbiney = round_farm_concentric_start(copy(rotor_diameter), copy(farm_center), copy(boundary_radius), min_spacing=copy(base_spacing))
 
-    nturbines = size(turbinex)[1]
-    # println("nturbines: $nturbines")
-    effective_rows = sqrt(nturbines)
-    effective_row_length = sqrt(area)
-    effective_spacing = effective_row_length / (effective_rows - 1.)
-    l = 1
+#     nturbines = size(turbinex)[1]
+#     # println("nturbines: $nturbines")
+#     effective_rows = sqrt(nturbines)
+#     effective_row_length = sqrt(area)
+#     effective_spacing = effective_row_length / (effective_rows - 1.)
+#     l = 1
 
-    if save_layouts
-        df = DataFrame(turbinex=turbinex./rotor_diameter, turbiney=turbiney./rotor_diameter)
-        CSV.write(output_directory*"nTurbs$(nturbines)_spacing$(base_spacing)_layout_$(l+startingindex-1).txt",
-                 df, header=["turbineX", "turbineY"])
-    end
-    if show
-        fig, ax = subplots(1)
-        plotlayout!(ax, turbinex, turbiney, ones(nturbines).*rotor_diameter)
-        plt.show()
-    end
+#     if save_layouts
+#         df = DataFrame(turbinex=turbinex./rotor_diameter, turbiney=turbiney./rotor_diameter)
+#         CSV.write(output_directory*"nTurbs$(nturbines)_spacing$(base_spacing)_layout_$(l+startingindex-1).txt",
+#                  df, header=["turbineX", "turbineY"])
+#     end
+#     if show
+#         fig, ax = subplots(1)
+#         plotlayout!(ax, turbinex, turbiney, ones(nturbines).*rotor_diameter)
+#         plt.show()
+#     end
 
-    if nlayouts > 1
-        for l in 2:nlayouts
-            println("Generating Layout $l")
+#     if nlayouts > 1
+#         for l in 2:nlayouts
+#             println("Generating Layout $l")
 
-            turbinex, turbiney = round_farm_random_start(copy(rotor_diameter), copy(farm_center),
-                                    copy(boundary_radius), min_spacing=copy(base_spacing),
-                                    min_spacing_random=min_spacing, method=method, nturbines=nturbines)
+#             turbinex, turbiney = round_farm_random_start(copy(rotor_diameter), copy(farm_center),
+#                                     copy(boundary_radius), min_spacing=copy(base_spacing),
+#                                     min_spacing_random=min_spacing, method=method, nturbines=nturbines)
 
-            if save_layouts
-                df = DataFrame(turbinex=turbinex./rotor_diameter, turbiney=turbiney./rotor_diameter)
-                CSV.write(output_directory*"nTurbs$(nturbines)_spacing$(min_spacing)_layout_$(l+startingindex-1).txt",
-                           df, header=["turbineX", "turbineY"])
-            end
-            if show
-                fig, ax = plt.subplots(1)
-                plotlayout!(ax, turbinex, turbiney, ones(nturbines).*rotor_diameter, xlim=[-boundary_radius-rotor_diameter, boundary_radius+rotor_diameter], ylim=[-boundary_radius-rotor_diameter, boundary_radius+rotor_diameter])
-                circle = matplotlib.patches.Circle(farm_center, boundary_radius, fill=false, color="r")
-                ax.add_patch(circle)
-                plt.show()
-            end
-        end
-    end
-end
+#             if save_layouts
+#                 df = DataFrame(turbinex=turbinex./rotor_diameter, turbiney=turbiney./rotor_diameter)
+#                 CSV.write(output_directory*"nTurbs$(nturbines)_spacing$(min_spacing)_layout_$(l+startingindex-1).txt",
+#                            df, header=["turbineX", "turbineY"])
+#             end
+#             if show
+#                 fig, ax = plt.subplots(1)
+#                 plotlayout!(ax, turbinex, turbiney, ones(nturbines).*rotor_diameter, xlim=[-boundary_radius-rotor_diameter, boundary_radius+rotor_diameter], ylim=[-boundary_radius-rotor_diameter, boundary_radius+rotor_diameter])
+#                 circle = matplotlib.patches.Circle(farm_center, boundary_radius, fill=false, color="r")
+#                 ax.add_patch(circle)
+#                 plt.show()
+#             end
+#         end
+#     end
+# end
 
 """
     pointonline(p, v1, v2; tol=1E-6)
@@ -1546,10 +1546,10 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
     if return_distance
         # magnitude of the constraint value
         # if !onedge
-        #     c = -ff.smooth_max(-turbine_to_face_distance, s=s)
+        #     c = -smooth_max(-turbine_to_face_distance, s=s)
         #     # c = -ksmax(-turbine_to_face_distance, s)
         # end
-        c = -ff.smooth_max(-turbine_to_face_distance, s=s)
+        c = -smooth_max(-turbine_to_face_distance, s=s)
             # c = -ksmax(-turbine_to_face_distance, s)
 
         # sign of the constraint value (- is inside, + is outside)

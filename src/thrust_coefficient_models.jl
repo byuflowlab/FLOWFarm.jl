@@ -24,9 +24,9 @@ lowest wind speed to highest wind speed.
 - `inflow_velocity::Float`: inflow velocity of the wind turbine
 - `thrust_model::ThrustModelCtPoints`: Struct containing ct and velocity points for ct curve
 """
-struct ThrustModelCtPoints{ATF} <: AbstractThrustCoefficientModel
-    vel_points::ATF
-    ct_points::ATF
+struct ThrustModelCtPoints{ATF1,ATF2} <: AbstractThrustCoefficientModel
+    vel_points::ATF1
+    ct_points::ATF2
 end
 
 """
