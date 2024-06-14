@@ -20,19 +20,6 @@ julia
 (v1.x) pkg> dev https://github.com/byuflowlab/FLOWFarm.jl.git
 ```
 
-## Testing
-
-To test FLOWFarm, run the following from the top directory:
-
-```
-julia
-]
-activate .
-test
-```
-
-## Documentation
-
 * Begin with the [quick start tutorial](Tutorial.md).
 * More advanced topics are covered in the [how-to guide](How_to.md).
 * Theory details, and links, can be found in the [theory](Explanation.md) page.
