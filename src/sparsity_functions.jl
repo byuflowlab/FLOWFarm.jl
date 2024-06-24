@@ -230,7 +230,7 @@ function calculate_wind_state_power!(pow,x,farm,state_id;prealloc_id=1,hours_per
                     farm.constants.wind_resource.wind_directions[state_id])
 
     sorted_turbine_index = sortperm(rot_x)
-    turbine_velocities = ff.turbine_velocities_one_direction(rot_x, rot_y, farm.constants.turbine_z,
+    turbine_velocities = turbine_velocities_one_direction(rot_x, rot_y, farm.constants.turbine_z,
                     rotor_diameter, hub_height, turbine_yaw, sorted_turbine_index,
                     farm.constants.ct_models, farm.constants.rotor_sample_points_y, farm.constants.rotor_sample_points_z,
                     farm.constants.wind_resource, farm.constants.model_set, wind_farm_state_id=state_id,
@@ -482,7 +482,7 @@ function calculate_thresholds!(jacobians,thresholds,x,farm_forwarddiff,farm,tole
         rem > 0 && (n_per_thread += 1)
         assignments = 1:n_per_thread:n_states
         l = Threads.SpinLock()
-        Threads.@threads for i_assignment in eachindex(assignments)
+        Threads.@threads for i_assignment = eachindex(assignments)
             i_start = assignments[i_assignment]
             i_stop = min(i_start+n_per_thread-1, n_states)
             for i = i_start:i_stop
@@ -725,8 +725,10 @@ Struct that holds all the necessary variables to calculate the spacing constrain
 - `update_function`: Function that updates the spacing struct with the new design variables
 - `relevant_list`: 2d array that holds the relevant turbine pairs for the spacing constraint (column 1 holds the first turbine and column 2 holds the second turbine in the pair)
 - `ad`: AutoSparseForwardDiff object
+- `safe_design_variables`: Vector containing the last set of design variables that satisfy the constraints
+- `full_spacing_vec`: Vector containing the full spacing constraints of the farm for final evaluation
 """
-struct sparse_spacing_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10} <: AbstractSparseMethod
+struct sparse_spacing_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12} <: AbstractSparseMethod
     turbine_x::T1
     turbine_y::T2
     constraint_spacing::T3 # Single float that defines the minimum spacing between turbines
@@ -737,6 +739,9 @@ struct sparse_spacing_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10} <: AbstractSparseMe
     update_function::T8
     relevant_list::T9
     ad::T10
+    safe_design_variables::T11 # used to hold the last set of design vaiables that satisfy the constraints
+    full_spacing_vec::T12
+    first_opt::Bool
 end
 
 """
@@ -762,7 +767,7 @@ function build_sparse_spacing_struct(x,turbine_x,turbine_y,space,scale,update_fu
         spacing_jacobian = zeros(eltype(x),n_constraints,length(x))
         cache = nothing
         ad = nothing
-        return sparse_spacing_struct(turbine_x,turbine_y,space,scale,spacing_vec,spacing_jacobian,cache,update_function,relevant_list,ad)
+        return sparse_spacing_struct(turbine_x,turbine_y,space,scale,spacing_vec,spacing_jacobian,cache,update_function,relevant_list,ad,deepcopy(x),turbine_spacing(turbine_x,turbine_y),first_opt)
     end
 
     relevant_list,idx = build_relevant_list(turbine_x,turbine_y,space,relevant_spacing_factor)
@@ -782,7 +787,7 @@ function build_sparse_spacing_struct(x,turbine_x,turbine_y,space,scale,update_fu
     turbine_x = Vector{T}(turbine_x)
     turbine_y = Vector{T}(turbine_y)
 
-    return sparse_spacing_struct(turbine_x,turbine_y,space,scale,spacing_vec,spacing_jacobian,cache,update_function,relevant_list,ad)
+    return sparse_spacing_struct(turbine_x,turbine_y,space,scale,spacing_vec,spacing_jacobian,cache,update_function,relevant_list,ad,deepcopy(x),turbine_spacing(turbine_x,turbine_y),first_opt)
 end
 
 """
@@ -863,7 +868,7 @@ Function that calculates the spacing constraints jacobian using sparse methods
 - `x`: Vector containing the design variables
 """
 function calculate_spacing_jacobian!(spacing_struct::T,x) where T <: AbstractSparseMethod
-    if isnothing(spacing_struct.cache)
+    if isnothing(spacing_struct.cache) || spacing_struct.first_opt
         return spacing_struct.spacing_vec, spacing_struct.jacobian
     end
     calculate_spacing(a,b) = calculate_spacing!(a,b,spacing_struct)
@@ -874,6 +879,32 @@ function calculate_spacing_jacobian!(spacing_struct::T,x) where T <: AbstractSpa
     end
 
     return spacing_struct.spacing_vec, spacing_struct.jacobian
+end
+
+"""
+update_safe_design_variables!(spacing_struct::T,x)
+
+Function that updates the safe design variables for the spacing constraints
+
+# Arguments
+- `spacing_struct`: sparse_spacing_struct struct
+- `x`: Vector containing the design variables
+"""
+function update_safe_design_variables!(spacing_struct::T,x) where T <: AbstractSparseMethod
+    if spacing_struct.first_opt
+        spacing_struct.update_function(spacing_struct,x)
+        turbine_spacing!(spacing_struct.full_spacing_vec,spacing_struct.turbine_x,spacing_struct.turbine_y)
+        min_spacing = minimum(spacing_struct.full_spacing_vec) - spacing_struct.constraint_spacing
+
+        if min_spacing >= 0.0
+            spacing_struct.safe_design_variables .= x
+        end
+    end
+    return spacing_struct.safe_design_variables
+end
+
+function update_safe_design_variables!(spacing_struct,x)
+    return nothing
 end
 
 # Sparse boundary constraint methods #######################################################
