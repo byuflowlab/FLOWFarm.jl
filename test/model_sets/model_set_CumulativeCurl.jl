@@ -77,4 +77,4 @@ wakecombinationmodel = ff.LinearLocalVelocitySuperposition()
 localtimodel = ff.LocalTIModelNoLocalTI()
 
 # initialize model set
-model_set = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
+model_set = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel, 3.)

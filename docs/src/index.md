@@ -9,41 +9,16 @@
 - Smooth/continous model implementations
 - Runs on a single core, across multiple cores (threaded), or on multiple machines (distributed).
 - Designed so that new model implementations can be included by adding a single method
-- Allows for Wake Expansion Continuation (WEC) as described [here](http://flowlab.groups.et.byu.net/preprints/Thomas2021.pdf)
+- Allows for Wake Expansion Continuation (WEC) as described here
 
 ## Installation
 
 ### Install FLOWFarm
 
-```julia
+```
+julia
 (v1.x) pkg> dev https://github.com/byuflowlab/FLOWFarm.jl.git
 ```
-
-### Enable NaN Safe Mode in ForwardDiff
-NaN Safe Mode must be enables in ForwardDiff for ForwardDiff to work properly with FLOWFarm.
-
-```julia
-(v1.x) pkg> dev ForwardDiff
-```
-```
-$ cd ~/.julia/dev/ForwardDiff/src/
-```
-In `prelude.jl`, on the first line, set `const NANSAFE_MODE_ENABLED = true` and save the file. 
-For more information see the ForwardDiff documentation at 
-http://www.juliadiff.org/ForwardDiff.jl/latest/user/advanced.html
-
-## Testing
-
-To test FLOWFarm, run the following from the top directory:
-
-```julia
-julia
-]
-activate .
-test
-```
-
-## Documentation
 
 * Begin with the [quick start tutorial](Tutorial.md).
 * More advanced topics are covered in the [how-to guide](How_to.md).

@@ -8,6 +8,7 @@ makedocs(;
     pages=[
         "Intro" => "index.md",
         "Quick Start" => "Tutorial.md",
+        "Wind Farm Struct" => "WindFarmStruct.md",
         "How-to Guide" => "How_to.md",
         "Theory" => "Explanation.md",
         "Reference" => "Reference.md"

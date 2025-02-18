@@ -9,9 +9,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        julia-version: ['1.6']
+        julia-version: ['1.6', '1']
         julia-arch: [x64]
-        os: [ubuntu-latest] #, macOS-latest]
+        os: [ubuntu-latest]#, macOS-latest]
         python-version: ["3.8.6"]
     env:
       PYTHON:  Conda LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/.julia/conda/3/lib julia
@@ -20,4 +20,4 @@ jobs:
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.julia-version }}
-      - uses: julia-actions/julia-runtest@master
+      - uses: julia-actions/julia-runtest@v1

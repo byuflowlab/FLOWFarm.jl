@@ -1,3 +1,4 @@
+export JensenTopHat, JensenCosine, MultiZone, GaussOriginal, GaussYaw, GaussYawVariableSpread, GaussSimple, CumulativeCurl, NoWakeDeficit
 abstract type AbstractWakeDeficitModel end
 
 """
@@ -22,9 +23,9 @@ Container for parameters related to the Jensen Cosine deficit model
 - `alpha::Float`: parameter controlling the wake deficit decay rate. Default value is 0.1
 - `beta::Float`: parameter controlling the width of the cosine function. Default value is 20.0 deg., given in radians.
 """
-struct JensenCosine{TF,ATF} <: AbstractWakeDeficitModel
-    alpha::TF
-    beta::TF
+struct JensenCosine{TF1,TF2,ATF} <: AbstractWakeDeficitModel
+    alpha::TF1
+    beta::TF2
     wec_factor::ATF
 end
 JensenCosine() = JensenCosine(0.1, 20.0*pi/180.0, [1.0])
@@ -43,12 +44,12 @@ Container for parameters related to the MultiZone deficit model
 - `aU::Float`: parameter impacting the wake deficit decay for a constant wake deflection. Default value is 5.0.
 - `bU::Float`: parameter changing the wake deficit decay under yawed conditions. Default value is 1.66.
 """
-struct MultiZone{ATF, TF} <: AbstractWakeDeficitModel
-    me::ATF
-    ke::TF
-    MU::ATF
-    aU::TF
-    bU::TF
+struct MultiZone{ATF1,ATF2,TF1,TF2,TF3} <: AbstractWakeDeficitModel
+    me::ATF1
+    ke::TF1
+    MU::ATF2
+    aU::TF2
+    bU::TF3
 end
 MultiZone() = MultiZone([-0.5 0.22 1.0], 0.065, [0.5 1.0 5.5], 5.0, 1.66)
 
@@ -77,11 +78,11 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 - `interpolation::Bool`: boolean stating if the the near wake should be interpolated. Default value is true.
 """
-struct GaussYaw{TF, ATF, BO} <: AbstractWakeDeficitModel
-    horizontal_spread_rate::TF
-    vertical_spread_rate::TF
-    alpha_star::TF
-    beta_star::TF
+struct GaussYaw{TF1, TF2, TF3, TF4, ATF, BO} <: AbstractWakeDeficitModel
+    horizontal_spread_rate::TF1
+    vertical_spread_rate::TF2
+    alpha_star::TF3
+    beta_star::TF4
     wec_factor::ATF
     interpolate_sigma::BO
 end
@@ -101,11 +102,11 @@ Container for parameters related to the Gaussian deficit model with yaw presente
 - `beta_star::Float`: parameter controlling the impact of the thrust coefficient on the length of the near wake. Default value is 0.154.
 - `interpolation::Bool`: boolean stating if the the near wake should be interpolated. Default value is true.
 """
-struct GaussYawVariableSpread{TF, ATF, BO} <: AbstractWakeDeficitModel
-    alpha_star::TF
-    beta_star::TF
-    k1::TF
-    k2::TF
+struct GaussYawVariableSpread{TF1, TF2, TF3, TF4, ATF, BO} <: AbstractWakeDeficitModel
+    alpha_star::TF1
+    beta_star::TF2
+    k1::TF3
+    k2::TF4
     wec_factor::ATF
     interpolate_sigma::BO
 end
@@ -146,17 +147,24 @@ Container for parameters related to the Cumulative Curl model used in FLORIS v3 
 - `c_f::Float`: Default value is 2.41
 - 'wec_factor': paramter for the wake expansion continuation Default is [1.0]
 """
-struct CumulativeCurl{TF,ATF} <: AbstractWakeDeficitModel
-    a_s::TF
-    b_s::TF
-    c_s1::TF
-    c_s2::TF
-    a_f::TF
-    b_f::TF
-    c_f::TF
+struct CumulativeCurl{T1,T2,T3,T4,T5,T6,T7,ATF} <: AbstractWakeDeficitModel
+    a_s::T1
+    b_s::T2
+    c_s1::T3
+    c_s2::T4
+    a_f::T5
+    b_f::T6
+    c_f::T7
     wec_factor::ATF
 end
 CumulativeCurl() = CumulativeCurl(0.179367259, 0.0118889215, 0.0563691592, 0.13290157, 3.11, -0.68, 2.41, [1.0])
+
+"""
+    NoWakeDeficit()
+"""
+struct NoWakeDeficit <: AbstractWakeDeficitModel
+end
+
 
 """
     wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::JensenTopHat)
@@ -165,14 +173,14 @@ Computes the wake deficit according to the original Jensen top hat wake model, f
 "A Note on Wind Generator Interaction" by N.O. Jensen (1983)
 
 # Arguments
-- `locx::Float`: x coordinate where wind speed is calculated 
+- `locx::Float`: x coordinate where wind speed is calculated
 - `locy::Float`: y coordinate where wind speed is calculated
 - `locz::Float`: z coordinate where wind speed is calculated
 - `turbine_x::Array(Float)`: vector containing x coordinates for all turbines in farm
 - `turbine_y::Array(Float)`: vector containing y coordinates for all turbines in farm
 - `turbine_z::Array(Float)`: vector containing z coordinates for all turbines in farm
-- `deflection_y::Float`: deflection in the y direction of downstream wake 
-- `deflection_z::Float`: deflection in the z direction of downstream wake 
+- `deflection_y::Float`: deflection in the y direction of downstream wake
+- `deflection_z::Float`: deflection in the z direction of downstream wake
 - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
 - `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
 - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
@@ -184,11 +192,11 @@ Computes the wake deficit according to the original Jensen top hat wake model, f
 - `model::JensenTopHat`: indicates the wake model in use
 
 """
-function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::JensenTopHat)
+function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, wake_deficits, contribution_matrix, deflections, current_index_loop, wind_speed_internal, sigma_squared, wtvelocities, sorted_turbine_index, model::JensenTopHat)
 
-    
+
     r0 = rotor_diameter[upstream_turbine_id]/2.0 #turbine rotor radius
-    
+
 
     if downstream_turbine_id == 0
 
@@ -207,7 +215,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
         else
             loss = 2.0*turbine_ai[upstream_turbine_id]*(r0/r)^2 #equation (2) from the paper
             totloss = loss
-        end  
+        end
     else
         r1 = rotor_diameter[downstream_turbine_id]/2.0
         # find delta x, y, and z. dx is the downstream distance from the upstream turbine hub to
@@ -247,14 +255,14 @@ Computes the wake deficit according to the original Jensen cosine wake model, fr
 "A Note on Wind Generator Interaction" by N.O. Jensen (1983)
 
 # Arguments
-- `locx::Float`: x coordinate where wind speed is calculated 
+- `locx::Float`: x coordinate where wind speed is calculated
 - `locy::Float`: y coordinate where wind speed is calculated
 - `locz::Float`: z coordinate where wind speed is calculated
 - `turbine_x::Array(Float)`: vector containing x coordinates for all turbines in farm
 - `turbine_y::Array(Float)`: vector containing y coordinates for all turbines in farm
 - `turbine_z::Array(Float)`: vector containing z coordinates for all turbines in farm
-- `deflection_y::Float`: deflection in the y direction of downstream wake 
-- `deflection_z::Float`: deflection in the z direction of downstream wake 
+- `deflection_y::Float`: deflection in the y direction of downstream wake
+- `deflection_z::Float`: deflection in the z direction of downstream wake
 - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
 - `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
 - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
@@ -266,7 +274,7 @@ Computes the wake deficit according to the original Jensen cosine wake model, fr
 - `model::JensenCosine`: indicates the wake model in use
 
 """
-function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::JensenCosine)
+function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, wake_deficits, contribution_matrix, deflections, current_index_loop, wind_speed_internal, sigma_squared, wtvelocities, sorted_turbine_index, model::JensenCosine)
     """the original Jensen cosine wake model, from the paper: "A Note on Wind
     Generator Interaction" by N.O. Jensen (1983)"""
 
@@ -307,14 +315,14 @@ Computes the wake deficit at a given location using the original MultiZone "FLOR
 "Wind plant power optimization through yaw control using a parametric model for wake effects—a CFD simulation study" by Gebraad et al. (2014)
 
 # Arguments
-- `locx::Float`: x coordinate where wind speed is calculated 
+- `locx::Float`: x coordinate where wind speed is calculated
 - `locy::Float`: y coordinate where wind speed is calculated
 - `locz::Float`: z coordinate where wind speed is calculated
 - `turbine_x::Array(Float)`: vector containing x coordinates for all turbines in farm
 - `turbine_y::Array(Float)`: vector containing y coordinates for all turbines in farm
 - `turbine_z::Array(Float)`: vector containing z coordinates for all turbines in farm
-- `deflection_y::Float`: deflection in the y direction of downstream wake 
-- `deflection_z::Float`: deflection in the z direction of downstream wake 
+- `deflection_y::Float`: deflection in the y direction of downstream wake
+- `deflection_z::Float`: deflection in the z direction of downstream wake
 - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
 - `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
 - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
@@ -326,11 +334,11 @@ Computes the wake deficit at a given location using the original MultiZone "FLOR
 - `model::MultiZone`: indicates the wake model in use
 
 """
-function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::MultiZone)
+function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, wake_deficits, contribution_matrix, deflections, current_index_loop, wind_speed_internal, sigma_squared, wtvelocities, sorted_turbine_index, model::MultiZone)
 
     dt = rotor_diameter[upstream_turbine_id]
 
-    
+
 
     # extract model parameters
     ke = model.ke
@@ -404,7 +412,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
             c1,c2,c3 = 0,0,0
         else
             del = norm([dxt, dzt]) #distance from wake center to the point of interest
-        
+
             wake_center_y = (turbine_y[upstream_turbine_id]+deflection_y)
             wake_center_z = (turbine_z[upstream_turbine_id]+hub_height[upstream_turbine_id]+deflection_z)
 
@@ -420,7 +428,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
                 area = pi*(rotor_diameter[downstream_turbine_id]^2)/4
                 ovlp[i] = overlap/area
             end
- 
+
             Rw = Dw./2 # radius of the wake zones
 
             # equations (15, 16, and 17) from the paper calculated for all 3 zones
@@ -457,14 +465,14 @@ end
 Computes the wake deficit at a given location using the Gaussian wake model presented by Bastankhah and Porte-Agel in the paper: "A new analytical model for wind-turbine wakes" (2014)
 
 # Arguments
-- `locx::Float`: x coordinate where wind speed is calculated 
+- `locx::Float`: x coordinate where wind speed is calculated
 - `locy::Float`: y coordinate where wind speed is calculated
 - `locz::Float`: z coordinate where wind speed is calculated
 - `turbine_x::Array(Float)`: vector containing x coordinates for all turbines in farm
 - `turbine_y::Array(Float)`: vector containing y coordinates for all turbines in farm
 - `turbine_z::Array(Float)`: vector containing z coordinates for all turbines in farm
-- `deflection_y::Float`: deflection in the y direction of downstream wake 
-- `deflection_z::Float`: deflection in the z direction of downstream wake 
+- `deflection_y::Float`: deflection in the y direction of downstream wake
+- `deflection_z::Float`: deflection in the z direction of downstream wake
 - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
 - `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
 - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
@@ -476,7 +484,7 @@ Computes the wake deficit at a given location using the Gaussian wake model pres
 - `model::GaussOriginal`: indicates the wake model in use
 
 """
-function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::GaussOriginal)
+function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, wake_deficits, contribution_matrix, deflections, current_index_loop, wind_speed_internal, sigma_squared, wtvelocities, sorted_turbine_index, model::GaussOriginal)
 
     dx = locx-turbine_x[upstream_turbine_id]
     dy = locy-(turbine_y[upstream_turbine_id]+deflection_y)
@@ -537,21 +545,21 @@ end
     _gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw)
 
 Helper function for wake_deficit_model when using the GaussYaw model. Computes the standard deviation of the wake.
-with an interpolation on the near wake. 
+with an interpolation on the near wake.
 
 """
 function _gauss_yaw_spread_interpolated(dt, k, dx, x0, yaw, xd; interpolate=true)
     # calculate wake spread
 
     if interpolate
-        if dx > x0 # far wake 
+        if dx > x0 # far wake
             sigma = _gauss_yaw_spread(dt, k, dx, x0, yaw)
         else # linear interpolation in the near wakes
             dx_interpolate = xd+((x0-xd)/(x0))*(dx)
             sigma = _gauss_yaw_spread(dt, k, dx_interpolate, x0, yaw)
         end
     else
-        if dx > xd # far wake 
+        if dx > xd # far wake
             sigma = _gauss_yaw_spread(dt, k, dx, x0, yaw)
         else # use sigma at xd for undefined values
             sigma = _gauss_yaw_spread(dt, k, xd, x0, yaw)
@@ -581,12 +589,12 @@ function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, w
         # calculate the length of the potential core (paper eq: 7.3)
         x0 = _gauss_yaw_potential_core(dt, yaw, ct, as, ti, bs)
 
-        # calculate the discontinuity point of the gauss yaw model 
+        # calculate the discontinuity point of the gauss yaw model
         xd = _gauss_yaw_discontinuity(dt, x0, ky, kz, yaw, ct)
-        
+
         # calculate horizontal wake spread (paper eq: 7.2)
         sigma_y = _gauss_yaw_spread_interpolated(dt, ky, dx, x0, yaw, xd)
-        
+
         # calculate vertical wake spread (paper eq: 7.2)
         sigma_z = _gauss_yaw_spread_interpolated(dt, kz, dx, x0, 0.0, xd)
 
@@ -615,14 +623,14 @@ end
 Computes the wake deficit at a given location using the The Gaussian wake model presented by Bastankhah and Porte-Agel in the paper: "Experimental and theoretical study of wind turbine wakes in yawed conditions" (2016)
 
 # Arguments
-- `locx::Float`: x coordinate where wind speed is calculated 
+- `locx::Float`: x coordinate where wind speed is calculated
 - `locy::Float`: y coordinate where wind speed is calculated
 - `locz::Float`: z coordinate where wind speed is calculated
 - `turbine_x::Array(Float)`: vector containing x coordinates for all turbines in farm
 - `turbine_y::Array(Float)`: vector containing y coordinates for all turbines in farm
 - `turbine_z::Array(Float)`: vector containing z coordinates for all turbines in farm
-- `deflection_y::Float`: deflection in the y direction of downstream wake 
-- `deflection_z::Float`: deflection in the z direction of downstream wake 
+- `deflection_y::Float`: deflection in the y direction of downstream wake
+- `deflection_z::Float`: deflection in the z direction of downstream wake
 - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
 - `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
 - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
@@ -634,7 +642,7 @@ Computes the wake deficit at a given location using the The Gaussian wake model 
 - `model::GaussYaw`: indicates the wake model in use
 
 """
-function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::GaussYaw)
+function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, wake_deficits, contribution_matrix, deflections, current_index_loop, wind_speed_internal, sigma_squared, wtvelocities, sorted_turbine_index, model::GaussYaw)
 
     dx = locx-turbine_x[upstream_turbine_id]
     dy = locy-(turbine_y[upstream_turbine_id]+deflection_y)
@@ -661,20 +669,20 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
 end
 
 """
-    wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::GaussYawVariableSpread)
+    wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, wake_deficits, contribution_matrix, deflections, current_index_loop, wind_speed_internal, sigma_squared, wtvelocities, sorted_turbine_index, model::GaussYawVariableSpread)
 
 Computes the wake deficit at a given location using the The Gaussian wake model presented by Bastankhah and Porte-Agel in the paper: "Experimental and theoretical study of wind turbine wakes in yawed conditions" (2016)
 The spread rate is adjusted based on local turbulence intensity as in Niayifar and Porte-Agel 2016
 
 # Arguments
-- `locx::Float`: x coordinate where wind speed is calculated 
+- `locx::Float`: x coordinate where wind speed is calculated
 - `locy::Float`: y coordinate where wind speed is calculated
 - `locz::Float`: z coordinate where wind speed is calculated
 - `turbine_x::Array(Float)`: vector containing x coordinates for all turbines in farm
 - `turbine_y::Array(Float)`: vector containing y coordinates for all turbines in farm
 - `turbine_z::Array(Float)`: vector containing z coordinates for all turbines in farm
-- `deflection_y::Float`: deflection in the y direction of downstream wake 
-- `deflection_z::Float`: deflection in the z direction of downstream wake 
+- `deflection_y::Float`: deflection in the y direction of downstream wake
+- `deflection_z::Float`: deflection in the z direction of downstream wake
 - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
 - `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
 - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
@@ -686,7 +694,7 @@ The spread rate is adjusted based on local turbulence intensity as in Niayifar a
 - `model::GaussYawVariableSpread`: indicates the wake model in use
 
 """
-function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::GaussYawVariableSpread)
+function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, wake_deficits, contribution_matrix, deflections, current_index_loop, wind_speed_internal, sigma_squared, wtvelocities, sorted_turbine_index, model::GaussYawVariableSpread)
 
     dx = locx - turbine_x[upstream_turbine_id]
     dy = locy - (turbine_y[upstream_turbine_id] + deflection_y)
@@ -712,20 +720,20 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
 end
 
 """
-    wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::GaussSimple)
+    wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, wake_deficits, contribution_matrix, deflections, current_index_loop, wind_speed_internal, sigma_squared, wtvelocities, sorted_turbine_index, model::GaussSimple)
 
 Computes the wake deficit at a given location using the Gaussian wake model presented by Bastankhah and Porte-Agel in the paper: "A new analytical model for wind-turbine wakes" (2014)
     as modified for IEA Task 37 Case Studies 3 and 4
 
 # Arguments
-- `locx::Float`: x coordinate where wind speed is calculated 
+- `locx::Float`: x coordinate where wind speed is calculated
 - `locy::Float`: y coordinate where wind speed is calculated
 - `locz::Float`: z coordinate where wind speed is calculated
 - `turbine_x::Array(Float)`: vector containing x coordinates for all turbines in farm
 - `turbine_y::Array(Float)`: vector containing y coordinates for all turbines in farm
 - `turbine_z::Array(Float)`: vector containing z coordinates for all turbines in farm
-- `deflection_y::Float`: deflection in the y direction of downstream wake 
-- `deflection_z::Float`: deflection in the z direction of downstream wake 
+- `deflection_y::Float`: deflection in the y direction of downstream wake
+- `deflection_z::Float`: deflection in the z direction of downstream wake
 - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
 - `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
 - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
@@ -737,8 +745,8 @@ Computes the wake deficit at a given location using the Gaussian wake model pres
 - `model::GaussSimple`: indicates the wake model in use
 
 """
-function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::GaussSimple)
-   
+function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, wake_deficits, contribution_matrix, deflections, current_index_loop, wind_speed_internal, sigma_squared, wtvelocities, sorted_turbine_index, model::GaussSimple)
+
     dx = locx-turbine_x[upstream_turbine_id]
     dy = locy-(turbine_y[upstream_turbine_id]+deflection_y)
 
@@ -750,7 +758,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     k = model.k
     wf = model.wec_factor[1]
 
-    # calculate loss 
+    # calculate loss
     sigmay = k*dx + dt/sqrt(8.0)
     radical = 1.0 - ct/(8.0*(sigmay^2)/(dt^2))
     exponent = -0.5*(dy/(wf*sigmay))^2
@@ -760,32 +768,117 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
 
 end
 
-# """
-#     wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::JensenTopHat)
+"""
+    wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, wake_deficits, contribution_matrix, deflections, current_index_loop, wind_speed_internal, sigma_squared, wtvelocities, sorted_turbine_index, model::CumulativeCurl)
 
-# Computes the wake deficit using the Cumulative Curl model, from the paper:
-# "Addressing deep array effects and impacts to wake steering with the cumulative-curl wake model" by Bay, Christopher (2022) (https://doi.org/10.5194/wes-2022-17)
+Computes the wake deficit at a given location using the Cumulative Curl Model https://doi.org/10.5194/wes-2022-17
 
-# # Arguments
-# - `locx::Float`: x coordinate where wind speed is calculated 
-# - `locy::Float`: y coordinate where wind speed is calculated
-# - `locz::Float`: z coordinate where wind speed is calculated
-# - `turbine_x::Array(Float)`: vector containing x coordinates for all turbines in farm
-# - `turbine_y::Array(Float)`: vector containing y coordinates for all turbines in farm
-# - `turbine_z::Array(Float)`: vector containing z coordinates for all turbines in farm
-# - `deflection_y::Float`: deflection in the y direction of downstream wake 
-# - `deflection_z::Float`: deflection in the z direction of downstream wake 
-# - `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
-# - `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
-# - `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
-# - `rotor_diameter::Array(Float)`: vector containing rotor diameters for all turbines in farm
-# - `turbine_ai::Array(Float)`: vector containing initial velocity deficits for all turbines in farm
-# - `turbine_local_ti::Array(Float)`: vector containing local turbulence intensities for all turbines in farm
-# - `turbine_ct::Array(Float)`: vector containing thrust coefficients for all turbines in farm
-# - `turbine_yaw::Array(Float)`: vector containing the yaw angle? for all turbines in farm
-# - `model::CumulativeCurl`: indicates the wake model in use
+# Arguments
+- `locx::Float`: x coordinate where wind speed is calculated
+- `locy::Float`: y coordinate where wind speed is calculated
+- `locz::Float`: z coordinate where wind speed is calculated
+- `turbine_x::Array(Float)`: vector containing x coordinates for all turbines in farm
+- `turbine_y::Array(Float)`: vector containing y coordinates for all turbines in farm
+- `turbine_z::Array(Float)`: vector containing z coordinates for all turbines in farm
+- `deflection_y::Float`: deflection in the y direction of downstream wake
+- `deflection_z::Float`: deflection in the z direction of downstream wake
+- `upstream_turbine_id::Int`: index of the upstream wind turbine creating the wake
+- `downstream_turbine_id::Int`: index of the downstream turbine feeling the wake (if not referencing a turbine set to zero)
+- `hub_height::Array(Float)`: vector containing hub heights for all turbines in farm
+- `rotor_diameter::Array(Float)`: vector containing rotor diameters for all turbines in farm
+- `turbine_ai::Array(Float)`: vector containing initial velocity deficits for all turbines in farm
+- `turbine_local_ti::Array(Float)`: vector containing local turbulence intensities for all turbines in farm
+- `turbine_ct::Array(Float)`: vector containing thrust coefficients for all turbines in farm
+- `turbine_yaw::Array(Float)`: vector containing the yaw angle? for all turbines in farm
+- `wake_deficits`: matrix containing the wake deficits from every turbine to every other turbine for use in sparsity codes
+- `contribution_matrix`: matrix containing the contribution coefficients defined in the Cumlative Curl Model
+- `model::CumulativeCurl`: indicates the wake model in use
 
-# """
-# function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, model::CumulativeCurl)
-#     # extract model properties
-# end
+"""
+function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, wake_deficits, contribution_matrix, deflections, current_index_loop, wind_speed_internal, sigma_squared, wtvelocities, sorted_turbine_index, model::CumulativeCurl)
+    x_n = turbine_x[upstream_turbine_id]
+    y_n = turbine_y[upstream_turbine_id]
+    z_n = turbine_z[upstream_turbine_id] + hub_height[upstream_turbine_id]
+
+    # unpack model constants
+    a_f = model.a_f
+    b_f = model.b_f
+    c_f = model.c_f
+    wec_factor = model.wec_factor[1]
+
+    x_tilde_n = abs(locx - x_n) / rotor_diameter[upstream_turbine_id]
+    m = a_f*exp(b_f*x_tilde_n)+c_f
+    a1 = 2^(2/m - 1)
+    a2 = a1^2
+
+    sigma_squared[upstream_turbine_id,downstream_turbine_id] = wake_expansion(turbine_ct[upstream_turbine_id],turbine_local_ti[upstream_turbine_id],x_tilde_n,model)
+
+    sigma_n = sigma_squared[upstream_turbine_id,downstream_turbine_id]
+    sqrt_num = (y_n-locy-deflections[upstream_turbine_id,downstream_turbine_id])^2 + (z_n-locz)^2
+    if sqrt_num == 0
+        r_tilde = 0.0
+    else
+        r_tilde = sqrt(sqrt_num)/rotor_diameter[upstream_turbine_id]
+    end
+    if (-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor)) > -750
+
+        sum_C = 0.0
+
+        @inbounds begin
+            for i = 1:current_index_loop-1
+                other_turbine_id = Int(sorted_turbine_index[i])
+
+                if contribution_matrix[other_turbine_id,downstream_turbine_id] == 0.0
+                    continue
+                end
+
+                y_i = turbine_y[other_turbine_id]
+                z_i = turbine_z[other_turbine_id] + hub_height[other_turbine_id]
+                sigma_i = sigma_squared[other_turbine_id,downstream_turbine_id]
+                dy_i = deflections[other_turbine_id,downstream_turbine_id]
+
+                @fastmath sigma_plus = 1/(sigma_n+sigma_i)
+                @fastmath expo = -0.5*sigma_plus*((y_n-y_i-dy_i)^2 + (z_n-z_i)^2)
+                if expo > -750
+                    lambda = sigma_n*sigma_plus*exp(expo)
+                    sum_C += lambda * contribution_matrix[other_turbine_id,downstream_turbine_id]
+                end
+            end
+
+            calc = abs_smooth(a2 - (m*turbine_ct[upstream_turbine_id]*cos(turbine_yaw[upstream_turbine_id]))/(16.0*gamma(2.0/m)*(sigma_n^(2.0/m))*(1.0-sum_C/wind_speed_internal)^2),0.1)
+            contribution_matrix[upstream_turbine_id,downstream_turbine_id] = (1-sum_C/wind_speed_internal) * (a1-sqrt(calc))
+            wake_deficits[upstream_turbine_id,downstream_turbine_id] = contribution_matrix[upstream_turbine_id,downstream_turbine_id] * exp(-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor))
+
+            # yaw color plot
+            # keep = [155 114 14 5 1 2 8 20 39 64 95 133 177 228 285]
+            # cols = [317 155 114 14 5 1 2 8 20 39 64 95 133 177 228]
+            # for j = eachindex(cols)
+            #     temp_def = wake_deficits[cols[j],keep[j]]
+            #     temp_c = contribution_matrix[cols[j],keep[j]]
+            #     wake_deficits[cols[j],:] .= 0.0
+            #     contribution_matrix[cols[j],:] .= 0.0
+            #     wake_deficits[cols[j],keep[j]] = temp_def
+            #     contribution_matrix[cols[j],keep[j]] = temp_c
+            # end
+
+            # # 317 -> 155 -> 114 -> 14 -> 5 -> 1 -> 2 -> 8 -> 20 -> 39 -> 64 -> 95 -> 133 -> 177 -> 228 -> 285
+
+            return wake_deficits[upstream_turbine_id,downstream_turbine_id]
+        end
+    end
+    wake_deficits[upstream_turbine_id,downstream_turbine_id] = 0.0
+    return wake_deficits[upstream_turbine_id,downstream_turbine_id]
+end
+
+# Helper function for the Cumulative Curl model
+function wake_expansion(Ct,TI,x_tilde,model)
+    beta = 0.5*(1.0+sqrt(1.0-Ct))/sqrt(1.0-Ct)
+    epsilon = (model.c_s1*Ct+model.c_s2)*sqrt(beta)
+    k = (model.a_s*TI+model.b_s)
+    sigma = k*x_tilde+epsilon
+    return sigma^2
+end
+
+function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, deflection_y, deflection_z, upstream_turbine_id, downstream_turbine_id, hub_height, rotor_diameter, turbine_ai, turbine_local_ti, turbine_ct, turbine_yaw, wake_deficits, contribution_matrix, deflections, current_index_loop, wind_speed_internal, sigma_squared, wtvelocities, sorted_turbine_index, model::NoWakeDeficit)
+    return 0.0
+end
