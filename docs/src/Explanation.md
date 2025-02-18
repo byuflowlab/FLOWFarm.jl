@@ -55,6 +55,9 @@ Not currently connected with the general wind farm models, but it hopefully will
 ## Wake Expansion Continuation (WEC)
 - [2] J. J. Thomas, S. McOmber, and A. Ning. Wake expansion continuation: Multi-modality reduction in the wind farm layout optimization problem. Wind Energy, May 2021. (in review).
 
+## Sparsity in Wind Farm Optimization
+- [14] Varela, B., and Ning, A., “Sparsity Applications for Gradient-Based Optimization of Wind Farms,” Oct. 2024, (in review).
+
 ## Wind Shear
 Wind shear refers to the fact that the wind speed changes with elevation. For wind farms, that change is due to the boundary layer of the wind flowing over the earth. The boundary layer is the region where the flow transitions from stationary at the ground, to some free-stream speed at some distance above the ground. 
 
@@ -100,3 +103,4 @@ ff.adjust_for_wind_shear(locz, reference_velocity, reference_height, ground_heig
 - [11] I. Katic, J. Højstrup, and N. Jensen. A simple model for cluster efficiency. In European Wind Energy Association 
 - [12] S. Voutsinas, K. Rados, and A. Zervos. On the analysis of wake effects in wind parks. Wind Engineering, 14:204–2019, 1990.
 - [13] A. Pen ̃a, K. Schaldemose Hansen, S. Ott, and M. P. van der Laan. On wake modeling, wind-farm gradients, and aep predictions at the anholt wind farm. Wind Energy Science, 3(1):191–202, 2018.
+- [14] Varela, B., and Ning, A., “Sparsity Applications for Gradient-Based Optimization of Wind Farms,” Oct. 2024, (in review).
