@@ -86,39 +86,6 @@ ff.adjust_for_wind_shear(locz, reference_velocity, reference_height, ground_heig
 7.2100037008866416
 ```
 
-<!-- ```@example
-using FLOWFarm; const ff = FLOWFarm
-using PyPlot; const plt = PyPlot
-
-# set input values
-shear_exponent = 0.15
-reference_velocity = 8.0 # in m/s
-reference_height = 80.0 # height of reference velocity in meters
-ground_height = 0.0 # height where velocity goes to zero
-
-# initialize wind shear model instance
-wind_shear_model = ff.PowerLawWindShear(shear_exponent, ground_height)
-
-# initialize heights of interest
-h = 0:200
-
-# initialize array for wind speeds at the heights of interest
-s = zeros(length(h))
-
-# adjust wind speed for heights of interest based on the the reference speed and height
-for i = 1:length(h)
-    s[i] = ff.adjust_for_wind_shear(h[i], reference_velocity, reference_height, ground_height, wind_shear_model)
-end
-
-# Scatter plot with some custom settings
-plt.plot(s, h)
-plt.title("Wind Shear")
-plt.xlabel("Speed (m/s)")
-plt.ylabel("Height (m)")
-plt.savefig("windshear.png") # hide
-```
-![](windshear.png) -->
-
 **Citing:**
 - [1] N. O. Jensen. A note on wind generator interaction. Technical report, Risø National Laboratory, DK-4000 Roskilde, Denmark, November 1983.
 - [2] J. J. Thomas, S. McOmber, and A. Ning. Wake expansion continuation: Multi-modality reduction in the wind farm layout optimization problem. Wind Energy, May 2021. (in review).
