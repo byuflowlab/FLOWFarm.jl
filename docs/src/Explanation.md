@@ -86,7 +86,7 @@ ff.adjust_for_wind_shear(locz, reference_velocity, reference_height, ground_heig
 7.2100037008866416
 ```
 
-```@example
+<!-- ```@example
 using FLOWFarm; const ff = FLOWFarm
 using PyPlot; const plt = PyPlot
 
@@ -117,7 +117,7 @@ plt.xlabel("Speed (m/s)")
 plt.ylabel("Height (m)")
 plt.savefig("windshear.png") # hide
 ```
-![](windshear.png)
+![](windshear.png) -->
 
 **Citing:**
 - [1] N. O. Jensen. A note on wind generator interaction. Technical report, Risø National Laboratory, DK-4000 Roskilde, Denmark, November 1983.
