@@ -6,6 +6,10 @@ using Distributed
 using SpecialFunctions
 using Geodesy; const gd = Geodesy
 using YAML
+using SparseDiffTools
+using SparseArrays
+using DiffResults
+using ReverseDiff
 
 include("io.jl")
 include("utilities.jl")
@@ -19,6 +23,7 @@ include("thrust_coefficient_models.jl")
 include("local_turbulence_intensity_models.jl")
 include("general_models.jl")
 include("power_models.jl")
+include("sparsity_functions.jl")
 include("user_functions.jl")
 include("optimization_functions.jl")
 include("tip.jl")

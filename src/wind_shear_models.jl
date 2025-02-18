@@ -1,3 +1,4 @@
+export PowerLawWindShear
 abstract type AbstractWindShearModel end
 
 """

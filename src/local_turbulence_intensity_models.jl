@@ -1,3 +1,4 @@
+export LocalTIModelNoLocalTI, LocalTIModelMaxTI, LocalTIModelGaussTI
 abstract type AbstractLocalTurbulenceIntensityModel end
 
 """

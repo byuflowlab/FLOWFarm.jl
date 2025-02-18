@@ -1,4 +1,10 @@
+export LinearFreestreamSuperposition, SumOfSquaresFreestreamSuperposition, SumOfSquaresLocalVelocitySuperposition, LinearLocalVelocitySuperposition
 abstract type AbstractWakeCombinationModel end
+
+#=
+To add to wake combination models
+Zong, H., & Fernando Porté-Agel. (2020). A momentum-conserving wake superposition method for wind farm power prediction. Journal of Fluid Mechanics, 889 doi:https://doi.org/10.1017/jfm.2020.77
+=#
 
 struct LinearFreestreamSuperposition <: AbstractWakeCombinationModel
 end

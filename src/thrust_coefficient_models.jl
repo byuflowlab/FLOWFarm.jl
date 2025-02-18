@@ -1,3 +1,4 @@
+export ThrustModelConstantCt, ThrustModelCtPoints
 abstract type AbstractThrustCoefficientModel end
 
 """

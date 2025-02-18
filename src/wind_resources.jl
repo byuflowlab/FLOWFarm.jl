@@ -1,3 +1,4 @@
+export DiscretizedWindResource
 import SpecialFunctions: gamma
 
 abstract type AbstractWindResourceModel end

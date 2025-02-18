@@ -1,3 +1,4 @@
+export NoYawDeflection, GaussYawDeflection, GaussYawVariableSpreadDeflection, JiminezYawDeflection, MultizoneDeflection
 abstract type AbstractWakeDeflectionModel end
 
 """

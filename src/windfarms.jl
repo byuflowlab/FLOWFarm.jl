@@ -2,6 +2,165 @@
 abstract type AbstractWindFarmModel end
 
 """
+wind_farm_struct
+
+Unifying struct defining a wind farm and all necessary variables to calculate the AEP
+
+# Arguments
+- `turbine_x`: Vector containing x positions of turbines
+- `turbine_y`: Vector containing y positions of turbines
+- `hub_height`: Vector containing hub heights of each turbines as measured form the ground the turbines sit on
+- `turbine_yaw`: Vector containing yaw angle of each turbine in radians
+- `rotor_diameter`: Vector containing the rotor diameter of each turbine
+- `results`: DiffResults object to extract AEP when calculating AEP gradient
+- `constants`: wind_farm_constants_struct
+- `AEP_scale`: Scaling factor for the AEP
+- `ideal_AEP`: The ideal AEP of the farm
+- `preallocations`: preallocated space
+- `update_function`: function that takes the design variables x and updates the farm struct
+- `AEP_gradient`: The gradient of the AEP
+- `AEP`: The AEP of the farm
+- `config`: The ForwardDiff config object if using ForwardDiff for AEP gradient calculation, otherwise nothing
+- `force_single_thread`: Boolean that forces the code to run in a single thread
+"""
+struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15} <: AbstractWindFarmModel
+    turbine_x::T1
+    turbine_y::T2
+    hub_height::T3
+    turbine_yaw::T4
+    rotor_diameter::T5
+    results::T6
+    constants::T7
+    AEP_scale::T8
+    ideal_AEP::T9
+    preallocations::T10
+    update_function::T11
+    AEP_gradient::T12
+    AEP::T13
+    config::T14
+    force_single_thread::T15
+end
+
+"""
+preallocations_struct
+
+struct that holds all the preallocated space for AEP calculation with one per thread used
+
+# Arguments
+- `prealloc_turbine_velocities`: Vector containing preallocated space for turbine velocities
+- `prealloc_turbine_ct`: Vector containing preallocated space for turbine ct
+- `prealloc_turbine_ai`: Vector containing preallocated space for turbine ai
+- `prealloc_turbine_local_ti`: Vector containing preallocated space for turbine local ti
+- `prealloc_wake_deficits`: Matrix containing preallocated space for wake deficits
+- `prealloc_contribution_matrix`: Matrix containing preallocated space for contribution matrix
+- `prealloc_deflections`: Matrix containing preallocated space for deflections
+- `prealloc_sigma_squared`: Matrix containing preallocated space for sigma squared
+"""
+struct preallocations_struct{V,M}
+    prealloc_turbine_velocities::V
+    prealloc_turbine_ct::V
+    prealloc_turbine_ai::V
+    prealloc_turbine_local_ti::V
+    prealloc_wake_deficits::M
+    prealloc_contribution_matrix::M
+    prealloc_deflections::M
+    prealloc_sigma_squared::M
+end
+
+"""
+wind_farm_constants_struct
+
+struct that holds all the constants for the wind farm
+
+# Arguments
+- `turbine_z`: Vector containing z positions of ground the turbines sit on
+- `ct_models`: Vector containing ct_models for each turbine
+- `generator_efficency`: Vector containing the generator efficiency of each turbine
+- `cut_in_speed`: Vector containing the cut in speed of each turbine
+- `cut_out_speed`: Vector containing the cut out speed of each turbine
+- `rated_speed`: Vector containing the rated speed of each turbine
+- `rated_power`: Vector containing the rated power of each turbine
+- `wind_resource`: The windresource struct
+- `power_models`: Vector containing power models of each turbine
+- `model_set`: The models_set struct
+- `rotor_sample_points_y`: Vector containing y sample points
+- `rotor_sample_points_z`: Vector containing z sample points
+"""
+struct wind_farm_constants_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12}
+    turbine_z::T1
+    ct_models::T2
+    generator_efficiency::T3
+    cut_in_speed::T4
+    cut_out_speed::T5
+    rated_speed::T6
+    rated_power::T7
+    wind_resource::T8
+    power_models::T9
+    model_set::T10
+    rotor_sample_points_y::T11
+    rotor_sample_points_z::T12
+end
+
+######### constraint structs
+"""
+spacing_struct
+
+Struct defining the spacing constraints
+
+# Arguments
+- `turbine_x`: Vector containing x positions of turbines
+- `turbine_y`: Vector containing y positions of turbines
+- `constraint_spacing`: Single float that defines the minimum spacing between turbines in meters
+- `constraint_scaling`: Single float that scales the constraint
+- `spacing_vec`: Vector containing the spacing constraints
+- `jacobian`: Matrix containing the jacobian of the spacing constraints
+- `config`: The ForwardDiff config object if using ForwardDiff for jacboian calculation
+- `update_function`: function that takes the design variables x and updates the spacing struct
+"""
+struct spacing_struct{T1,T2,T3,T4,T5,T6,T7,T8}
+    turbine_x::T1
+    turbine_y::T2
+    constraint_spacing::T3 # Single float that defines the minimum spacing between turbines in meters
+    constraint_scaling::T4 # Single float that scales the constraint
+    spacing_vec::T5 # In place vector
+    jacobian::T6
+    config::T7
+    update_function::T8
+end
+
+"""
+boundary_struct
+
+Struct defining the boundary constraints
+
+# Arguments
+- `turbine_x`: Vector containing x positions of turbines
+- `turbine_y`: Vector containing y positions of turbines
+- `boundary_scaling_factor`: Single float that scales the constraint
+- `boundary_function`: function that takes the boundary vector and the design variables to update the boundary vector
+- `boundary_vec`: Vector containing the boundary constraints
+- `jacobian`: Matrix containing the jacobian of the boundary constraints
+- `config`: The ForwardDiff config object if using ForwardDiff for jacboian calculation
+- `update_function`: function that takes the design variables x and updates the boundary struct
+"""
+struct boundary_struct{T1,T2,T3,T4,T5,T6,T7,T8}
+    turbine_x::T1
+    turbine_y::T2
+    boundary_scaling_factor::T3
+    boundary_function::T4
+    boundary_vec::T5
+    jacobian::T6
+    config::T7
+    update_function::T8
+end
+
+
+
+
+
+
+############################# outdated
+"""
 WindFarm(windfarm, windresource, windfarmstates)
 
 Struct defining a wind farm
@@ -41,35 +200,3 @@ struct SingleWindFarmState{TI,AF1,AF2,AF3,AF4,AF5,AF6,AF7,AF8,AF9,AI} <: Abstrac
     sorted_turbine_index::AI
 
 end
-
-# # abstract type AbstractBoundary end
-
-# # """
-# # CircleBoundary(boundary_center, boundary_radius)
-
-# # # Arguments
-# # - `boundary_center::Float`: center of wind farm boundary
-# # - 'boundary_radius::Float': radius of wind farm boundary
-# # """
-# # struct CircleBoundary{TF,TF} <: AbstractBoundary
-# #     boundary_center::TF
-# #     boundary_radius::TF
-# # end
-
-# # """
-# # PolygonBoundary(boundary_center, boundary_radius)
-
-# # # Arguments
-# # - `boundary_center::Float`: center of wind farm boundary
-# # - 'boundary_radius::Float': radius of wind farm boundary
-# # """
-# # struct PolygonBoundary{ATF} <: AbstractBoundary
-# #     boundary_vertices::ATF
-# #     boundary_normals::ATF
-# # end
-
-# function initialize_polygon_boundary(vertices)
-#     normals = boundary_normals_calculator(vertices)
-#     boundary = PolygonBoundary(vertices, normals)
-#     return boundary
-# end

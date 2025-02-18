@@ -55,6 +55,9 @@ Not currently connected with the general wind farm models, but it hopefully will
 ## Wake Expansion Continuation (WEC)
 - [2] J. J. Thomas, S. McOmber, and A. Ning. Wake expansion continuation: Multi-modality reduction in the wind farm layout optimization problem. Wind Energy, May 2021. (in review).
 
+## Sparsity in Wind Farm Optimization
+- [14] Varela, B., and Ning, A., “Sparsity Applications for Gradient-Based Optimization of Wind Farms,” Oct. 2024, (in review).
+
 ## Wind Shear
 Wind shear refers to the fact that the wind speed changes with elevation. For wind farms, that change is due to the boundary layer of the wind flowing over the earth. The boundary layer is the region where the flow transitions from stationary at the ground, to some free-stream speed at some distance above the ground. 
 
@@ -86,39 +89,6 @@ ff.adjust_for_wind_shear(locz, reference_velocity, reference_height, ground_heig
 7.2100037008866416
 ```
 
-```@example
-using FLOWFarm; const ff = FLOWFarm
-using PyPlot; const plt = PyPlot
-
-# set input values
-shear_exponent = 0.15
-reference_velocity = 8.0 # in m/s
-reference_height = 80.0 # height of reference velocity in meters
-ground_height = 0.0 # height where velocity goes to zero
-
-# initialize wind shear model instance
-wind_shear_model = ff.PowerLawWindShear(shear_exponent, ground_height)
-
-# initialize heights of interest
-h = 0:200
-
-# initialize array for wind speeds at the heights of interest
-s = zeros(length(h))
-
-# adjust wind speed for heights of interest based on the the reference speed and height
-for i = 1:length(h)
-    s[i] = ff.adjust_for_wind_shear(h[i], reference_velocity, reference_height, ground_height, wind_shear_model)
-end
-
-# Scatter plot with some custom settings
-plt.plot(s, h)
-plt.title("Wind Shear")
-plt.xlabel("Speed (m/s)")
-plt.ylabel("Height (m)")
-plt.savefig("windshear.png") # hide
-```
-![](windshear.png)
-
 **Citing:**
 - [1] N. O. Jensen. A note on wind generator interaction. Technical report, Risø National Laboratory, DK-4000 Roskilde, Denmark, November 1983.
 - [2] J. J. Thomas, S. McOmber, and A. Ning. Wake expansion continuation: Multi-modality reduction in the wind farm layout optimization problem. Wind Energy, May 2021. (in review).
@@ -133,3 +103,4 @@ plt.savefig("windshear.png") # hide
 - [11] I. Katic, J. Højstrup, and N. Jensen. A simple model for cluster efficiency. In European Wind Energy Association 
 - [12] S. Voutsinas, K. Rados, and A. Zervos. On the analysis of wake effects in wind parks. Wind Engineering, 14:204–2019, 1990.
 - [13] A. Pen ̃a, K. Schaldemose Hansen, S. Ott, and M. P. van der Laan. On wake modeling, wind-farm gradients, and aep predictions at the anholt wind farm. Wind Energy Science, 3(1):191–202, 2018.
+- [14] Varela, B., and Ning, A., “Sparsity Applications for Gradient-Based Optimization of Wind Farms,” Oct. 2024, (in review).

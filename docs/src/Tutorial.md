@@ -16,7 +16,7 @@ directory.
 
 ## (1) Setting up the problem description
 
-The problems description involves the physically description of the wind farm, the turbines, 
+The problems description involves the physical description of the wind farm, the turbines, 
 and the wind resource. While this tutorial uses the same design across all the wind turbines
 and mostly equal properties across all wind flow states, all turbines and flow states can 
 be unique.
@@ -27,8 +27,6 @@ be loaded from .csv and/or .yaml files.
 ### Set up the running environment
 ```@example 1
 using FLOWFarm; const ff = FLOWFarm
-using PyPlot; const plt = PyPlot
-using VectorizedRoutines.Matlab: meshgrid
 using SNOW
 ```
 
@@ -67,29 +65,6 @@ generatorefficiency = ones(nturbines)
 println("") # hide
 ```
 
-### Visualize the wind farm layout
-```@example 1 
-# initialize axis 
-fig, ax = plt.subplots(1)
-
-# plot layout using FLOWFarm
-ff.plotlayout!(ax, turbinex, turbiney, rotordiameter)
-
-# Label the axes
-ax.set(xlabel="Easting (m)", ylabel="Northing (m)")
-
-# add farm boundary
-circle = matplotlib.patches.Circle((0.0, 0.0), boundaryradius, fill=false, color="k")
-ax.add_patch(circle)
-
-# set plot limits
-ax.set(xlim=[-boundaryradius, boundaryradius].*1.01, ylim=[-boundaryradius, boundaryradius].*1.01)
-
-plt.tight_layout() # hide
-plt.savefig("initiallayout.png") # hide
-```
-![](initiallayout.png)
-
 ### Determine how to sample the flow field to determine effective inflow speeds
 Rotor swept area sample points are normalized by the rotor radius. These arrays define which
 which points on the rotor swept area should be used to estimate the effective inflow
@@ -103,16 +78,7 @@ See doc strings for more information.
 # get the sample points
 nsamplepoints = 50
 rotorsamplepointsy, rotorsamplepointsz = ff.rotor_sample_points(nsamplepoints, method="sunflower")
-
-# visualize the sample points
-fig, ax = plt.subplots(1)
-ff.plotrotorsamplepoints!(ax, rotorsamplepointsy, rotorsamplepointsz)
-ax.set(xlabel="y/radius", ylabel="z/radius")
-plt.tight_layout() # hide
-plt.savefig("rotorsamplepoints.png") # hide
-println("") # hide
 ```
-![](rotorsamplepoints.png)
 
 ### Setting up the wind resource
 The wind resource determines the properties of the flowfield at all wind states. A wind 
@@ -137,13 +103,7 @@ windshearmodel = ff.PowerLawWindShear(shearexponent)
 # initialize the wind resource definition
 windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, 
 measurementheight, airdensity, ambienttis, windshearmodel)
-
-# visualize the wind resource
-ff.plotwindresource!(windresource)
-plt.tight_layout() # hide
-plt.savefig("windresource.png") # hide
 ```
-![](windresource.png)
 
 ## (2) Setting up the analysis models
 
@@ -246,7 +206,7 @@ The output shows each turbine power in an array that is ndirections by nturbines
 ## (4) setting up and running an optimization
 FLOWFarm is specifically designed for efficient optimization using gradient-based optimization
 methods. Besides the steps outlined above, we need to define the following before we can run 
-and optimization:
+an optimization:
 
 - (1) Optimization related variables
 - (1) A container for non-differentiated parameters
@@ -478,27 +438,7 @@ println("AEP improvement (%) = ", 100*(aepfinal - aep)/aep)
 # extract final turbine locations
 turbinexopt = copy(xopt[1:nturbines])
 turbineyopt = copy(xopt[nturbines+1:end])
-
-# initialize figure and axes object
-fig, ax = plt.subplots(1)
-
-# plot layout using FLOWFarm
-ff.plotlayout!(ax, turbinexopt, turbineyopt, rotordiameter)
-
-# label the axes
-ax.set(xlabel="Easting (m)", ylabel="Northing (m)")
-
-# and the wind farm boundary
-circle = matplotlib.patches.Circle((0.0, 0.0), boundaryradius, fill=false, color="k")
-ax.add_patch(circle)
-
-# set limits on the plot region
-ax.set(xlim=[-boundaryradius, boundaryradius].*1.01, ylim=[-boundaryradius, boundaryradius].*1.01)
-
-plt.tight_layout() # hide
-plt.savefig("optlayout.png") # hide
 ```
-![](optlayout.png)
 
 ## (5) Calculating a flow field
 
