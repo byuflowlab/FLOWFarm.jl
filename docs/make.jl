@@ -4,7 +4,7 @@ DocMeta.setdocmeta!(FLOWFarm, :DocTestSetup, :(using FLOWFarm); recursive=true)
 
 makedocs(;
     modules=[FLOWFarm],
-    format=Documenter.HTML(repolink="https://github.com/byuflowlab/FLOWFarm.jl", size_threshold=300000),
+    format=Documenter.HTML(repolink="https://github.com/byuflowlab/FLOWFarm.jl", size_threshold=nothing, size_threshold_warn=nothing),
     pages=[
         "Intro" => "index.md",
         "Quick Start" => "Tutorial.md",
