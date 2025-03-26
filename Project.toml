@@ -17,7 +17,7 @@ SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
-FLOWMath = "0.4"
+FLOWMath = "0.3,0.4"
 ForwardDiff = "0.10"
 Geodesy = "1"
 SparseDiffTools = "2"
