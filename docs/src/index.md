@@ -21,6 +21,7 @@ julia
 ```
 
 * Begin with the [quick start tutorial](Tutorial.md).
+* An explanation of how to utilize sparsity can be found in [wind farm struct](WindFarmStruct.md)
 * More advanced topics are covered in the [how-to guide](How_to.md).
 * Theory, details, and sources can be found in the [theory](Explanation.md) page.
 * Doc strings can be found in the [references](Reference.md) page.
