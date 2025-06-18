@@ -5,11 +5,11 @@
 **Authors:** Jared J. Thomas, Andrew P.J. Stanley
 
 ## Features
-- Swap out models without changing anything else in the simulation setup
-- Smooth/continous model implementations
+- Swap out models without changing anything else in the simulation setup.
+- Smooth/continous model implementations.
 - Runs on a single core, across multiple cores (threaded), or on multiple machines (distributed).
-- Designed so that new model implementations can be included by adding a single method
-- Allows for Wake Expansion Continuation (WEC) as described here
+- Designed so that new model implementations can be included by adding a single method.
+- Allows for Wake Expansion Continuation (WEC) as described [here](Explanation.md).
 
 ## Installation
 
@@ -17,12 +17,13 @@
 
 ```
 julia
-(v1.x) pkg> dev https://github.com/byuflowlab/FLOWFarm.jl.git
+(v1.x) pkg> add FLOWFarm
 ```
 
 * Begin with the [quick start tutorial](Tutorial.md).
+* An explanation of how to utilize sparsity can be found in [wind farm struct](WindFarmStruct.md).
 * More advanced topics are covered in the [how-to guide](How_to.md).
-* Theory details, and links, can be found in the [theory](Explanation.md) page.
+* Theory, details, and sources can be found in the [theory](Explanation.md) page.
 * Doc strings can be found in the [references](Reference.md) page.
 
 **Citing:**

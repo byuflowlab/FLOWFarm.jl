@@ -1764,6 +1764,11 @@ using FiniteDiff
             @test derivfad ≈ derivfd atol = 1E-6
         end
 
+        old_deficit_sum = 0.3
+        wind_speed = 8.0
+        deltav = 0.2
+        turb_inflow = 7.5
+
         @testset "Sum of Squares Local Velocity Superposition" begin
             model = ff.SumOfSquaresLocalVelocitySuperposition()
             result = sqrt(old_deficit_sum^2 + (turb_inflow*deltav)^2)

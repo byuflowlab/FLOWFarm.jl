@@ -1,6 +1,6 @@
 # Tutorial
 
-This tutorial covers the basics of FlowFARM. For more specifics refer to the [How-to guide](How_to.md).
+This tutorial covers the basics of `FLOWFarm`. For more specifics refer to the [How-to guide](How_to.md).
 
 This tutorial discusses how to do the following with FLOWFarm:
 - (1) setting up a problem description
@@ -110,19 +110,19 @@ measurementheight, airdensity, ambienttis, windshearmodel)
 A model set requires a Wake Deficit Model, Wake Deflection Model, Wake Combination Model, and a Local Turbulence Intensity Model. There are several options for each model type. To facilitate research studies, any of the models in each type can be used with any of the models in any other type. However, behavior is not guaranteed. It is recommended that common, validated, model combinations be used in most cases.
 
 Model types and options are:
-* Deficit Models: JensenTopHat, JensenCosine, MultiZone, GaussOriginal, GaussYaw, GaussYawVariableSpread, GaussSimple
-* Deflection Models: GaussYawDeflection, GaussYawVariableSpreadDeflection, JiminezYawDeflection, MultizoneDeflection
-* Combination Models: LinearFreestreamSuperposition, SumOfSquaresFreestreamSuperposition SumOfSquaresLocalVelocitySuperposition, LinearLocalVelocitySuperposition
-* Turbulence Models: LocalTIModelNoLocalTI, LocalTIModelMaxTI
+* Deficit Models: JensenTopHat, JensenCosine, MultiZone, GaussOriginal, GaussYaw, GaussYawVariableSpread, GaussSimple.
+* Deflection Models: GaussYawDeflection, GaussYawVariableSpreadDeflection, JiminezYawDeflection, MultizoneDeflection.
+* Combination Models: LinearFreestreamSuperposition, SumOfSquaresFreestreamSuperposition SumOfSquaresLocalVelocitySuperposition, LinearLocalVelocitySuperposition.
+* Turbulence Models: LocalTIModelNoLocalTI, LocalTIModelMaxTI.
 
 The model set can be set up as follows:
 
-Initialize power model (this is a simple power model based only on turbine design and is not very accurate. For examples on how to use more accurate power models, look at the example optimization scripts)
+Initializes the power model. This is a simple model based solely on turbine design and is not highly accurate. For examples of more accurate power models, refer to the example optimization scripts.
 ```@example 1
 powermodel = ff.PowerModelPowerCurveCubic()
 ```
 
-The user can define different power models for different wind turbines, but here we use the same power model for every turbine. The initialization of the power_models vector is important for optmization using algorithmic differentiation via the ForwardDiff.jl package.
+The user can define different power models for different wind turbines, but here we use the same power model for every turbine. The initialization of the `power_models` vector is important for optmization using algorithmic differentiation via the [`ForwardDiff.jl`](https://github.com/JuliaDiff/ForwardDiff.jl) package.
 ```@example 1
 powermodels = Vector{typeof(powermodel)}(undef, nturbines)
 for i = 1:nturbines
@@ -130,7 +130,7 @@ for i = 1:nturbines
 end
 ```
 
-Initialize thrust model(s). The user can provide a complete thrust curve. See the example scripts for details on initializing them. The initialization of the ct models vector is important for optmization using algorithmic differentiation via the ForwardDiff.jl package.
+Initialize thrust model(s). The user can provide a complete thrust curve. See the example scripts for details on initializing them. The initialization of the ct models vector is important for optmization using algorithmic differentiation via the [`ForwardDiff.jl`](https://github.com/JuliaDiff/ForwardDiff.jl) package.
 ```@example 1
 ctmodel = ff.ThrustModelConstantCt(0.65)
 ctmodels = Vector{typeof(ctmodel)}(undef, nturbines)
@@ -139,7 +139,7 @@ for i = 1:nturbines
 end
 ```
 
-Set up wake and related models. Here we will use the default values provided in FLOWFarm.
+Set up wake and related models. Here we will use the default values provided in `FLOWFarm`.
 However, it is important to use the correct model parameters. More information and references
 are provided in the doc strings attached to each model.
 
@@ -201,7 +201,7 @@ turbine_powers_by_direction = ff.calculate_state_turbine_powers(turbinex, turbin
     cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset,
     rotor_sample_points_y=rotorsamplepointsy, rotor_sample_points_z=rotorsamplepointsz)
 ```
-The output shows each turbine power in an array that is ndirections by nturbines.
+The output shows each turbine power in an array that scales with the number of wind-directions and number of turbines (`ndirections` x `nturbines`).
 
 ## (4) setting up and running an optimization
 FLOWFarm is specifically designed for efficient optimization using gradient-based optimization
@@ -209,18 +209,20 @@ methods. Besides the steps outlined above, we need to define the following befor
 an optimization:
 
 - (1) Optimization related variables
-- (1) A container for non-differentiated parameters
-- (2) Objective function 
-- (3) Constraint function(s) 
+- (2) A container for non-differentiated parameters
+- (3) Objective and constraint function(s) 
 - (4) Optimization tool specific items
+- (5) Run the optimization
 
 In this tutorial we demonstrate optimizing using the IPOPT algorithms via SNOW.jl for simplicity.
 
 First, set up optimization related variables. We will have two constraints, one to keep 
 turbines from getting too close to each other (spacing), and the other to keep turbines 
-inside the desired area (boundary). FLOWFarm provides several different ways of handling 
+inside the desired area (boundary). `FLOWFarm` provides several different ways of handling 
 boundary constraints, including concave boundaries. However, for this tutorial we will use 
 a simple circular boundary.
+
+### Optimization related variables
 
 ```@example 1
 # scale objective derivatives to be between 0 and 1
@@ -237,7 +239,7 @@ minimumspacing = 160.0
 println("") # hide
 ```
 
-Next, set up a container for non-differentiated parameters
+### A container for non-differentiated parameters
 
 ```@example 1
 # set up a struct for use in optimization functions
@@ -273,6 +275,8 @@ params = params_struct(modelset, rotorsamplepointsy, rotorsamplepointsz, turbine
     windresource, powermodels)
 println("") # hide
 ```
+
+### Objective and constraint function(s) 
 
 Now we are ready to set up wrapper functions for the objective and constraints.
 
@@ -374,15 +378,14 @@ end
 println("") # hide
 ```
 
-Because the optimizer will need to call the objective function without knowing about the params, we
-need to set up a method that will know the params values by default.
+The `minimize` function expects an objective function that only takes two parameters (`g` and `x`). By creating a forced signature, we are able to pass in `params` directly into the optimization.
 
 ```@example 1
 # generate objective function wrapper
 obj_func!(g, x) = wind_farm_opt!(g, x, params)
 ```
 
-Next we set up the optimizer.
+### Optimization tool specific items
 
 ```@example 1
 # initialize design variable vector
@@ -416,6 +419,8 @@ options = Options(solver=solver, derivatives=ForwardAD())  # choose AD derivativ
 println("") # hide
 ```
 
+### Run the optimization
+
 Now that the optimizer is set up, we are ready to optimize and check the results.
 
 ```@example 1
@@ -442,7 +447,7 @@ turbineyopt = copy(xopt[nturbines+1:end])
 
 ## (5) Calculating a flow field
 
-It is helpful to visualize the whole flow-field, not just the turbine powers.
+It is helpful to visualize the whole flow-field, not just the turbine powers. The input `wind_farm_state_id` determines which state from the wind resource is being used to calculate the flow-field. 
 
 ```@example 1
 # define how many points should be in the flow field
@@ -468,3 +473,5 @@ ffvelocities = ff.calculate_flow_field(xrange, yrange, zrange,
     windresource, wind_farm_state_id=5)
 
 ```
+
+`ffvelocities` is a three-dimensional array containing flow velocities over the specified domain. The dimensions correspond to the spatial ranges as follows: the first dimension maps to `zrange`, the second to `xrange`, and the third to `yrange`.
