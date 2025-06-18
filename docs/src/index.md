@@ -17,7 +17,7 @@
 
 ```
 julia
-(v1.x) pkg> dev https://github.com/byuflowlab/FLOWFarm.jl.git
+(v1.x) pkg> add FLOWFarm
 ```
 
 * Begin with the [quick start tutorial](Tutorial.md).
