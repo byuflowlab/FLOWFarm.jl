@@ -1,5 +1,9 @@
 # Wind Farm Struct
 
+```@setup 1
+include("farm_setup.jl")
+```
+
 **Note: First Complete the Quick Start and Optimization Tutorial**
 
 This tutorial covers the usage of the wind farm struct. The wind farm struct simplifies optimization set up and allows for the use of sparse methods in gradient calculation. The AEP value and the gradient are both stored in the farm struct.

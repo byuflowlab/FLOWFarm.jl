@@ -1,5 +1,9 @@
 # Setting up and running an optimization
 
+```@setup 1
+include("farm_setup.jl")
+```
+
 **Note: First Complete the Quick Start**
 
 `FLOWFarm` is specifically designed for efficient optimization using gradient-based optimization
