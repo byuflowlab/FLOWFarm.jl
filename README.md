@@ -1,5 +1,5 @@
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://byuflowlab.github.io/FLOWFarm.jl/)
 ![Tests](https://github.com/byuflowlab/FLOWFarm.jl/actions/workflows/test.yml/badge.svg)
-[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://byuflowlab.github.io/FLOWFarm.jl/)
 
 
 # FLOWFarm.jl
@@ -25,22 +25,10 @@ julia
 (v1.x) pkg> add FLOWFarm
 ```
 
-## Testing
-
-To test FLOWFarm, run the following from the top directory:
-
-```
-julia
-julia
-]
-activate .
-test
-```
-
 ## Documentation
 
 * Begin with the [quick start tutorial](https://flow.byu.edu/FLOWFarm.jl/Tutorial/).
-* An explanation of how to utilize sparsity can be found in [wind farm struct](WindFarmStruct.md).
+* An explanation of how to utilize sparsity can be found in [wind farm struct](https://flow.byu.edu/FLOWFarm.jl/Wind_Farm_Struct/).
 * More advanced topics are covered in the [how-to guide](https://flow.byu.edu/FLOWFarm.jl/How_to/).
 * Theory details, and links, can be found in the [theory](https://flow.byu.edu/FLOWFarm.jl/Explanation) page.
 * Doc strings can be found in the [references](https://flow.byu.edu/FLOWFarm.jl/Reference/) page.
