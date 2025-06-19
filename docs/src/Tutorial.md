@@ -217,7 +217,7 @@ yrange = miny:(maxy-miny)/yres:maxy
 zrange = hubheight[1]
 
 # run flowfarm 
-ffvelocities = ff.calculate_flow_field(xrange, yrange, zrange,
+ffvelocities = FLOWFarm.calculate_flow_field(xrange, yrange, zrange,
     modelset, turbinex, turbiney, turbinez, turbineyaw,
     rotordiameter, hubheight, ctmodels, rotorsamplepointsy, rotorsamplepointsz,
     windresource, wind_farm_state_id=5)

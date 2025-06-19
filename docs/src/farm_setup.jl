@@ -73,3 +73,20 @@ wakecombinationmodel = ff.LinearLocalVelocitySuperposition()
 localtimodel = ff.LocalTIModelMaxTI()
 
 modelset = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
+
+aep = ff.calculate_aep(turbinex, turbiney, turbinez, rotordiameter,
+    hubheight, turbineyaw, ctmodels, generatorefficiency, cutinspeed,
+    cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset,
+    rotor_sample_points_y=rotorsamplepointsy, rotor_sample_points_z=rotorsamplepointsz)
+
+state_aeps = ff.calculate_state_aeps(turbinex, turbiney, turbinez, rotordiameter,
+    hubheight, turbineyaw, ctmodels, generatorefficiency, cutinspeed,
+    cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset,
+    rotor_sample_points_y=rotorsamplepointsy, rotor_sample_points_z=rotorsamplepointsz,
+    hours_per_year=365.25*24.0, weighted=true)
+
+turbine_powers_by_direction = ff.calculate_state_turbine_powers(turbinex, turbiney, turbinez, rotordiameter,
+    hubheight, turbineyaw, ctmodels, generatorefficiency, cutinspeed,
+    cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset,
+    rotor_sample_points_y=rotorsamplepointsy, rotor_sample_points_z=rotorsamplepointsz)
+nothing
