@@ -1,6 +1,6 @@
-[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://byuflowlab.github.io/FLOWFarm.jl/)
-![Tests](https://github.com/byuflowlab/FLOWFarm.jl/actions/workflows/test.yml/badge.svg)
-
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://byuflowlab.github.io/FLOWFarm.jl/stable)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://flow.byu.edu/FLOWFarm.jl/dev)
+[![Build Status](https://github.com/byuflowlab/FLOWFarm.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/byuflowlab/FLOWFarm.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
 # FLOWFarm.jl
 
