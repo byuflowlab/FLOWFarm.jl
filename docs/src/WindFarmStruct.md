@@ -1,6 +1,12 @@
 # Wind Farm Struct
 
-This tutorial covers the usage of the wind farm struct. The wind farm struct simplifies optimization set up and allows for the use of sparse methods in gradient calculation. The AEP value and the gradient are both stored in the farm struct
+```@setup 1
+include("farm_setup.jl")
+```
+
+**Note: First Complete the Quick Start and Optimization Tutorial**
+
+This tutorial covers the usage of the wind farm struct. The wind farm struct simplifies optimization set up and allows for the use of sparse methods in gradient calculation. The AEP value and the gradient are both stored in the farm struct.
 
 ## Sparse Arrays
 
@@ -21,17 +27,17 @@ end
 farm = ff.build_wind_farm_struct(x0, turbinex, turbiney, turbinez, hubheight, turbineyaw, rotordiameter, ctmodels, generatorefficiency, cutinspeed, cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset, my_update_function; AEP_scale=1.0, input_type="ForwardDiff", opt_x=true, opt_y=true)
 ```
 
-build_wind_farm_struct has many inputs and options. While most are well defined in the previous tutorial, some are new. 
+`build_wind_farm_struct` has many inputs and options. While most are well defined in the previous [tutorial](Tutorial.md), some are new. 
 - `x0` is a vector of the design variables and should already be scaled. 
 - `my_update_function` is a function that is of the form `f(wind_farm_struct, x0)` and updates the wind farm struct in place from the design variables.
 - `AEP_scale` applies a scale factor to the AEP calculation and by default uses `1.0/ideal_AEP`.
-- `input_type` is FowardDiff when using the farm struct for optimization. Otherwise, deafults to `nothing` and will use the type of `x0`
+- `input_type` is `"FowardDiff"` when using the farm struct for optimization. Otherwise, deafults to `nothing` and will use the type of `x0`
 - `opt_x`, `opt_y`, `opt_hub`, `opt_yaw`, and `opt_diam` determine which variables are being optimized so that only those variables are stored as `input_type`. This allows for faster gradient computation.
 
-This use of `my_update_function` allows for updates of the wind turbine `x` and `y` positions. If the user was interested in updating the `yaw` values, `my_update_function` would look like the following:
+In this example, `my_update_function` allows for updates of the wind turbine `x` and `y` positions. If the user was interested in updating the `yaw` values, `my_update_function` would look like the following:
 
 ```julia
-function my_update_function(farm, x)
+function my_update_function_yaw(farm, x)
     farm.turbine_yaw .= x
 end
 ```
@@ -52,7 +58,7 @@ scaling = 1.0/boundaryradius^2 # scaling factor for boundary constraint
 boundary_struct = ff.build_boundary_struct(x0, nturbines, n_constraints, scaling, boundary_function, my_update_function)
 ```
 
-The resulting objective function then looks like:
+The resulting non-sparse objective function then looks like:
 ```julia
 function opt!(g,df,dg,x,farm,spacing_struct,boundary_struct)
 
@@ -90,9 +96,9 @@ The use of sparsity is built into `FLOWFarm` for user convenience.
 ## Farm Sparsity
 There are two types of sparsity used when calculating the gradient of the AEP: stable and unstable sparsity. Stable sparsity means the sparsity pattern remains fixed throughout the optimization, while unstable sparsity allows the pattern to update during the process. The sparsity pattern reflects how each turbine’s wake affects the power output of other turbines.
 
-For example, any optimization where the `x` or `y` positions of the turbines are design variables will result in changing sparsity patterns as the turbines move and interact differently. In contrast a `yaw` optimization is unlikely to cause a change in the sparsity pattern during the optimization.
+For example, any optimization where the `x` or `y` positions of the turbines are design variables will result in changing sparsity patterns as the turbines move and interact differently. In contrast a `yaw` optimization is unlikely to cause a change in the sparsity pattern during the optimization process.
 
-Use of sparsity in AEP optimization requires a `sparse_struct` that must be passed into the objective function in the same manner as the constraint structs. The AEP and the AEP gradient are then stored in the farm struct just like the non-sparse methods.
+Use of sparsity in AEP optimization requires a `sparse_struct` that must be passed into the objective function in the same manner as the constraint structs. The AEP and the AEP gradient are then stored in the farm struct just like the non-sparse method.
 
 ```julia
 ff.calculate_aep_gradient!(farm,x0,sparse_struct)
@@ -101,12 +107,12 @@ println("AEP Gradient = ",farm.AEP_gradient)
 ```
 
 ### Stable Sparsity
-Stable sparse farm structs are constructed in a similar method to regular farm structs
+Stable sparse farm structs are constructed in a similar method to regular farm structs.
 ```julia
 farm, sparse_struct = ff.build_stable_sparse_struct(x0, turbinex, turbiney, turbinez, hubheight, turbineyaw, rotordiameter, ctmodels, generatorefficiency, cutinspeed, cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset, my_update_function; AEP_scale=1.0, opt_x=true, opt_y=true, tolerance=1E-16)
 ```
 
-The only new parameter is `tolerance`, which defaults to 1E-16. This is used when computing the sparsity pattern. When creating the `sparse_struct`, the sparsity pattern is computed by calculating the partial derivatives of the power of each turbine with respect to each design variable. Then, all partial derivatives with a magnitude below the `tolerance` are ignored in the sparsity pattern. The default value is safe for almost all cases and the effect of the `tolerance` is explored more in the above paper. 
+The only new parameter is `tolerance`, which defaults to `1E-16`. This is used when computing the sparsity pattern. When creating the `sparse_struct`, the sparsity pattern is computed by calculating the partial derivatives of the power of each turbine with respect to each design variable. Then, all partial derivatives with a magnitude below the `tolerance` are ignored in the sparsity pattern. The default value is safe for almost all cases and the effect of the `tolerance` is explored more in the above paper. 
 
 **Important note:** `build_stable_sparse_struct` attempts to calculate an accurate sparsity pattern by perturbing all of the design variables randomly to avoid poor starting locations where derivatives zero out, such as in yaw optimization when the turbine faces directly into the wind. While this does help get an accurate sparsity pattern it is advised to call `build_stable_sparse_struct` with `x0` set to a reasonable starting point in order to avoid derivatives that are not representative of the influence of the design variable.
 
@@ -232,7 +238,7 @@ solver = IPOPT(ip_options)
 options = Options(solver=solver, derivatives=ForwardAD())  # choose AD derivatives
 ```
 
-Finally, the optimization can be performed and evaluated.
+Finally, the optimization can be performed.
 
 ```julia
 # optimize

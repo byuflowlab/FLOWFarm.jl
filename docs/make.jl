@@ -8,7 +8,8 @@ makedocs(;
     pages=[
         "Intro" => "index.md",
         "Quick Start" => "Tutorial.md",
-        "Wind Farm Struct" => "WindFarmStruct.md",
+        "Optimization Tutorial" => "Optimization_Tutorial.md",
+        "Wind Farm Struct and Sparsity" => "WindFarmStruct.md",
         "How-to Guide" => "How_to.md",
         "Theory" => "Explanation.md",
         "Reference" => "Reference.md"
@@ -22,5 +23,5 @@ makedocs(;
 deploydocs(
     repo = "github.com/byuflowlab/FLOWFarm.jl.git",
     versions = nothing,
-    devbranch = "master"
+    devbranch = "develop"
 )

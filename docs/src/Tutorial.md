@@ -2,21 +2,20 @@
 
 This tutorial covers the basics of `FLOWFarm`. For more specifics refer to the [How-to guide](How_to.md).
 
-This tutorial discusses how to do the following with FLOWFarm:
+This tutorial discusses how to do the following with `FLOWFarm`:
 - (1) setting up a problem description
 - (2) setting up an analysis model set
 - (3) running analyses
-- (4) setting up and running an optimization
-- (5) calculating and visualizing a flow field
+- (4) calculating and visualizing a flow field
 
 Details for setting up an optimization will depend heavily on the
 optimization package you are using, your objective, and your design variables. Optimization
 examples using various packages are provided in the example scripts located in the test 
 directory.
 
-## (1) Setting up the problem description
+## (1) Problem description
 
-The problems description involves the physical description of the wind farm, the turbines, 
+The problem description involves a definition of the wind farm, the turbines, 
 and the wind resource. While this tutorial uses the same design across all the wind turbines
 and mostly equal properties across all wind flow states, all turbines and flow states can 
 be unique.
@@ -26,13 +25,11 @@ be loaded from .csv and/or .yaml files.
 
 ### Set up the running environment
 ```@example 1
-using FLOWFarm; const ff = FLOWFarm
-using SNOW
+using FLOWFarm
 ```
 
 ### Initialize the wind farm design
 ```@example 1
-
 # set initial turbine x and y locations
 turbinex = [-240.0, -240.0, -240.0, 0.0, 0.0, 0.0, 240.0, 240.0, 240.0]
 turbiney = [-240.0, 0.0, 240.0, -240.0, 0.0, 240.0, -240.0, 0.0, 240.0]
@@ -49,7 +46,7 @@ turbineyaw = zeros(nturbines)
 # set wind farm boundary parameters in meters (we won't really need this until we optimize)
 boundarycenter = [0.0,0.0]
 boundaryradius = hypot(300, 300) 
-println("") # hide
+nothing
 ```
 
 ### Initialize wind turbine design
@@ -62,23 +59,26 @@ cutoutspeed = zeros(nturbines) .+ 25.0         # m/s
 ratedspeed = zeros(nturbines) .+ 16.0          # m/s
 ratedpower = zeros(nturbines) .+ 2.0E6         # W
 generatorefficiency = ones(nturbines)
-println("") # hide
+nothing
 ```
 
-### Determine how to sample the flow field to determine effective inflow speeds
-Rotor swept area sample points are normalized by the rotor radius. These arrays define which
-which points on the rotor swept area should be used to estimate the effective inflow
+### Determine effective inflow speeds sampling method
+Rotor swept area sample points are normalized by the rotor radius. These arrays define which points on the rotor swept area should be used to estimate the effective inflow
 wind speed for each wind turbine. Values of 0.0 are at the rotor hub, 1.0 is at the blade
 tip, `z` is vertical, and `y` is horizontal. These points track the rotor when yawed. 
 A single sample point will always be placed at the hub. More points can be arranged in 
 either a grid pattern or a sunflower packing pattern with various options. 
-See doc strings for more information.
+See [doc strings](Reference.md) for more information.
 
 ```@example 1
 # get the sample points
 nsamplepoints = 50
-rotorsamplepointsy, rotorsamplepointsz = ff.rotor_sample_points(nsamplepoints, method="sunflower")
+rotorsamplepointsy, rotorsamplepointsz = FLOWFarm.rotor_sample_points(nsamplepoints, method="sunflower")
 ```
+
+The sunflower sampling method:
+
+![](Sampling_Points.png)
 
 ### Setting up the wind resource
 The wind resource determines the properties of the flowfield at all wind states. A wind 
@@ -98,14 +98,14 @@ ambienttis = ones(ndirections).*ambientti  # %
 measurementheight = ones(ndirections).*hubheight[1] # m
 
 # initialize the wind shear model
-windshearmodel = ff.PowerLawWindShear(shearexponent)
+windshearmodel = FLOWFarm.PowerLawWindShear(shearexponent)
 
 # initialize the wind resource definition
-windresource = ff.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, 
+windresource = FLOWFarm.DiscretizedWindResource(winddirections, windspeeds, windprobabilities, 
 measurementheight, airdensity, ambienttis, windshearmodel)
 ```
 
-## (2) Setting up the analysis models
+## (2) Analysis models
 
 A model set requires a Wake Deficit Model, Wake Deflection Model, Wake Combination Model, and a Local Turbulence Intensity Model. There are several options for each model type. To facilitate research studies, any of the models in each type can be used with any of the models in any other type. However, behavior is not guaranteed. It is recommended that common, validated, model combinations be used in most cases.
 
@@ -117,12 +117,12 @@ Model types and options are:
 
 The model set can be set up as follows:
 
-Initializes the power model. This is a simple model based solely on turbine design and is not highly accurate. For examples of more accurate power models, refer to the example optimization scripts.
+Initialize the power model (other options can be found in the [Reference](Reference.md) section).
 ```@example 1
-powermodel = ff.PowerModelPowerCurveCubic()
+powermodel = FLOWFarm.PowerModelPowerCurveCubic()
 ```
 
-The user can define different power models for different wind turbines, but here we use the same power model for every turbine. The initialization of the `power_models` vector is important for optmization using algorithmic differentiation via the [`ForwardDiff.jl`](https://github.com/JuliaDiff/ForwardDiff.jl) package.
+The user can define different power models for different wind turbines, but here we use the same power model for every turbine. 
 ```@example 1
 powermodels = Vector{typeof(powermodel)}(undef, nturbines)
 for i = 1:nturbines
@@ -130,322 +130,72 @@ for i = 1:nturbines
 end
 ```
 
-Initialize thrust model(s). The user can provide a complete thrust curve. See the example scripts for details on initializing them. The initialization of the ct models vector is important for optmization using algorithmic differentiation via the [`ForwardDiff.jl`](https://github.com/JuliaDiff/ForwardDiff.jl) package.
+Initialize thrust model(s) (other options can be found in the [Reference](Reference.md) section). 
 ```@example 1
-ctmodel = ff.ThrustModelConstantCt(0.65)
+ctmodel = FLOWFarm.ThrustModelConstantCt(0.65)
 ctmodels = Vector{typeof(ctmodel)}(undef, nturbines)
 for i = 1:nturbines
     ctmodels[i] = ctmodel
 end
 ```
 
-Set up wake and related models. Here we will use the default values provided in `FLOWFarm`.
+Next, we can set up wake and related models. Here we will use the default values provided in `FLOWFarm`.
 However, it is important to use the correct model parameters. More information and references
-are provided in the doc strings attached to each model.
+are provided in the [doc strings](Reference.md) attached to each model.
 
-The wake deficit model predicts the impact of wind turbines wake on the wind speed.
+* The wake deficit model estimates the reduction in wind speed caused by the wake of a wind turbine.
+* The wake deflection model predicts the lateral displacement of the wake center due to yaw misalignment or ambient wind shear.
+* The wake combination model defines how the deficits from multiple wakes are aggregated to compute the total velocity deficit at a given point.
+* Local turbulence intensity models estimate the turbulence intensity at each turbine or evaluation point, providing improved inputs to the wake deficit and deflection models when applicable.
 ```@example 1
-wakedeficitmodel = ff.GaussYawVariableSpread()
+wakedeficitmodel = FLOWFarm.GaussYawVariableSpread()
+wakedeflectionmodel = FLOWFarm.GaussYawDeflection()
+wakecombinationmodel = FLOWFarm.LinearLocalVelocitySuperposition()
+localtimodel = FLOWFarm.LocalTIModelMaxTI()
 ```
 
-The wake deflection model predicts the cross-wind location of the center of a wind turbine wake.
+Initialize the model set. 
 ```@example 1
-wakedeflectionmodel = ff.GaussYawDeflection()
-```
-
-The wake combination model defines how the predicted deficits in each wake should be combined to predict the total deficit at a point
-```@example 1
-wakecombinationmodel = ff.LinearLocalVelocitySuperposition()
-```
-
-The local turbulence intensity models can be used to estimate the local turbulence intensity at each wind turbine or point to provide more accurate input information to the wake and deflection models if applicable.
-```@example 1
-localtimodel = ff.LocalTIModelMaxTI()
-```
-
-Initialize model set. This is just a convenience container for the analysis models.
-```@example 1
-modelset = ff.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
-println("") # hide
+modelset = FLOWFarm.WindFarmModelSet(wakedeficitmodel, wakedeflectionmodel, wakecombinationmodel, localtimodel)
+nothing
 ```
 
 ## (3) Running the analysis
 
-Now that the wind farm and analysis models have been defined, we can calculate AEP. The output
-is in Watt-hours.
+Now that the wind farm and analysis models have been defined, we can calculate AEP. The output is in Watt-hours.
 
 ```@example 1
-aep = ff.calculate_aep(turbinex, turbiney, turbinez, rotordiameter,
+aep = FLOWFarm.calculate_aep(turbinex, turbiney, turbinez, rotordiameter,
     hubheight, turbineyaw, ctmodels, generatorefficiency, cutinspeed,
     cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset,
     rotor_sample_points_y=rotorsamplepointsy, rotor_sample_points_z=rotorsamplepointsz)
 ```
 
-We can also get the AEP in each direction using the following.
+We can also get the AEP in each wind-direction using the following.
 
 ```@example 1
-state_aeps = ff.calculate_state_aeps(turbinex, turbiney, turbinez, rotordiameter,
+state_aeps = FLOWFarm.calculate_state_aeps(turbinex, turbiney, turbinez, rotordiameter,
         hubheight, turbineyaw, ctmodels, generatorefficiency, cutinspeed,
         cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset,
         rotor_sample_points_y=rotorsamplepointsy, rotor_sample_points_z=rotorsamplepointsz, 
         hours_per_year=365.25*24.0, weighted=true)
 ```
 
+![](AEP_directions.png)
+
 If we instead set `weighted=false` then we would get the power in each direction in Watts.
 
 If we want to get the individual turbine powers in each directions, we use the following.
 
 ```@example 1
-turbine_powers_by_direction = ff.calculate_state_turbine_powers(turbinex, turbiney, turbinez, rotordiameter,
+turbine_powers_by_direction = FLOWFarm.calculate_state_turbine_powers(turbinex, turbiney, turbinez, rotordiameter,
     hubheight, turbineyaw, ctmodels, generatorefficiency, cutinspeed,
     cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset,
     rotor_sample_points_y=rotorsamplepointsy, rotor_sample_points_z=rotorsamplepointsz)
 ```
-The output shows each turbine power in an array that scales with the number of wind-directions and number of turbines (`ndirections` x `nturbines`).
+The output is a 2D array where each entry represents the power of a turbine, with dimensions corresponding to the number of wind directions and turbines (`ndirections` x `nturbines`).
 
-## (4) setting up and running an optimization
-FLOWFarm is specifically designed for efficient optimization using gradient-based optimization
-methods. Besides the steps outlined above, we need to define the following before we can run 
-an optimization:
-
-- (1) Optimization related variables
-- (2) A container for non-differentiated parameters
-- (3) Objective and constraint function(s) 
-- (4) Optimization tool specific items
-- (5) Run the optimization
-
-In this tutorial we demonstrate optimizing using the IPOPT algorithms via SNOW.jl for simplicity.
-
-First, set up optimization related variables. We will have two constraints, one to keep 
-turbines from getting too close to each other (spacing), and the other to keep turbines 
-inside the desired area (boundary). `FLOWFarm` provides several different ways of handling 
-boundary constraints, including concave boundaries. However, for this tutorial we will use 
-a simple circular boundary.
-
-### Optimization related variables
-
-```@example 1
-# scale objective derivatives to be between 0 and 1
-objectivescale = 1E-6
-
-# scale boundary constraint derivatives to be between 0 and 1
-constraintscaleboundary = 1.0E-3
-
-# scale spacing constraint derivatives to be between 0 and 1
-constraintscalespacing = 1.0
-
-# set the minimum spacing between turbines 
-minimumspacing = 160.0
-println("") # hide
-```
-
-### A container for non-differentiated parameters
-
-```@example 1
-# set up a struct for use in optimization functions
-mutable struct params_struct{}
-    modelset
-    rotorsamplepointsy
-    rotorsamplepointsz
-    turbinez
-    ambientti
-    rotordiameter
-    boundarycenter
-    boundaryradius
-    objectivescale
-    constraintscaleboundary
-    constraintscalespacing
-    minimumspacing
-    hubheight
-    turbineyaw
-    ctmodels
-    generatorefficiency
-    cutinspeed
-    cutoutspeed
-    ratedspeed
-    ratedpower
-    windresource
-    powermodels
-end
-
-params = params_struct(modelset, rotorsamplepointsy, rotorsamplepointsz, turbinez, ambientti, 
-    rotordiameter, boundarycenter, boundaryradius, objectivescale, constraintscaleboundary,
-    constraintscalespacing, minimumspacing, hubheight, turbineyaw, 
-    ctmodels, generatorefficiency, cutinspeed, cutoutspeed, ratedspeed, ratedpower, 
-    windresource, powermodels)
-println("") # hide
-```
-
-### Objective and constraint function(s) 
-
-Now we are ready to set up wrapper functions for the objective and constraints.
-
-```@example 1
-# set up boundary constraint wrapper function
-function boundary_wrapper(x, params)
-    # include relevant params
-    boundarycenter = params.boundarycenter
-    boundaryradius = params.boundaryradius
-    constraintscaleboundary = params.constraintscaleboundary
-
-    # find the number of turbines
-    nturbines = Int(length(x)/2)
-    
-    # extract x and y locations of turbines from design variables vector
-    turbinex = x[1:nturbines]
-    turbiney = x[nturbines+1:end]
-
-    # get and return boundary distances
-    return ff.circle_boundary(boundarycenter, boundaryradius, turbinex, turbiney).*constraintscaleboundary
-end
-
-# set up spacing constraint wrapper function
-function spacing_wrapper(x, params)
-    # include relevant params
-    rotordiameter = params.rotordiameter
-    constraintscalespacing = params.constraintscalespacing
-    minimumspacing = params.minimumspacing
-
-    # get number of turbines
-    nturbines = Int(length(x)/2)
-
-    # extract x and y locations of turbines from design variables vector
-    turbinex = x[1:nturbines]
-    turbiney = x[nturbines+1:end]
-
-    # get and return spacing distances
-    return constraintscalespacing.*(minimumspacing .- ff.turbine_spacing(turbinex,turbiney))
-end
-
-# set up aep wrapper function
-function aep_wrapper(x, params)
-
-    # include relevant params
-    turbinez = params.turbinez
-    rotordiameter = params.rotordiameter
-    hubheight = params.hubheight
-    turbineyaw =params.turbineyaw
-    ctmodels = params.ctmodels
-    generatorefficiency = params.generatorefficiency
-    cutinspeed = params.cutinspeed
-    cutoutspeed = params.cutoutspeed
-    ratedspeed = params.ratedspeed
-    ratedpower = params.ratedpower
-    windresource = params.windresource
-    powermodels = params.powermodels
-    modelset = params.modelset
-    rotorsamplepointsy = params.rotorsamplepointsy
-    rotorsamplepointsz = params.rotorsamplepointsy
-    objectivescale = params.objectivescale
-
-    # get number of turbines
-    nturbines = Int(length(x)/2)
-
-    # extract x and y locations of turbines from design variables vector
-    turbinex = x[1:nturbines] 
-    turbiney = x[nturbines+1:end]
-
-    # calculate AEP
-    aep = objectivescale*ff.calculate_aep(turbinex, turbiney, turbinez, rotordiameter,
-                hubheight, turbineyaw, ctmodels, generatorefficiency, cutinspeed,
-                cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset,
-                rotor_sample_points_y=rotorsamplepointsy,rotor_sample_points_z=rotorsamplepointsz)
-    
-    # return the AEP
-    return aep
-end
-
-# set up optimization problem wrapper function
-function wind_farm_opt!(g, x, params)
-
-    nturbines = Int(length(x)/2)
-
-    # calculate spacing constraint value and jacobian
-    spacing_con = spacing_wrapper(x, params)
-
-    # calculate boundary constraint and jacobian
-    boundary_con = boundary_wrapper(x, params)
-
-    # combine constaint values and jacobians into overall constaint value and jacobian arrays
-    g[1:(end-nturbines)] = spacing_con[:]
-    g[end-nturbines+1:end] = boundary_con[:]
-    
-    # calculate the objective function and jacobian (negative sign in order to maximize AEP)
-    obj = -aep_wrapper(x, params)[1]
-    
-    return obj
-end
-println("") # hide
-```
-
-The `minimize` function expects an objective function that only takes two parameters (`g` and `x`). By creating a forced signature, we are able to pass in `params` directly into the optimization.
-
-```@example 1
-# generate objective function wrapper
-obj_func!(g, x) = wind_farm_opt!(g, x, params)
-```
-
-### Optimization tool specific items
-
-```@example 1
-# initialize design variable vector
-x0 = [copy(turbinex);copy(turbiney)]
-
-# set general lower and upper bounds for design variables
-lx = zeros(length(x0)) .- boundaryradius
-ux = zeros(length(x0)) .+ boundaryradius
-
-# set general lower and upper bounds for constraints
-ng = Int(nturbines + (nturbines)*(nturbines - 1)/2)
-lg = [-Inf*ones(Int((nturbines)*(nturbines - 1)/2)); -Inf*ones(nturbines)]
-ug = [zeros(Int((nturbines)*(nturbines - 1)/2)); zeros(nturbines)]
-
-# IPOPT options
-ip_options = Dict(
-    "max_iter" => 50,
-    "tol" => 1e-6
-)
-solver = IPOPT(ip_options)
-
-# if using SNOPT, you can do the following instead:
-# snopt_opt = Dict(
-#    "Derivative option" => 1,
-#    "Major optimality tolerance" => 1e-4,
-# )
-# solver = SNOPT(options=snopt_opt)
-
-# initialize SNOW options
-options = Options(solver=solver, derivatives=ForwardAD())  # choose AD derivatives
-println("") # hide
-```
-
-### Run the optimization
-
-Now that the optimizer is set up, we are ready to optimize and check the results.
-
-```@example 1
-# optimize
-t1 = time() # start time
-xopt, fopt, info, out = minimize(obj_func!, x0, ng, lx, ux, lg, ug, options)
-t2 = time() # end time
-clk = t2-t1 # approximate run time
-
-# get final aep
-aepfinal = -fopt/objectivescale
-
-# print optimization results 
-println("Finished in : ", clk, " (s)")
-println("info: ", info)
-println("Initial AEP: ", aep)
-println("Final AEP: ", aepfinal)
-println("AEP improvement (%) = ", 100*(aepfinal - aep)/aep) 
-
-# extract final turbine locations
-turbinexopt = copy(xopt[1:nturbines])
-turbineyopt = copy(xopt[nturbines+1:end])
-```
-
-## (5) Calculating a flow field
+## (4) Calculating a flow field
 
 It is helpful to visualize the whole flow-field, not just the turbine powers. The input `wind_farm_state_id` determines which state from the wind resource is being used to calculate the flow-field. 
 
@@ -467,11 +217,12 @@ yrange = miny:(maxy-miny)/yres:maxy
 zrange = hubheight[1]
 
 # run flowfarm 
-ffvelocities = ff.calculate_flow_field(xrange, yrange, zrange,
-    modelset, turbinexopt, turbineyopt, turbinez, turbineyaw,
+ffvelocities = FLOWFarm.calculate_flow_field(xrange, yrange, zrange,
+    modelset, turbinex, turbiney, turbinez, turbineyaw,
     rotordiameter, hubheight, ctmodels, rotorsamplepointsy, rotorsamplepointsz,
     windresource, wind_farm_state_id=5)
-
 ```
+
+![](Flow_Field.png)
 
 `ffvelocities` is a three-dimensional array containing flow velocities over the specified domain. The dimensions correspond to the spatial ranges as follows: the first dimension maps to `zrange`, the second to `xrange`, and the third to `yrange`.
