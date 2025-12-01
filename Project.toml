@@ -19,6 +19,7 @@ TestSetExtensions = "98d24dd4-01ad-11ea-1b02-c9a08f80db04"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
+DiffResults = "1"
 FLOWMath = "1"
 FiniteDiff = "2.27.0"
 ForwardDiff = "1"
