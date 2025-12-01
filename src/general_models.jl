@@ -110,7 +110,7 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
                             upwind_turb_id, rotor_diameter, turbine_local_ti, model_set.wake_deflection_model)
 
             if !isempty(deflections)
-                deflections[upwind_turb_id, downwind_turbine_id] = horizontal_deflection
+                deflections[downwind_turbine_id,upwind_turb_id] = horizontal_deflection
             end
 
             vertical_deflection = 0.0
@@ -121,7 +121,7 @@ function point_velocity(locx, locy, locz, turbine_x, turbine_y, turbine_z, turbi
                             turbine_local_ti, turbine_ct, turbine_yaw, wake_deficits, contribution_matrix, deflections, u, wind_speed_internal, sigma_squared, wtvelocities, sorted_turbine_index, model_set.wake_deficit_model)
 
             if !isempty(wake_deficits)
-                wake_deficits[upwind_turb_id,downwind_turbine_id] = deltav
+                wake_deficits[downwind_turbine_id,upwind_turb_id] = deltav
             end
 
             # combine deficits according to selected wake combination method
@@ -236,7 +236,7 @@ function turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor
         turbine_ct, turbine_ai, turbine_local_ti, wake_deficits, contribution_matrix, deflections, sigma_squared;
         wind_farm_state_id=wind_farm_state_id, velocity_only=velocity_only)
 
-    wake_deficits .= wake_deficits'
+    # wake_deficits .= wake_deficits'
 
     if using_sparsity
         return turbine_velocities, wake_deficits
