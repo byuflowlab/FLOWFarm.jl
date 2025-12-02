@@ -337,14 +337,12 @@ Calculate the power for all wind turbines for a given state
 function turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed,
     rated_speed, rated_power, rotor_diameter, turbine_inflow_velcities, turbine_yaw, air_density,
     power_models; jac=nothing,
-    wt_power=zeros(eltype(turbine_inflow_velcities), length(turbine_inflow_velcities)))
+    arr_type = promote_type(eltype(generator_efficiency),eltype(cut_in_speed),eltype(cut_out_speed),eltype(rated_speed),
+                            eltype(rated_power),eltype(rotor_diameter),eltype(turbine_inflow_velcities),eltype(turbine_yaw)),
+    wt_power=zeros(arr_type, length(turbine_inflow_velcities)))
 
     # get number of turbines and rotor sample point
     nturbines = length(turbine_inflow_velcities)
-
-    arr_type = promote_type(typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),
-                            typeof(rated_power[1]),typeof(rotor_diameter[1]),typeof(turbine_inflow_velcities[1]),typeof(turbine_yaw[1]))
-    # wt_power = zeros(arr_type, nturbines)
 
     if jac === nothing
         for d=1:nturbines
