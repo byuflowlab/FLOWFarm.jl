@@ -10,8 +10,7 @@ author: Benjamin Varela
 build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,rotor_diameter,
             ct_models,generator_efficiency,cut_in_speed,cut_out_speed,rated_speed,rated_power,wind_resource,
             power_models,model_set,update_function;rotor_sample_points_y=[0.0],rotor_sample_points_z=[0.0],
-            AEP_scale=0.0,input_type=nothing,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false,
-            force_single_thread=false)
+            AEP_scale=0.0,input_type=nothing,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false)
 
 function to build a wind_farm_struct
 
@@ -42,17 +41,14 @@ function to build a wind_farm_struct
 - `opt_hub`: Boolean to optimize hub heights of turbines
 - `opt_yaw`: Boolean to optimize yaw angles of turbines
 - `opt_diam`: Boolean to optimize rotor diameters of turbines
-- `force_single_thread`: Boolean to force single thread calculation
 """
 function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,rotor_diameter,
             ct_models,generator_efficiency,cut_in_speed,cut_out_speed,rated_speed,rated_power,wind_resource,
             power_models,model_set,update_function;rotor_sample_points_y=[0.0],rotor_sample_points_z=[0.0],
-            AEP_scale=0.0,input_type=nothing,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false,
-            force_single_thread=false)
+            AEP_scale=0.0,input_type=nothing,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false)
 
     n_turbines = length(turbine_x)
     n_threads = Threads.nthreads()
-    force_single_thread && (n_threads = 1)
     results = DiffResults.GradientResult(x)
     AEP_gradient = zeros(eltype(x),length(x))
     AEP = Array{eltype(x),0}(undef)
@@ -92,7 +88,17 @@ function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbi
                     zeros(input_type,n_turbines,n_turbines,n_threads),zeros(input_type,n_turbines,n_turbines,n_threads))
 
     return wind_farm_struct(turbine_x, turbine_y, hub_height, turbine_yaw, rotor_diameter, results,
-                wind_farm_constants, AEP_scale, ideal_AEP, preallocations, update_function, AEP_gradient, AEP, cfg, force_single_thread)
+                wind_farm_constants, AEP_scale, ideal_AEP, preallocations, update_function, AEP_gradient, AEP, cfg)
+end
+
+function create_preallocations(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height)
+    n_turbines = length(turbine_x)
+    n_threads = Threads.nthreads()
+    T = promote_type(eltype(turbine_x),eltype(turbine_y),eltype(turbine_z),eltype(rotor_diameter),eltype(hub_height))
+    return preallocations_struct(zeros(T,n_turbines,n_threads),zeros(T,n_turbines,n_threads),
+                    zeros(T,n_turbines,n_threads),zeros(T,n_turbines,n_threads),zeros(T,n_turbines,
+                    n_turbines,n_threads),zeros(T,n_turbines,n_turbines,n_threads),
+                    zeros(T,n_turbines,n_turbines,n_threads),zeros(T,n_turbines,n_turbines,n_threads))
 end
 
 """
@@ -180,15 +186,7 @@ function calculate_aep!(farm,x)
                 farm.constants.rated_power, farm.constants.wind_resource, farm.constants.power_models,
                 farm.constants.model_set,rotor_sample_points_y=farm.constants.rotor_sample_points_y,
                 rotor_sample_points_z=farm.constants.rotor_sample_points_z,
-                prealloc_turbine_velocities=farm.preallocations.prealloc_turbine_velocities,
-                prealloc_turbine_ct=farm.preallocations.prealloc_turbine_ct,
-                prealloc_turbine_ai=farm.preallocations.prealloc_turbine_ai,
-                prealloc_turbine_local_ti=farm.preallocations.prealloc_turbine_local_ti,
-                prealloc_wake_deficits=farm.preallocations.prealloc_wake_deficits,
-                prealloc_contribution_matrix=farm.preallocations.prealloc_contribution_matrix,
-                prealloc_deflections=farm.preallocations.prealloc_deflections,
-                prealloc_sigma_squared=farm.preallocations.prealloc_sigma_squared,
-                force_single_thread=farm.force_single_thread
+                preallocations = farm.preallocations
                 ) .* farm.AEP_scale
 
     return AEP

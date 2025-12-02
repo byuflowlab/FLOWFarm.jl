@@ -21,9 +21,8 @@ Unifying struct defining a wind farm and all necessary variables to calculate th
 - `AEP_gradient`: The gradient of the AEP
 - `AEP`: The AEP of the farm
 - `config`: The ForwardDiff config object if using ForwardDiff for AEP gradient calculation, otherwise nothing
-- `force_single_thread`: Boolean that forces the code to run in a single thread
 """
-struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15} <: AbstractWindFarmModel
+struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14} <: AbstractWindFarmModel
     turbine_x::T1
     turbine_y::T2
     hub_height::T3
@@ -38,7 +37,6 @@ struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15} <: A
     AEP_gradient::T12
     AEP::T13
     config::T14
-    force_single_thread::T15
 end
 
 """

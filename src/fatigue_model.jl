@@ -645,9 +645,9 @@ function get_single_damage_surr(turbine_x,turbine_y,turbine_z,rotor_diameter,hub
 
         temp_resource = DiscretizedWindResource([3*pi/2], [ws], [1.0], measurementheight, air_density, ambient_tis, wind_shear_model)
 
-        turbine_velocities, turbine_ct, turbine_local_ti = turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
-                            turbine_ai, sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                            model_set; wind_farm_state_id=state_ID)
+        turbine_velocities, turbine_ct, _, turbine_local_ti = turbine_velocities_one_direction_full(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+                            sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+                            model_set; wind_farm_state_id=state_ID, turbine_ai=turbine_ai)
 
 
         for i = 1:nCycles*naz

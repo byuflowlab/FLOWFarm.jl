@@ -2161,7 +2161,7 @@ using FiniteDiff
 
             include("./model_sets/model_set_Multizone.jl")
 
-            turbine_inflow_velocities = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+            turbine_inflow_velocities = ff.turbine_velocities_one_direction_vel(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
                     sorted_turbine_index, ct_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set)
 
@@ -2384,7 +2384,7 @@ using FiniteDiff
             rot_x, rot_y = ff.rotate_to_wind_direction(turbine_x, turbine_y, windresource.wind_directions[1])
             sorted_turbine_index = sortperm(rot_x)
 
-            U = ff.turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+            U = ff.turbine_velocities_one_direction_vel(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
             sorted_turbine_index, ct_models, rotor_points_y, rotor_points_z, windresource,
             model_set)
 
@@ -2442,9 +2442,9 @@ using FiniteDiff
             include("./model_sets/model_set_4.jl")
 
             # calculate turbine inflow velocities
-            turbine_inflow_velocities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+            turbine_inflow_velocities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction_full(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
             sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, windresource,
-            model_set, velocity_only=false)
+            model_set)
 
             # load horns rev ti ata
             data = readdlm("inputfiles/horns_rev_ti_by_row_niayifar.txt", ',', skipstart=1)
@@ -2487,9 +2487,9 @@ using FiniteDiff
             include("./model_sets/model_set_2.jl")
 
             # calculate turbine inflow velocities
-            turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+            turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction_full(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
             sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, windresource,
-            model_set, velocity_only=false)
+            model_set)
 
             # load horns rev ti ata
             data = readdlm("inputfiles/horns_rev_ti_by_row_niayifar.txt", ',', skipstart=1)
