@@ -599,8 +599,17 @@ function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, w
         sigma_z = _gauss_yaw_spread_interpolated(dt, kz, dx, x0, 0.0, xd)
 
         # calculate velocity deficit #check - infty when large input ~= 500
-        ey = exp(-0.5*(dy/(wf*sigma_y))^2)
-        ez = exp(-0.5*(dz/(wf*sigma_z))^2)
+        ey = 0.0
+        ez = 0.0
+        c1 = -0.5*(dy/(wf*sigma_y))^2
+        c2 = -0.5*(dz/(wf*sigma_z))^2
+
+        if c1 > -750.0
+            ey = exp(c1)
+        end
+        if c2 > -750.0
+            ez = exp(c2)
+        end
 
         sqrtterm = 1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2))
         if sqrtterm >= 1e-8 #check - could try increasing tolerance

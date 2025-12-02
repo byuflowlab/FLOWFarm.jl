@@ -392,7 +392,7 @@ function turbine_velocities_one_direction_vel(turbine_x, turbine_y, turbine_z, r
 end
 
 function turbine_velocities_one_direction!(turbine_x::T0, turbine_y::T1, turbine_z::T2, rotor_diameter::T3, hub_height::T4, turbine_yaw::T5,
-    sorted_turbine_index::Vector{Int}, ct_model::Vector{<:AbstractThrustCoefficientModel}, rotor_sample_points_y::Vector{T6}, rotor_sample_points_z::Vector{T6}, wind_resource,
+    sorted_turbine_index, ct_model::Vector{<:AbstractThrustCoefficientModel}, rotor_sample_points_y::Vector{T6}, rotor_sample_points_z::Vector{T6}, wind_resource,
     model_set::AbstractModelSet, turbine_velocities::T7,
     turbine_ct::T7, turbine_ai::T7, turbine_local_ti::T7, wake_deficits::T8, contribution_matrix::T9, deflections::T10, sigma_squared::T11; wind_farm_state_id::Int=1) where {T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11}
 

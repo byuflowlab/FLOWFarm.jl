@@ -1708,3 +1708,33 @@ function star_boundary(n, ri, ro, rotation=0.0)
     # return
     return round.(vertices, digits=6)
 end
+
+# Nonallocating sortperm function
+function quicksort!(idx, x, lo::Int, hi::Int)
+    if lo < hi
+        p = partition!(idx, x, lo, hi)
+        quicksort!(idx, x, lo, p - 1)
+        quicksort!(idx, x, p + 1, hi)
+    end
+end
+
+function partition!(idx, x, lo::Int, hi::Int)
+    pivot = x[idx[hi]]
+    i = lo - 1
+    @inbounds for j in lo:hi-1
+        if x[idx[j]] ≤ pivot
+            i += 1
+            idx[i], idx[j] = idx[j], idx[i]
+        end
+    end
+    idx[i+1], idx[hi] = idx[hi], idx[i+1]
+    return i + 1
+end
+
+function sortperm!(idx::AbstractVector{Int}, x::AbstractVector)
+    @inbounds for i in eachindex(idx)
+        idx[i] = i
+    end
+    quicksort!(idx, x, 1, length(idx))
+    return nothing
+end

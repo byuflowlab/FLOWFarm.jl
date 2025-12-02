@@ -87,7 +87,8 @@ function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbi
                     n_turbines,n_threads),zeros(input_type,n_turbines,n_turbines,n_threads),
                     zeros(input_type,n_turbines,n_turbines,n_threads),zeros(input_type,n_turbines,n_turbines,n_threads),
                     zeros(input_type,n_turbines,n_threads),zeros(input_type,n_turbines,n_threads),
-                    zeros(input_type,n_turbines,n_threads))
+                    zeros(input_type,n_turbines,n_threads),
+                    zeros(Int,n_turbines,n_threads))
 
     return wind_farm_struct(turbine_x, turbine_y, hub_height, turbine_yaw, rotor_diameter, results,
                 wind_farm_constants, AEP_scale, ideal_AEP, preallocations, update_function, AEP_gradient, AEP, cfg)
@@ -102,7 +103,8 @@ function create_preallocations(turbine_x, turbine_y, turbine_z, rotor_diameter, 
                     n_turbines,n_threads),zeros(T,n_turbines,n_turbines,n_threads),
                     zeros(T,n_turbines,n_turbines,n_threads),zeros(T,n_turbines,n_turbines,n_threads),
                     zeros(T,n_turbines,n_threads),zeros(T,n_turbines,n_threads),
-                    zeros(T,n_turbines,n_threads))
+                    zeros(T,n_turbines,n_threads),
+                    zeros(Int,n_turbines,n_threads))
 end
 
 """
