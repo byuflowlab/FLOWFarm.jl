@@ -63,6 +63,9 @@ struct preallocations_struct{V,M}
     prealloc_contribution_matrix::M
     prealloc_deflections::M
     prealloc_sigma_squared::M
+    prealloc_rot_x::V
+    prealloc_rot_y::V
+    prealloc_power::V
 end
 
 """

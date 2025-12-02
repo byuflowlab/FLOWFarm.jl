@@ -48,6 +48,31 @@ function rotate_to_wind_direction(xlocs::AbstractArray, ylocs::AbstractArray, wi
     return x_cart, y_cart
 end
 
+function rotate_to_wind_direction!(x_cart, y_cart, xlocs::AbstractArray, ylocs::AbstractArray, wind_direction_met::Number; center=0.0)
+    # use radians
+
+    # convert from meteorological polar system (CW, 0 rad.=N) to standard polar system (CCW, 0 rad.=E)
+    wind_direction_cart = met2cart(wind_direction_met)
+
+    cos_wdr = cos(-wind_direction_cart)
+    sin_wdr = sin(-wind_direction_cart)
+
+    if center != 0.0
+        center_x = center[1]
+        center_y = center[2]
+    else
+        center_x = 0.0
+        center_y = 0.0
+    end
+    # convert to cartesian coordinates with wind to positive x
+    for i in eachindex(xlocs)
+        x_cart[i] = ((xlocs[i] - center_x) * cos_wdr - (ylocs[i] - center_y) * sin_wdr) + center_x
+        y_cart[i] = ((xlocs[i] - center_x) * sin_wdr + (ylocs[i] - center_y) * cos_wdr) + center_y
+    end
+
+    return x_cart, y_cart
+end
+
 function rotate_to_wind_direction(xlocs::Number, ylocs::Number, wind_direction_met::Number; center=[0.0,0.0])
     # use radians
 

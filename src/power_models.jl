@@ -336,14 +336,15 @@ Calculate the power for all wind turbines for a given state
 """
 function turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed,
     rated_speed, rated_power, rotor_diameter, turbine_inflow_velcities, turbine_yaw, air_density,
-    power_models; jac=nothing)
+    power_models; jac=nothing,
+    wt_power=zeros(eltype(turbine_inflow_velcities), length(turbine_inflow_velcities)))
 
     # get number of turbines and rotor sample point
     nturbines = length(turbine_inflow_velcities)
 
     arr_type = promote_type(typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),
                             typeof(rated_power[1]),typeof(rotor_diameter[1]),typeof(turbine_inflow_velcities[1]),typeof(turbine_yaw[1]))
-    wt_power = zeros(arr_type, nturbines)
+    # wt_power = zeros(arr_type, nturbines)
 
     if jac === nothing
         for d=1:nturbines
@@ -482,10 +483,6 @@ function calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
     arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
                             typeof(hub_height[1]),typeof(turbine_yaw[1]))
     n_turbines = length(turbine_x)
-    prealloc_turbine_velocities = zeros(arr_type, n_turbines)
-    prealloc_turbine_ct = zeros(arr_type, n_turbines)
-    prealloc_turbine_ai = zeros(arr_type, n_turbines)
-    prealloc_turbine_local_ti = zeros(arr_type, n_turbines)
 
     # loop over all states
     for i = 1:nstates
@@ -493,8 +490,7 @@ function calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
         state_energy[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
             turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
             rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-            model_set; wind_farm_state_id=i, hours_per_year=hours_per_year, weighted=weighted, prealloc_turbine_velocities=prealloc_turbine_velocities,
-            prealloc_turbine_ct=prealloc_turbine_ct, prealloc_turbine_ai=prealloc_turbine_ai, prealloc_turbine_local_ti=prealloc_turbine_local_ti)
+            model_set; wind_farm_state_id=i, hours_per_year=hours_per_year, weighted=weighted)
 
     end
 
@@ -505,17 +501,24 @@ function calculate_state_aep(turbine_x::T0, turbine_y::T1, turbine_z::T2, rotor_
     turbine_yaw::T5, ct_model::Vector{<:AbstractThrustCoefficientModel}, generator_efficiency::Vector{T6}, cut_in_speed::Vector{T6}, cut_out_speed::Vector{T6}, rated_speed::Vector{T6},
     rated_power::Vector{T6}, power_models::Vector{<:AbstractPowerModel}, rotor_sample_points_y::Vector{T6}, rotor_sample_points_z::Vector{T6}, wind_resource,
     model_set; wind_farm_state_id=1, hours_per_year=365.25*24.0, weighted=true, wind_speed_ids=nothing, 
-    prealloc_turbine_velocities::AbstractArray=zeros(eltype(turbine_x), length(turbine_x)),
-    prealloc_turbine_ct=zeros(eltype(turbine_x), length(turbine_x)), 
-    prealloc_turbine_ai=zeros(eltype(turbine_x), length(turbine_x)), 
-    prealloc_turbine_local_ti=zeros(eltype(turbine_x), length(turbine_x)), 
-    prealloc_wake_deficits=zeros(eltype(turbine_x), length(turbine_x), length(turbine_x)),
-    prealloc_contribution_matrix=zeros(eltype(turbine_x), length(turbine_x), length(turbine_x)),
-    prealloc_deflections=zeros(eltype(turbine_x), length(turbine_x), length(turbine_x)),
-    prealloc_sigma_squared=zeros(eltype(turbine_x), length(turbine_x), length(turbine_x))) where {T0, T1, T2, T3, T4, T5, T6}
+    n_turbines=length(turbine_x),
+    arr_type = promote_type(eltype(turbine_x),eltype(turbine_y),eltype(turbine_z),eltype(rotor_diameter),
+                            eltype(hub_height),eltype(turbine_yaw)),
+    prealloc_turbine_velocities::AbstractArray=zeros(arr_type, n_turbines),
+    prealloc_turbine_ct=zeros(arr_type, n_turbines), 
+    prealloc_turbine_ai=zeros(arr_type, n_turbines), 
+    prealloc_turbine_local_ti=zeros(arr_type, n_turbines), 
+    prealloc_wake_deficits=zeros(arr_type, n_turbines, n_turbines),
+    prealloc_contribution_matrix=zeros(arr_type, n_turbines, n_turbines),
+    prealloc_deflections=zeros(arr_type, n_turbines, n_turbines),
+    prealloc_sigma_squared=zeros(arr_type, n_turbines, n_turbines),
+    prealloc_rot_x=zeros(arr_type, n_turbines),
+    prealloc_rot_y=zeros(arr_type, n_turbines),
+    prealloc_power=zeros(arr_type, n_turbines)
+    ) where {T0, T1, T2, T3, T4, T5, T6}
 
     # rotate turbine locations to match the direction of the current state
-    rot_x, rot_y = rotate_to_wind_direction(turbine_x, turbine_y, wind_resource.wind_directions[wind_farm_state_id])
+    rot_x, rot_y = rotate_to_wind_direction!(prealloc_rot_x, prealloc_rot_y, turbine_x, turbine_y, wind_resource.wind_directions[wind_farm_state_id])
 
     # get turbine indices in sorted order from upstream to downstream
     sorted_turbine_index = sortperm(rot_x)
@@ -530,7 +533,8 @@ function calculate_state_aep(turbine_x::T0, turbine_y::T1, turbine_z::T2, rotor_
 
         # calculate wind turbine powers for given state
         wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
-                            rated_power, rotor_diameter, prealloc_turbine_velocities, turbine_yaw, wind_resource.air_density, power_models)
+                            rated_power, rotor_diameter, prealloc_turbine_velocities, turbine_yaw, wind_resource.air_density, power_models;
+                            wt_power=prealloc_power)
 
         # calculate wind farm power for given state
         state_power = sum(wt_power)
@@ -667,6 +671,9 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
     prealloc_contribution_matrix = preallocations.prealloc_contribution_matrix
     prealloc_deflections = preallocations.prealloc_deflections
     prealloc_sigma_squared = preallocations.prealloc_sigma_squared
+    prealloc_rot_x = preallocations.prealloc_rot_x
+    prealloc_rot_y = preallocations.prealloc_rot_y
+    prealloc_power = preallocations.prealloc_power
 
     # calculate AEP in parallel using multi-threading
     if n_threads > 1 && !reverse_diff
@@ -690,6 +697,9 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 prealloc_contribution_matrix,
                 prealloc_deflections,
                 prealloc_sigma_squared,
+                prealloc_rot_x,
+                prealloc_rot_y,
+                prealloc_power,
                 rotor_sample_points_y,
                 rotor_sample_points_z,
                 unique_directions)
@@ -712,6 +722,9 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 prealloc_contribution_matrix,
                 prealloc_deflections,
                 prealloc_sigma_squared,
+                prealloc_rot_x,
+                prealloc_rot_y,
+                prealloc_power,
                 rotor_sample_points_y,
                 rotor_sample_points_z)
         end
@@ -764,7 +777,9 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                     prealloc_turbine_velocities=view(prealloc_turbine_velocities,:,1), prealloc_turbine_ct=view(prealloc_turbine_ct,:,1),
                     prealloc_turbine_ai=view(prealloc_turbine_ai,:,1), prealloc_turbine_local_ti=view(prealloc_turbine_local_ti,:,1),
                     prealloc_wake_deficits=view(prealloc_wake_deficits,:,:,1), prealloc_contribution_matrix=view(prealloc_contribution_matrix,:,:,1),
-                    prealloc_deflections=view(prealloc_deflections,:,:,1), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,1))
+                    prealloc_deflections=view(prealloc_deflections,:,:,1), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,1),
+                    prealloc_rot_x=view(prealloc_rot_x,:,1), prealloc_rot_y=view(prealloc_rot_y,:,1),
+                    prealloc_power=view(prealloc_power,:,1))
             end
         else
             for i = 1:nstates
@@ -775,7 +790,9 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                     prealloc_turbine_velocities=view(prealloc_turbine_velocities,:,1), prealloc_turbine_ct=view(prealloc_turbine_ct,:,1),
                     prealloc_turbine_ai=view(prealloc_turbine_ai,:,1), prealloc_turbine_local_ti=view(prealloc_turbine_local_ti,:,1),
                     prealloc_wake_deficits=view(prealloc_wake_deficits,:,:,1), prealloc_contribution_matrix=view(prealloc_contribution_matrix,:,:,1),
-                    prealloc_deflections=view(prealloc_deflections,:,:,1), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,1))
+                    prealloc_deflections=view(prealloc_deflections,:,:,1), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,1),
+                    prealloc_rot_x=view(prealloc_rot_x,:,1), prealloc_rot_y=view(prealloc_rot_y,:,1),
+                    prealloc_power=view(prealloc_power,:,1))
             end
         end
 
@@ -798,6 +815,9 @@ function calculate_AEP_Threaded(state_aep, assignments, n_per_thread, nstates,
     prealloc_contribution_matrix,
     prealloc_deflections,
     prealloc_sigma_squared,
+    prealloc_rot_x,
+    prealloc_rot_y,
+    prealloc_power,
     rotor_sample_points_y,
     rotor_sample_points_z)
 
@@ -815,7 +835,9 @@ function calculate_AEP_Threaded(state_aep, assignments, n_per_thread, nstates,
                 prealloc_turbine_velocities=view(prealloc_turbine_velocities,:,i_assignment), prealloc_turbine_ct=view(prealloc_turbine_ct,:,i_assignment),
                 prealloc_turbine_ai=view(prealloc_turbine_ai,:,i_assignment), prealloc_turbine_local_ti=view(prealloc_turbine_local_ti,:,i_assignment),
                 prealloc_wake_deficits=view(prealloc_wake_deficits,:,:,i_assignment), prealloc_contribution_matrix=view(prealloc_contribution_matrix,:,:,i_assignment),
-                prealloc_deflections=view(prealloc_deflections,:,:,i_assignment), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,i_assignment))
+                prealloc_deflections=view(prealloc_deflections,:,:,i_assignment), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,i_assignment),
+                prealloc_rot_x=view(prealloc_rot_x,:,i_assignment), prealloc_rot_y=view(prealloc_rot_y,:,i_assignment),
+                prealloc_power=view(prealloc_power,:,i_assignment))
         end
     end
 end
@@ -833,6 +855,9 @@ function calculate_AEP_Threaded_SumofSquares(state_aep, assignments, n_per_threa
     prealloc_contribution_matrix,
     prealloc_deflections,
     prealloc_sigma_squared,
+    prealloc_rot_x,
+    prealloc_rot_y,
+    prealloc_power,
     rotor_sample_points_y,
     rotor_sample_points_z,
     unique_directions)
@@ -857,7 +882,9 @@ function calculate_AEP_Threaded_SumofSquares(state_aep, assignments, n_per_threa
                 prealloc_turbine_velocities=view(prealloc_turbine_velocities,:,i_assignment), prealloc_turbine_ct=view(prealloc_turbine_ct,:,i_assignment),
                 prealloc_turbine_ai=view(prealloc_turbine_ai,:,i_assignment), prealloc_turbine_local_ti=view(prealloc_turbine_local_ti,:,i_assignment),
                 prealloc_wake_deficits=view(prealloc_wake_deficits,:,:,i_assignment), prealloc_contribution_matrix=view(prealloc_contribution_matrix,:,:,i_assignment),
-                prealloc_deflections=view(prealloc_deflections,:,:,i_assignment), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,i_assignment))
+                prealloc_deflections=view(prealloc_deflections,:,:,i_assignment), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,i_assignment),
+                prealloc_rot_x=view(prealloc_rot_x,:,i_assignment), prealloc_rot_y=view(prealloc_rot_y,:,i_assignment),
+                prealloc_power=view(prealloc_power,:,i_assignment))
         end
     end
 end
