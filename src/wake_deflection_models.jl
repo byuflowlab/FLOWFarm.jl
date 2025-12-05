@@ -182,10 +182,21 @@ function _bpa_theta_0(yaw, ct)
 end
 
 function _bpa_deflection(diam, ct, yaw, ky, kz, sigmay, sigmaz, theta0, x0)
-    a = theta0*x0/diam
-    b = (theta0/14.7)*sqrt(cos(yaw)/(ky*kz*ct))*(2.9-1.3*sqrt(1.0-ct)-ct)
-    c = (1.6+sqrt(ct))*(1.6*sqrt(8.0*sigmay*sigmaz/(cos(yaw)*diam^2))-ct)
-    d = (1.6-sqrt(ct))*(1.6*sqrt(8.0*sigmay*sigmaz/(cos(yaw)*diam^2))+ct)
+    diam_inv = 1.0/diam
+    a = theta0*x0*diam_inv
+    b1 = cos(yaw)
+    b = (theta0/14.7)*sqrt(b1/(ky*kz*ct))*(2.9-1.3*sqrt(1.0-ct)-ct)
+
+    c1 = 1.6*sqrt(8.0*sigmay*sigmaz * diam_inv * diam_inv / b1)
+    c2 = sqrt(ct)
+    
+    # c = (1.6+c2)*(c1-ct)
+    # d = (1.6-c2)*(c1+ct)
+    g1 = 1.6*c1-c2*ct
+    g2 = -1.6*ct+c1*c2
+    c = g1+g2
+    d = g1-g2
+
     y_deflection = diam*(a+b*log(c/d))
     return y_deflection
 end

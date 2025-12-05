@@ -571,12 +571,14 @@ end
 
 function _gauss_yaw_discontinuity(dt, x0, ky, kz, yaw, ct)
     # for clarity, break out the terms in the equation
-    a = ky + kz*cos(yaw)
-    b = 4.0 * ky * kz * cos(yaw)*(ct - 1.0)
-    c = 2.0 * sqrt(8.0) * ky * kz
+    cy = cos(yaw)
+    a = ky + kz*cy
+    kykz4 = 4.0 * ky * kz
+    b = kykz4 * cy*(ct - 1.0)
+    c = kykz4 * sqrt(2)
 
     # distance from rotor to the last point where the wake model is undefined
-    discontinuity_point = x0 + dt * (a - sqrt(a^2 - b))/c
+    discontinuity_point = x0 + dt * (a - sqrt(a*a - b))/c
 
     return discontinuity_point
 end
@@ -611,7 +613,8 @@ function _gauss_yaw_model_deficit(dx, dy, dz, dt, yaw, ct, ti, as, bs, ky, kz, w
         ey = exp(c1)
         ez = exp(c2)
 
-        sqrtterm = 1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt^2))
+        dt2 = dt*dt
+        sqrtterm = 1.0-ct*cos(yaw)/(8.0*(sigma_y*sigma_z/dt2))
         if sqrtterm >= 1e-8 #check - could try increasing tolerance
             loss = (1.0-sqrt(sqrtterm))*ey*ez
         else

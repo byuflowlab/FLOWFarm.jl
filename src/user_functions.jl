@@ -61,6 +61,7 @@ function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbi
                 cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set;
                 rotor_sample_points_y=rotor_sample_points_y, rotor_sample_points_z=rotor_sample_points_z)
 
+    ideal_AEP == 0.0 && (ideal_AEP = 1.0)
     (AEP_scale == 0.0) && (AEP_scale = 1.0/ideal_AEP)
 
     cfg = nothing
@@ -82,13 +83,7 @@ function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbi
     opt_yaw && (turbine_yaw = Vector{input_type}(turbine_yaw))
     opt_diam && (rotor_diameter = Vector{input_type}(rotor_diameter))
 
-    preallocations = preallocations_struct(zeros(input_type,n_turbines,n_threads),zeros(input_type,n_turbines,n_threads),
-                    zeros(input_type,n_turbines,n_threads),zeros(input_type,n_turbines,n_threads),zeros(input_type,n_turbines,
-                    n_turbines,n_threads),zeros(input_type,n_turbines,n_turbines,n_threads),
-                    zeros(input_type,n_turbines,n_turbines,n_threads),zeros(input_type,n_turbines,n_turbines,n_threads),
-                    zeros(input_type,n_turbines,n_threads),zeros(input_type,n_turbines,n_threads),
-                    zeros(input_type,n_turbines,n_threads),
-                    zeros(Int,n_turbines,n_threads))
+    preallocations = create_preallocations(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height)
 
     return wind_farm_struct(turbine_x, turbine_y, hub_height, turbine_yaw, rotor_diameter, results,
                 wind_farm_constants, AEP_scale, ideal_AEP, preallocations, update_function, AEP_gradient, AEP, cfg)
@@ -104,7 +99,10 @@ function create_preallocations(turbine_x, turbine_y, turbine_z, rotor_diameter, 
                     zeros(T,n_turbines,n_turbines,n_threads),zeros(T,n_turbines,n_turbines,n_threads),
                     zeros(T,n_turbines,n_threads),zeros(T,n_turbines,n_threads),
                     zeros(T,n_turbines,n_threads),
-                    zeros(Int,n_turbines,n_threads))
+                    zeros(Int,n_turbines,n_threads),
+                    zeros(T,n_turbines,n_threads),
+                    zeros(T,n_turbines,n_threads),
+                    zeros(T,n_turbines,n_threads))
 end
 
 """

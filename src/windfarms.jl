@@ -67,6 +67,9 @@ struct preallocations_struct{V,M,VI}
     prealloc_rot_y::V
     prealloc_power::V
     prealloc_sort_index::VI
+    prealloc_diam::V
+    prealloc_hub::V
+    prealloc_yaw::V
 end
 
 """

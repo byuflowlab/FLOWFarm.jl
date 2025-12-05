@@ -804,7 +804,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
     return AEP
 end
 
-function calculate_AEP_Threaded(state_aep, assignments, n_per_thread, nstates,
+function calculate_AEP_Threaded(state_aep, assignments, n, nstates,
     turbine_x, turbine_y, turbine_z, rotor_diameter,
     hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
     cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set,
@@ -827,7 +827,7 @@ function calculate_AEP_Threaded(state_aep, assignments, n_per_thread, nstates,
     Threads.@threads for i_assignment in eachindex(assignments)
 
         i_start = assignments[i_assignment]
-        i_stop = min(i_start+n_per_thread-1, nstates)
+        i_stop = min(i_start+n-1, nstates)
 
         for i = i_start:i_stop
 
