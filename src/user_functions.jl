@@ -83,15 +83,16 @@ function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbi
     opt_yaw && (turbine_yaw = Vector{input_type}(turbine_yaw))
     opt_diam && (rotor_diameter = Vector{input_type}(rotor_diameter))
 
-    preallocations = create_preallocations(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height)
+    preallocations = create_preallocations(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, wind_farm_constants.wind_resource, wind_farm_constants.model_set)
 
     return wind_farm_struct(turbine_x, turbine_y, hub_height, turbine_yaw, rotor_diameter, results,
                 wind_farm_constants, AEP_scale, ideal_AEP, preallocations, update_function, AEP_gradient, AEP, cfg)
 end
 
-function create_preallocations(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height)
+function create_preallocations(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, wind_resource, model_set)
     n_turbines = length(turbine_x)
     n_threads = Threads.nthreads()
+    n_states = determine_number_of_states(wind_resource, model_set)
     T = promote_type(eltype(turbine_x),eltype(turbine_y),eltype(turbine_z),eltype(rotor_diameter),eltype(hub_height))
     return preallocations_struct(zeros(T,n_turbines,n_threads),zeros(T,n_turbines,n_threads),
                     zeros(T,n_turbines,n_threads),zeros(T,n_turbines,n_threads),zeros(T,n_turbines,
@@ -102,7 +103,20 @@ function create_preallocations(turbine_x, turbine_y, turbine_z, rotor_diameter, 
                     zeros(Int,n_turbines,n_threads),
                     zeros(T,n_turbines,n_threads),
                     zeros(T,n_turbines,n_threads),
-                    zeros(T,n_turbines,n_threads))
+                    zeros(T,n_turbines,n_threads),
+                    zeros(T,n_states))
+end
+
+function determine_number_of_states(wind_resource, model_set)
+    if typeof(model_set.wake_combination_model) == SumOfSquaresFreestreamSuperposition
+        # find unique directions
+        unique_directions = unique(wind_resource.wind_directions)
+
+        # find how many unique directions there are
+        return length(unique_directions)
+    else
+        return length(wind_resource.wind_directions)
+    end
 end
 
 """
@@ -210,20 +224,6 @@ function calculate_aep_gradient!(farm,x)
     ForwardDiff.gradient!(farm.results,calculate_aep,x,farm.config)
     farm.AEP .= DiffResults.value(farm.results)
     farm.AEP_gradient .= DiffResults.gradient(farm.results)
-    return farm.AEP[1], farm.AEP_gradient
-end
-
-"""
-calculate_aep_gradient!(farm,x,sparse_struct::T)
-
-function to calculate the AEP and its gradient for the wind farm using sparse methods
-
-# Arguments
-- `farm`: The wind_farm_struct
-- `x`: Vector containing the design variables
-"""
-function calculate_aep_gradient!(farm,x,sparse_struct::T) where T <: AbstractSparseMethod
-    calculate_aep_gradient!(farm,x,sparse_struct)
     return farm.AEP[1], farm.AEP_gradient
 end
 

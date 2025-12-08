@@ -634,7 +634,8 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             rotor_sample_points_y::AbstractVector{<:Real}=Float64[0.0], 
             rotor_sample_points_z::AbstractVector{<:Real}=Float64[0.0], 
             hours_per_year::Float64=365.25*24.0, 
-            preallocations::preallocations_struct=create_preallocations(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height))
+            preallocations::preallocations_struct=create_preallocations(turbine_x, turbine_y, turbine_z, 
+                        rotor_diameter, hub_height, wind_resource, model_set))
 
     # find how many wind states are being calculated
     nstates = length(wind_resource.wind_directions)
@@ -674,11 +675,13 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
     prealloc_rot_y = preallocations.prealloc_rot_y
     prealloc_power = preallocations.prealloc_power
     prealloc_sort_index = preallocations.prealloc_sort_index
+    state_aep = preallocations.prealloc_state_aep
+    state_aep .= 0.0
 
     # calculate AEP in parallel using multi-threading
     if n_threads > 1 && !reverse_diff
         if typeof(model_set.wake_combination_model) == SumOfSquaresFreestreamSuperposition
-            state_aep = zeros(arr_type,ndirections)
+            # state_aep = zeros(arr_type,ndirections)
 
             n_per_thread, rem = divrem(ndirections,n_threads)
             rem > 0 && (n_per_thread += 1)
@@ -705,7 +708,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 rotor_sample_points_z,
                 unique_directions)
         else
-            state_aep = zeros(arr_type,nstates)
+            # state_aep = zeros(arr_type,nstates)
             n_per_thread, rem = divrem(nstates,n_threads)
             n = n_per_thread + (rem > 0)
             assignments = 1:n:nstates
@@ -762,7 +765,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
     #     end
     # calculate AEP using a single thread
     else
-        state_aep = arr_type(0.0)
+        # state_aep = arr_type(0.0)
         if typeof(model_set.wake_combination_model) == SumOfSquaresFreestreamSuperposition
             for i = 1:ndirections
                 # get indices to all speeds corresponding to this unique direction
@@ -772,7 +775,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 middle_id = wind_speed_ids[max(cld(length(wind_speed_ids),2),1)]
 
                 # get direction aep including all wind speeds for that direction
-                state_aep += calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
+                state_aep[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
                     turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                     rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set; wind_farm_state_id=middle_id, hours_per_year=hours_per_year, wind_speed_ids=wind_speed_ids,
@@ -785,7 +788,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             end
         else
             for i = 1:nstates
-                state_aep += calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
+                state_aep[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
                     turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                     rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set; wind_farm_state_id=i, hours_per_year=hours_per_year,
@@ -798,7 +801,7 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             end
         end
 
-        AEP = state_aep
+        AEP = sum(state_aep)
     end
 
     return AEP

@@ -54,7 +54,7 @@ struct that holds all the preallocated space for AEP calculation with one per th
 - `prealloc_deflections`: Matrix containing preallocated space for deflections
 - `prealloc_sigma_squared`: Matrix containing preallocated space for sigma squared
 """
-struct preallocations_struct{V,M,VI}
+struct preallocations_struct{V,M,VI,Ve}
     prealloc_turbine_velocities::V
     prealloc_turbine_ct::V
     prealloc_turbine_ai::V
@@ -70,6 +70,7 @@ struct preallocations_struct{V,M,VI}
     prealloc_diam::V
     prealloc_hub::V
     prealloc_yaw::V
+    prealloc_state_aep::Ve
 end
 
 """

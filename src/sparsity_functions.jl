@@ -20,7 +20,7 @@ Struct that holds all the necessary variables to calculate the AEP gradient usin
 - `caches`: vector of SparseDiffTools jacobian caches for each wind state
 - `jacobians`: vector of sparse matracies containing jacobians for each wind state
 - `state_gradients`: 2d array, each row is a state gradient (used for threads)
-- `turbine_powers`: 2d array that holds the powers or each turbine (used for threads)
+- `turbine_powers`: 2d array that holds the powers for each turbine (used for threads)
 - `adtype`: AutoSparseForwardDiff object needed for SparseDiffTools
 """
 struct sparse_AEP_struct_stable_pattern{T1,T2,T3,T4,T5} <: StableSparseMethod
@@ -602,6 +602,8 @@ function calculate_aep_gradient!(farm,x,sparse_struct::T) where T <: UnstableSpa
         farm.AEP_gradient[j] = s
     end
 
+    ##HERE
+
     return farm.AEP[1], farm.AEP_gradient
 end
 
@@ -700,7 +702,7 @@ function calculate_unstable_sparsity_pattern!(sparse_struct::T,x,wind_state_id,p
         end
     end
 
-    for row in 1:size(pattern, 1), col in 1:size(pattern, 2)
+    for row in axes(pattern, 1), col in axes(pattern, 2)
         sparse_struct.jacobians[wind_state_id][row, col] = pattern[row, col]
     end
     dropzeros!(sparse_struct.jacobians[wind_state_id])
