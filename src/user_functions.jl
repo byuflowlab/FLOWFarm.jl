@@ -195,6 +195,21 @@ function calculate_aep!(farm,x)
 - `farm`: The wind_farm_struct
 - `x`: Vector containing the design variables
 """
+function calculate_aep!(farm,x::Array{ForwardDiff.Dual{T,V,N}}) where {T,V,N}
+    farm.update_function(farm,x)
+
+    AEP = calculate_aep(farm.turbine_x, farm.turbine_y, farm.constants.turbine_z, farm.rotor_diameter,
+                farm.hub_height, farm.turbine_yaw, farm.constants.ct_models, farm.constants.generator_efficiency,
+                farm.constants.cut_in_speed, farm.constants.cut_out_speed, farm.constants.rated_speed,
+                farm.constants.rated_power, farm.constants.wind_resource, farm.constants.power_models,
+                farm.constants.model_set,rotor_sample_points_y=farm.constants.rotor_sample_points_y,
+                rotor_sample_points_z=farm.constants.rotor_sample_points_z,
+                preallocations = farm.preallocations
+                ) .* farm.AEP_scale
+
+    return AEP
+end
+
 function calculate_aep!(farm,x)
     farm.update_function(farm,x)
 
@@ -206,6 +221,8 @@ function calculate_aep!(farm,x)
                 rotor_sample_points_z=farm.constants.rotor_sample_points_z,
                 preallocations = farm.preallocations
                 ) .* farm.AEP_scale
+
+    farm.AEP .= AEP
 
     return AEP
 end
