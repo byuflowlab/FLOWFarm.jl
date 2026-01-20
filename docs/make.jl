@@ -22,6 +22,5 @@ makedocs(;
 
 deploydocs(
     repo = "github.com/byuflowlab/FLOWFarm.jl.git",
-    versions = nothing,
-    devbranch = "develop"
+    devbranch = "master"
 )
