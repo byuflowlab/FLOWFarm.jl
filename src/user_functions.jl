@@ -222,7 +222,7 @@ function calculate_aep!(farm,x)
                 preallocations = farm.preallocations
                 ) .* farm.AEP_scale
 
-    farm.AEP .= AEP
+    farm.AEP[1] = AEP
 
     return AEP
 end
