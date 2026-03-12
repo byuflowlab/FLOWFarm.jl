@@ -82,17 +82,17 @@ function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbi
     opt_yaw && (turbine_yaw = Vector{input_type}(turbine_yaw))
     opt_diam && (rotor_diameter = Vector{input_type}(rotor_diameter))
 
-    preallocations = create_preallocations(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, wind_farm_constants.wind_resource, wind_farm_constants.model_set)
+    preallocations = create_preallocations(turbine_x, turbine_y, turbine_yaw, rotor_diameter, hub_height, wind_farm_constants.wind_resource, wind_farm_constants.model_set)
 
     return wind_farm_struct(turbine_x, turbine_y, hub_height, turbine_yaw, rotor_diameter, results,
                 wind_farm_constants, AEP_scale, ideal_AEP, preallocations, update_function, AEP_gradient, AEP, cfg)
 end
 
-function create_preallocations(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, wind_resource, model_set)
+function create_preallocations(turbine_x, turbine_y, turbine_yaw, rotor_diameter, hub_height, wind_resource, model_set)
     n_turbines = length(turbine_x)
     n_threads = Threads.nthreads()
     n_states = determine_number_of_states(wind_resource, model_set)
-    T = promote_type(eltype(turbine_x),eltype(turbine_y),eltype(turbine_z),eltype(rotor_diameter),eltype(hub_height))
+    T = promote_type(eltype(turbine_x),eltype(turbine_y),eltype(turbine_yaw),eltype(rotor_diameter),eltype(hub_height))
     return preallocations_struct(zeros(T,n_turbines,n_threads),zeros(T,n_turbines,n_threads),
                     zeros(T,n_turbines,n_threads),zeros(T,n_turbines,n_threads),zeros(T,n_turbines,
                     n_turbines,n_threads),zeros(T,n_turbines,n_turbines,n_threads),

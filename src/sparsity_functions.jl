@@ -21,7 +21,7 @@ Struct that holds all the necessary variables to calculate the AEP gradient usin
 - `jacobians`: vector of sparse matracies containing jacobians for each wind state
 - `state_gradients`: 2d array, each row is a state gradient (used for threads)
 - `turbine_powers`: 2d array that holds the powers for each turbine (used for threads)
-- `adtype`: AutoSparseForwardDiff object needed for SparseDiffTools
+- `adtype`: AutoSparse(AutoForwardDiff()) object needed for SparseDiffTools
 """
 struct sparse_AEP_struct_stable_pattern{T1,T2,T3,T4,T5} <: StableSparseMethod
     caches::T1 # vector of caches
@@ -91,7 +91,7 @@ function build_stable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height,t
                 opt_x=opt_x,opt_y=opt_y,opt_hub=opt_hub,opt_yaw=opt_yaw,opt_diam=opt_diam,
                 input_type=eltype(sparse_struct.caches[1].cache.t))
 
-    return farm,sparse_struct
+    return farm, sparse_struct
 end
 
 """
@@ -111,7 +111,7 @@ function build_stable_sparse_struct(x,farm;tolerance=1E-16)
     jacobians = Array{SparseMatrixCSC{eltype(x), Int64},1}(undef,n_states)
     state_gradients = zeros(eltype(x),n_states,length(x))
     caches = nothing
-    adtype = AutoSparseForwardDiff()
+    adtype = AutoSparse(AutoForwardDiff())
 
     define_patterns!(jacobians,x,farm,tolerance,pow,n_states)
 
@@ -120,7 +120,7 @@ function build_stable_sparse_struct(x,farm;tolerance=1E-16)
         cache = sparse_jacobian_cache(adtype, sd, nothing, pow[:,i], x)
         if isnothing(caches)
             T = typeof(cache)
-            adtype = AutoSparseForwardDiff(chunksize=cache.cache.chunksize)
+            adtype = AutoSparse(AutoForwardDiff(chunksize=cache.cache.chunksize))
             caches = Vector{T}(undef,n_states)
         end
         caches[i] = cache
@@ -359,7 +359,7 @@ Struct that holds all the necessary variables to calculate the AEP gradient usin
 - `old_patterns`: 3d array that holds the old sparsity patterns for each wind state
 - `colors`: 2d array that holds the colors for each wind state
 - `state_powers`: 1d array that holds the state powers
-- `chunksize`: Chunksize for the AutoSparseForwardDiff object
+- `chunksize`: Chunksize for the AutoSparse(AutoForwardDiff()) object
 """
 struct sparse_AEP_struct_unstable_pattern{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10} <: UnstableSparseMethod
     deficit_thresholds::T1
@@ -790,7 +790,7 @@ Struct that holds all the necessary variables to calculate the spacing constrain
 - `cache`: SparseJacobianCache object for SparseDiffTools
 - `update_function`: Function that updates the spacing struct with the new design variables
 - `relevant_list`: 2d array that holds the relevant turbine pairs for the spacing constraint (column 1 holds the first turbine and column 2 holds the second turbine in the pair)
-- `ad`: AutoSparseForwardDiff object
+- `ad`: AutoSparse(AutoForwardDiff()) object
 - `safe_design_variables`: Vector containing the last set of design variables that satisfy the constraints
 - `full_spacing_vec`: Vector containing the full spacing constraints of the farm for final evaluation
 """
@@ -845,7 +845,7 @@ function build_sparse_spacing_struct(x,turbine_x,turbine_y,space,scale,update_fu
     calculate_spacing_jacobian!(s_struct,x)
     spacing_jacobian = dropzeros(sparse(s_struct.jacobian[idx,:]))
 
-    ad = AutoSparseForwardDiff()
+    ad = AutoSparse(AutoForwardDiff())
     sd = JacPrototypeSparsityDetection(; jac_prototype=spacing_jacobian)
     cache = sparse_jacobian_cache(ad, sd, nothing, spacing_vec, x)
     T = eltype(cache.cache.t)
@@ -983,7 +983,7 @@ Struct that holds all the necessary variables to calculate the boundary constrai
 - `turbine_x`: Vector containing x positions of turbines
 - `turbine_y`: Vector containing y positions of turbines
 - `jacobian`: Sparse matrix containing the jacobian of the boundary constraints
-- `ad`: AutoSparseForwardDiff object
+- `ad`: AutoSparse(AutoForwardDiff()) object
 - `cache`: SparseJacobianCache object for SparseDiffTools
 - `boundary_vec`: Vector containing the boundary constraints
 - `boundary_function`: Function that calculates the boundary constraints
