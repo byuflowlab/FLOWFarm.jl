@@ -10,6 +10,7 @@ using ForwardDiff
 using FiniteDiff
 
 @testset ExtendedTestSet "all tests" begin
+    # This does not pass for some reason but I cannot find the issue
     # @testset "type stability" begin
     #     @testset "AEP Calculation" begin
     #         include("model_sets/model_set_6.jl")
@@ -2161,7 +2162,7 @@ using FiniteDiff
 
             include("./model_sets/model_set_Multizone.jl")
 
-            turbine_inflow_velocities = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+            turbine_inflow_velocities = ff.turbine_velocities_one_direction_vel(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
                     sorted_turbine_index, ct_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set)
 
@@ -2384,7 +2385,7 @@ using FiniteDiff
             rot_x, rot_y = ff.rotate_to_wind_direction(turbine_x, turbine_y, windresource.wind_directions[1])
             sorted_turbine_index = sortperm(rot_x)
 
-            U = ff.turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+            U = ff.turbine_velocities_one_direction_vel(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
             sorted_turbine_index, ct_models, rotor_points_y, rotor_points_z, windresource,
             model_set)
 
@@ -2442,9 +2443,9 @@ using FiniteDiff
             include("./model_sets/model_set_4.jl")
 
             # calculate turbine inflow velocities
-            turbine_inflow_velocities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+            turbine_inflow_velocities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction_full(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
             sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, windresource,
-            model_set, velocity_only=false)
+            model_set)
 
             # load horns rev ti ata
             data = readdlm("inputfiles/horns_rev_ti_by_row_niayifar.txt", ',', skipstart=1)
@@ -2487,9 +2488,9 @@ using FiniteDiff
             include("./model_sets/model_set_2.jl")
 
             # calculate turbine inflow velocities
-            turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+            turbine_velocities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction_full(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
             sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, windresource,
-            model_set, velocity_only=false)
+            model_set)
 
             # load horns rev ti ata
             data = readdlm("inputfiles/horns_rev_ti_by_row_niayifar.txt", ',', skipstart=1)
@@ -2851,6 +2852,88 @@ using FiniteDiff
                 @test boundary_vertices[3] ≈ boundary_vertices_c atol=1E-6
                 @test boundary_vertices[4] ≈ boundary_vertices_d atol=1E-6
             end
+        end
+    end
+
+    @testset "Sparse Methods" begin
+
+        @testset "Unstable Sparse Methods" begin
+            include("./model_sets/model_set_CumulativeCurl.jl")
+            n = length(turbine_x)
+            turbine_yaw = (randn(n) .- 0.5) * deg2rad(10.0)
+            x = [turbine_x; turbine_y; turbine_yaw]
+
+            function update_fn(farm, x)
+                n = length(farm.turbine_x)
+                @inbounds for i in 1:n
+                    farm.turbine_x[i] = x[i]
+                    farm.turbine_y[i] = x[n + i]
+                    farm.turbine_yaw[i] = x[2*n + i]
+                end
+                return nothing
+            end
+
+            generator_eff = ones(length(turbine_x))
+
+            diff_farm = FLOWFarm.build_wind_farm_struct(
+                x, turbine_x, turbine_y, turbine_z, hub_height, turbine_yaw,
+                rotor_diameter, ct_models, generator_eff, cut_in_speed,
+                cut_out_speed, rated_speed, rated_power, windresource,
+                power_models, model_set, update_fn, AEP_scale=0.0,
+                opt_x=true, opt_y=true, opt_yaw=true, input_type="ForwardDiff",
+            )
+            unstable_farm, unstable_struct = FLOWFarm.build_unstable_sparse_struct(
+                x, turbine_x, turbine_y, turbine_z, hub_height, turbine_yaw,
+                rotor_diameter, ct_models, generator_eff, cut_in_speed,
+                cut_out_speed, rated_speed, rated_power, windresource,
+                power_models, model_set, update_fn, AEP_scale=0.0,
+                opt_x=true, opt_y=true, opt_yaw=true, tolerance=1e-16,
+            )
+
+            x[1:2*n] .+= (randn(2*n) .- 0.5) .* 5 .* rotor_diameter[1]
+            x[2*n+1:end] .= (randn(n) .- 0.5) * deg2rad(10.0)
+
+            FLOWFarm.calculate_aep_gradient!(diff_farm, x)
+            FLOWFarm.calculate_aep_gradient!(unstable_farm, x, unstable_struct)
+            @test isapprox(diff_farm.AEP_gradient, unstable_farm.AEP_gradient, atol=1e-6)
+        end
+
+        @testset "Stable Sparse Methods" begin
+            include("./model_sets/model_set_CumulativeCurl.jl")
+            n = length(turbine_x)
+            turbine_yaw = (randn(n) .- 0.5) * deg2rad(10.0)
+            x = turbine_yaw
+
+            function update_fn(farm, x)
+                n = length(farm.turbine_x)
+                @inbounds for i in 1:n
+                    farm.turbine_yaw[i] = x[i]
+                end
+                return nothing
+            end
+
+            generator_eff = ones(length(turbine_x))
+
+            diff_farm = FLOWFarm.build_wind_farm_struct(
+                x, turbine_x, turbine_y, turbine_z, hub_height, turbine_yaw,
+                rotor_diameter, ct_models, generator_eff, cut_in_speed,
+                cut_out_speed, rated_speed, rated_power, windresource,
+                power_models, model_set, update_fn, AEP_scale=0.0,
+                opt_x=false, opt_y=false, opt_yaw=true, input_type="ForwardDiff",
+            )
+            stable_farm, stable_struct = FLOWFarm.build_stable_sparse_struct(
+                x, turbine_x, turbine_y, turbine_z, hub_height, turbine_yaw,
+                rotor_diameter, ct_models, generator_eff, cut_in_speed,
+                cut_out_speed, rated_speed, rated_power, windresource,
+                power_models, model_set, update_fn, AEP_scale=0.0,
+                opt_x=false, opt_y=false, opt_yaw=true, tolerance=1e-16,
+            )
+
+            x .= (randn(n) .- 0.5) * deg2rad(10.0)
+
+            FLOWFarm.calculate_aep_gradient!(diff_farm, x)
+            FLOWFarm.calculate_aep_gradient!(stable_farm, x, stable_struct)
+            @test isapprox(diff_farm.AEP_gradient, stable_farm.AEP_gradient, atol=1e-6)
         end
     end
 end

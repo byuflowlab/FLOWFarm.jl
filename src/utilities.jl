@@ -48,6 +48,31 @@ function rotate_to_wind_direction(xlocs::AbstractArray, ylocs::AbstractArray, wi
     return x_cart, y_cart
 end
 
+function rotate_to_wind_direction!(x_cart, y_cart, xlocs::AbstractArray, ylocs::AbstractArray, wind_direction_met::Number; center=0.0)
+    # use radians
+
+    # convert from meteorological polar system (CW, 0 rad.=N) to standard polar system (CCW, 0 rad.=E)
+    wind_direction_cart = met2cart(wind_direction_met)
+
+    cos_wdr = cos(-wind_direction_cart)
+    sin_wdr = sin(-wind_direction_cart)
+
+    if center != 0.0
+        center_x = center[1]
+        center_y = center[2]
+    else
+        center_x = 0.0
+        center_y = 0.0
+    end
+    # convert to cartesian coordinates with wind to positive x
+    for i in eachindex(xlocs)
+        x_cart[i] = ((xlocs[i] - center_x) * cos_wdr - (ylocs[i] - center_y) * sin_wdr) + center_x
+        y_cart[i] = ((xlocs[i] - center_x) * sin_wdr + (ylocs[i] - center_y) * cos_wdr) + center_y
+    end
+
+    return x_cart, y_cart
+end
+
 function rotate_to_wind_direction(xlocs::Number, ylocs::Number, wind_direction_met::Number; center=[0.0,0.0])
     # use radians
 
@@ -1682,4 +1707,34 @@ function star_boundary(n, ri, ro, rotation=0.0)
 
     # return
     return round.(vertices, digits=6)
+end
+
+# Nonallocating sortperm function
+function quicksort!(idx, x, lo::Int, hi::Int)
+    if lo < hi
+        p = partition!(idx, x, lo, hi)
+        quicksort!(idx, x, lo, p - 1)
+        quicksort!(idx, x, p + 1, hi)
+    end
+end
+
+function partition!(idx, x, lo::Int, hi::Int)
+    pivot = x[idx[hi]]
+    i = lo - 1
+    @inbounds for j in lo:hi-1
+        if x[idx[j]] ≤ pivot
+            i += 1
+            idx[i], idx[j] = idx[j], idx[i]
+        end
+    end
+    idx[i+1], idx[hi] = idx[hi], idx[i+1]
+    return i + 1
+end
+
+function sortperm!(idx::AbstractVector{Int}, x::AbstractVector)
+    @inbounds for i in eachindex(idx)
+        idx[i] = i
+    end
+    quicksort!(idx, x, 1, length(idx))
+    return nothing
 end

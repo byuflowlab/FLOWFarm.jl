@@ -21,9 +21,8 @@ Unifying struct defining a wind farm and all necessary variables to calculate th
 - `AEP_gradient`: The gradient of the AEP
 - `AEP`: The AEP of the farm
 - `config`: The ForwardDiff config object if using ForwardDiff for AEP gradient calculation, otherwise nothing
-- `force_single_thread`: Boolean that forces the code to run in a single thread
 """
-struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15} <: AbstractWindFarmModel
+struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14} <: AbstractWindFarmModel
     turbine_x::T1
     turbine_y::T2
     hub_height::T3
@@ -38,7 +37,6 @@ struct wind_farm_struct{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15} <: A
     AEP_gradient::T12
     AEP::T13
     config::T14
-    force_single_thread::T15
 end
 
 """
@@ -56,7 +54,7 @@ struct that holds all the preallocated space for AEP calculation with one per th
 - `prealloc_deflections`: Matrix containing preallocated space for deflections
 - `prealloc_sigma_squared`: Matrix containing preallocated space for sigma squared
 """
-struct preallocations_struct{V,M}
+struct preallocations_struct{V,M,VI,Ve}
     prealloc_turbine_velocities::V
     prealloc_turbine_ct::V
     prealloc_turbine_ai::V
@@ -65,6 +63,14 @@ struct preallocations_struct{V,M}
     prealloc_contribution_matrix::M
     prealloc_deflections::M
     prealloc_sigma_squared::M
+    prealloc_rot_x::V
+    prealloc_rot_y::V
+    prealloc_power::V
+    prealloc_sort_index::VI
+    prealloc_diam::V
+    prealloc_hub::V
+    prealloc_yaw::V
+    prealloc_state_aep::Ve
 end
 
 """

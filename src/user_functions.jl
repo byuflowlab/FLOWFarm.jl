@@ -10,8 +10,7 @@ author: Benjamin Varela
 build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,rotor_diameter,
             ct_models,generator_efficiency,cut_in_speed,cut_out_speed,rated_speed,rated_power,wind_resource,
             power_models,model_set,update_function;rotor_sample_points_y=[0.0],rotor_sample_points_z=[0.0],
-            AEP_scale=0.0,input_type=nothing,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false,
-            force_single_thread=false)
+            AEP_scale=0.0,input_type=nothing,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false)
 
 function to build a wind_farm_struct
 
@@ -42,17 +41,13 @@ function to build a wind_farm_struct
 - `opt_hub`: Boolean to optimize hub heights of turbines
 - `opt_yaw`: Boolean to optimize yaw angles of turbines
 - `opt_diam`: Boolean to optimize rotor diameters of turbines
-- `force_single_thread`: Boolean to force single thread calculation
 """
 function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,rotor_diameter,
             ct_models,generator_efficiency,cut_in_speed,cut_out_speed,rated_speed,rated_power,wind_resource,
             power_models,model_set,update_function;rotor_sample_points_y=[0.0],rotor_sample_points_z=[0.0],
-            AEP_scale=0.0,input_type=nothing,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false,
-            force_single_thread=false)
+            AEP_scale=0.0,input_type=nothing,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false)
 
     n_turbines = length(turbine_x)
-    n_threads = Threads.nthreads()
-    force_single_thread && (n_threads = 1)
     results = DiffResults.GradientResult(x)
     AEP_gradient = zeros(eltype(x),length(x))
     AEP = Array{eltype(x),0}(undef)
@@ -65,6 +60,7 @@ function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbi
                 cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set;
                 rotor_sample_points_y=rotor_sample_points_y, rotor_sample_points_z=rotor_sample_points_z)
 
+    ideal_AEP == 0.0 && (ideal_AEP = 1.0)
     (AEP_scale == 0.0) && (AEP_scale = 1.0/ideal_AEP)
 
     cfg = nothing
@@ -86,13 +82,40 @@ function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbi
     opt_yaw && (turbine_yaw = Vector{input_type}(turbine_yaw))
     opt_diam && (rotor_diameter = Vector{input_type}(rotor_diameter))
 
-    preallocations = preallocations_struct(zeros(input_type,n_turbines,n_threads),zeros(input_type,n_turbines,n_threads),
-                    zeros(input_type,n_turbines,n_threads),zeros(input_type,n_turbines,n_threads),zeros(input_type,n_turbines,
-                    n_turbines,n_threads),zeros(input_type,n_turbines,n_turbines,n_threads),
-                    zeros(input_type,n_turbines,n_turbines,n_threads),zeros(input_type,n_turbines,n_turbines,n_threads))
+    preallocations = create_preallocations(turbine_x, turbine_y, turbine_yaw, rotor_diameter, hub_height, wind_farm_constants.wind_resource, wind_farm_constants.model_set)
 
     return wind_farm_struct(turbine_x, turbine_y, hub_height, turbine_yaw, rotor_diameter, results,
-                wind_farm_constants, AEP_scale, ideal_AEP, preallocations, update_function, AEP_gradient, AEP, cfg, force_single_thread)
+                wind_farm_constants, AEP_scale, ideal_AEP, preallocations, update_function, AEP_gradient, AEP, cfg)
+end
+
+function create_preallocations(turbine_x, turbine_y, turbine_yaw, rotor_diameter, hub_height, wind_resource, model_set)
+    n_turbines = length(turbine_x)
+    n_threads = Threads.nthreads()
+    n_states = determine_number_of_states(wind_resource, model_set)
+    T = promote_type(eltype(turbine_x),eltype(turbine_y),eltype(turbine_yaw),eltype(rotor_diameter),eltype(hub_height))
+    return preallocations_struct(zeros(T,n_turbines,n_threads),zeros(T,n_turbines,n_threads),
+                    zeros(T,n_turbines,n_threads),zeros(T,n_turbines,n_threads),zeros(T,n_turbines,
+                    n_turbines,n_threads),zeros(T,n_turbines,n_turbines,n_threads),
+                    zeros(T,n_turbines,n_turbines,n_threads),zeros(T,n_turbines,n_turbines,n_threads),
+                    zeros(T,n_turbines,n_threads),zeros(T,n_turbines,n_threads),
+                    zeros(T,n_turbines,n_threads),
+                    zeros(Int,n_turbines,n_threads),
+                    zeros(T,n_turbines,n_threads),
+                    zeros(T,n_turbines,n_threads),
+                    zeros(T,n_turbines,n_threads),
+                    zeros(T,n_states))
+end
+
+function determine_number_of_states(wind_resource, model_set)
+    if typeof(model_set.wake_combination_model) == SumOfSquaresFreestreamSuperposition
+        # find unique directions
+        unique_directions = unique(wind_resource.wind_directions)
+
+        # find how many unique directions there are
+        return length(unique_directions)
+    else
+        return length(wind_resource.wind_directions)
+    end
 end
 
 """
@@ -171,6 +194,21 @@ function calculate_aep!(farm,x)
 - `farm`: The wind_farm_struct
 - `x`: Vector containing the design variables
 """
+function calculate_aep!(farm,x::Array{ForwardDiff.Dual{T,V,N}}) where {T,V,N}
+    farm.update_function(farm,x)
+
+    AEP = calculate_aep(farm.turbine_x, farm.turbine_y, farm.constants.turbine_z, farm.rotor_diameter,
+                farm.hub_height, farm.turbine_yaw, farm.constants.ct_models, farm.constants.generator_efficiency,
+                farm.constants.cut_in_speed, farm.constants.cut_out_speed, farm.constants.rated_speed,
+                farm.constants.rated_power, farm.constants.wind_resource, farm.constants.power_models,
+                farm.constants.model_set,rotor_sample_points_y=farm.constants.rotor_sample_points_y,
+                rotor_sample_points_z=farm.constants.rotor_sample_points_z,
+                preallocations = farm.preallocations
+                ) .* farm.AEP_scale
+
+    return AEP
+end
+
 function calculate_aep!(farm,x)
     farm.update_function(farm,x)
 
@@ -180,16 +218,10 @@ function calculate_aep!(farm,x)
                 farm.constants.rated_power, farm.constants.wind_resource, farm.constants.power_models,
                 farm.constants.model_set,rotor_sample_points_y=farm.constants.rotor_sample_points_y,
                 rotor_sample_points_z=farm.constants.rotor_sample_points_z,
-                prealloc_turbine_velocities=farm.preallocations.prealloc_turbine_velocities,
-                prealloc_turbine_ct=farm.preallocations.prealloc_turbine_ct,
-                prealloc_turbine_ai=farm.preallocations.prealloc_turbine_ai,
-                prealloc_turbine_local_ti=farm.preallocations.prealloc_turbine_local_ti,
-                prealloc_wake_deficits=farm.preallocations.prealloc_wake_deficits,
-                prealloc_contribution_matrix=farm.preallocations.prealloc_contribution_matrix,
-                prealloc_deflections=farm.preallocations.prealloc_deflections,
-                prealloc_sigma_squared=farm.preallocations.prealloc_sigma_squared,
-                force_single_thread=farm.force_single_thread
+                preallocations = farm.preallocations
                 ) .* farm.AEP_scale
+
+    farm.AEP[1] = AEP
 
     return AEP
 end
@@ -208,20 +240,6 @@ function calculate_aep_gradient!(farm,x)
     ForwardDiff.gradient!(farm.results,calculate_aep,x,farm.config)
     farm.AEP .= DiffResults.value(farm.results)
     farm.AEP_gradient .= DiffResults.gradient(farm.results)
-    return farm.AEP[1], farm.AEP_gradient
-end
-
-"""
-calculate_aep_gradient!(farm,x,sparse_struct::T)
-
-function to calculate the AEP and its gradient for the wind farm using sparse methods
-
-# Arguments
-- `farm`: The wind_farm_struct
-- `x`: Vector containing the design variables
-"""
-function calculate_aep_gradient!(farm,x,sparse_struct::T) where T <: AbstractSparseMethod
-    calculate_aep_gradient!(farm,x,sparse_struct)
     return farm.AEP[1], farm.AEP_gradient
 end
 

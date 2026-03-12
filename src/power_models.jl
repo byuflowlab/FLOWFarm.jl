@@ -336,14 +336,13 @@ Calculate the power for all wind turbines for a given state
 """
 function turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed,
     rated_speed, rated_power, rotor_diameter, turbine_inflow_velcities, turbine_yaw, air_density,
-    power_models; jac=nothing)
+    power_models; jac=nothing,
+    arr_type = promote_type(eltype(generator_efficiency),eltype(cut_in_speed),eltype(cut_out_speed),eltype(rated_speed),
+                            eltype(rated_power),eltype(rotor_diameter),eltype(turbine_inflow_velcities),eltype(turbine_yaw)),
+    wt_power=zeros(arr_type, length(turbine_inflow_velcities)))
 
     # get number of turbines and rotor sample point
     nturbines = length(turbine_inflow_velcities)
-
-    arr_type = promote_type(typeof(generator_efficiency[1]),typeof(cut_in_speed[1]),typeof(cut_out_speed[1]),typeof(rated_speed[1]),
-                            typeof(rated_power[1]),typeof(rotor_diameter[1]),typeof(turbine_inflow_velcities[1]),typeof(turbine_yaw[1]))
-    wt_power = zeros(arr_type, nturbines)
 
     if jac === nothing
         for d=1:nturbines
@@ -414,9 +413,9 @@ function calculate_state_turbine_powers(turbine_x, turbine_y, turbine_z, rotor_d
 
         sorted_turbine_index = sortperm(rot_x)
 
-        turbine_velocities = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+        turbine_velocities = turbine_velocities_one_direction_vel(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
                             sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                            model_set, wind_farm_state_id=i, velocity_only=true)
+                            model_set, wind_farm_state_id=i)
 
         wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                             rated_power, rotor_diameter, turbine_velocities, turbine_yaw, wind_resource.air_density, power_models)
@@ -482,10 +481,6 @@ function calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
     arr_type = promote_type(typeof(turbine_x[1]),typeof(turbine_y[1]),typeof(turbine_z[1]),typeof(rotor_diameter[1]),
                             typeof(hub_height[1]),typeof(turbine_yaw[1]))
     n_turbines = length(turbine_x)
-    prealloc_turbine_velocities = zeros(arr_type, n_turbines)
-    prealloc_turbine_ct = zeros(arr_type, n_turbines)
-    prealloc_turbine_ai = zeros(arr_type, n_turbines)
-    prealloc_turbine_local_ti = zeros(arr_type, n_turbines)
 
     # loop over all states
     for i = 1:nstates
@@ -493,8 +488,7 @@ function calculate_state_aeps(turbine_x, turbine_y, turbine_z, rotor_diameter,
         state_energy[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
             turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
             rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-            model_set; wind_farm_state_id=i, hours_per_year=hours_per_year, weighted=weighted, prealloc_turbine_velocities=prealloc_turbine_velocities,
-            prealloc_turbine_ct=prealloc_turbine_ct, prealloc_turbine_ai=prealloc_turbine_ai, prealloc_turbine_local_ti=prealloc_turbine_local_ti)
+            model_set; wind_farm_state_id=i, hours_per_year=hours_per_year, weighted=weighted)
 
     end
 
@@ -504,27 +498,42 @@ end
 function calculate_state_aep(turbine_x::T0, turbine_y::T1, turbine_z::T2, rotor_diameter::T3, hub_height::T4,
     turbine_yaw::T5, ct_model::Vector{<:AbstractThrustCoefficientModel}, generator_efficiency::Vector{T6}, cut_in_speed::Vector{T6}, cut_out_speed::Vector{T6}, rated_speed::Vector{T6},
     rated_power::Vector{T6}, power_models::Vector{<:AbstractPowerModel}, rotor_sample_points_y::Vector{T6}, rotor_sample_points_z::Vector{T6}, wind_resource,
-    model_set; wind_farm_state_id=1, hours_per_year=365.25*24.0, weighted=true, wind_speed_ids=nothing, prealloc_turbine_velocities=nothing,
-    prealloc_turbine_ct=nothing, prealloc_turbine_ai=nothing, prealloc_turbine_local_ti=nothing, prealloc_wake_deficits=nothing, prealloc_contribution_matrix=nothing,
-    prealloc_deflections=nothing, prealloc_sigma_squared=nothing) where {T0, T1, T2, T3, T4, T5, T6}
+    model_set; wind_farm_state_id=1, hours_per_year=365.25*24.0, weighted=true, wind_speed_ids=nothing, 
+    n_turbines=length(turbine_x),
+    arr_type = promote_type(eltype(turbine_x),eltype(turbine_y),eltype(turbine_z),eltype(rotor_diameter),
+                            eltype(hub_height),eltype(turbine_yaw)),
+    prealloc_turbine_velocities::AbstractArray=zeros(arr_type, n_turbines),
+    prealloc_turbine_ct=zeros(arr_type, n_turbines), 
+    prealloc_turbine_ai=zeros(arr_type, n_turbines), 
+    prealloc_turbine_local_ti=zeros(arr_type, n_turbines), 
+    prealloc_wake_deficits=zeros(arr_type, n_turbines, n_turbines),
+    prealloc_contribution_matrix=zeros(arr_type, n_turbines, n_turbines),
+    prealloc_deflections=zeros(arr_type, n_turbines, n_turbines),
+    prealloc_sigma_squared=zeros(arr_type, n_turbines, n_turbines),
+    prealloc_rot_x=zeros(arr_type, n_turbines),
+    prealloc_rot_y=zeros(arr_type, n_turbines),
+    prealloc_power=zeros(arr_type, n_turbines),
+    prealloc_sort_index=zeros(Int, n_turbines),
+    ) where {T0, T1, T2, T3, T4, T5, T6}
 
     # rotate turbine locations to match the direction of the current state
-    rot_x, rot_y = rotate_to_wind_direction(turbine_x, turbine_y, wind_resource.wind_directions[wind_farm_state_id])
+    rot_x, rot_y = rotate_to_wind_direction!(prealloc_rot_x, prealloc_rot_y, turbine_x, turbine_y, wind_resource.wind_directions[wind_farm_state_id])
 
     # get turbine indices in sorted order from upstream to downstream
-    sorted_turbine_index = sortperm(rot_x)
+    sortperm!(prealloc_sort_index, rot_x)
 
-    if wind_speed_ids === nothing
+    if isnothing(wind_speed_ids) # wind_farm_state_id carries all wind speed and direction information
         # calculate wind turbine velocities for given state
-        prealloc_turbine_velocities = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
-                            sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+        prealloc_turbine_velocities = turbine_velocities_one_direction_vel(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+                            prealloc_sort_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                             model_set; turbine_velocities=prealloc_turbine_velocities, turbine_ct=prealloc_turbine_ct, turbine_ai=prealloc_turbine_ai, turbine_local_ti=prealloc_turbine_local_ti,
-                            wind_farm_state_id=wind_farm_state_id, velocity_only=true, wake_deficits=prealloc_wake_deficits,
+                            wind_farm_state_id=wind_farm_state_id, wake_deficits=prealloc_wake_deficits,
                             contribution_matrix=prealloc_contribution_matrix,deflections=prealloc_deflections,sigma_squared=prealloc_sigma_squared)
 
         # calculate wind turbine powers for given state
         wt_power = turbine_powers_one_direction(generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
-                            rated_power, rotor_diameter, prealloc_turbine_velocities, turbine_yaw, wind_resource.air_density, power_models)
+                            rated_power, rotor_diameter, prealloc_turbine_velocities, turbine_yaw, wind_resource.air_density, power_models;
+                            wt_power=prealloc_power)
 
         # calculate wind farm power for given state
         state_power = sum(wt_power)
@@ -535,10 +544,10 @@ function calculate_state_aep(turbine_x::T0, turbine_y::T1, turbine_z::T2, rotor_
     else # wind_farm_state_id carries the wind direction and wind speed information
 
         # calculate wind turbine velocities for given direction and moderate speed
-        prealloc_turbine_velocities = turbine_velocities_one_direction(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
-                            sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+        prealloc_turbine_velocities = turbine_velocities_one_direction_vel(rot_x, rot_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+                            prealloc_sort_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                             model_set; turbine_velocities=prealloc_turbine_velocities, turbine_ct=prealloc_turbine_ct, turbine_ai=prealloc_turbine_ai, turbine_local_ti=prealloc_turbine_local_ti,
-                            wind_farm_state_id=wind_farm_state_id, velocity_only=true, wake_deficits=prealloc_wake_deficits,
+                            wind_farm_state_id=wind_farm_state_id, wake_deficits=prealloc_wake_deficits,
                             contribution_matrix=prealloc_contribution_matrix,deflections=prealloc_deflections,sigma_squared=prealloc_sigma_squared)
 
         # back out turbine deficits from the turbine velocities
@@ -622,10 +631,11 @@ Calculate wind farm AEP
 function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
             hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
             cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set::AbstractModelSet;
-            rotor_sample_points_y=[0.0], rotor_sample_points_z=[0.0], hours_per_year=365.25*24.0, prealloc_turbine_velocities=nothing,
-            prealloc_turbine_ct=nothing, prealloc_turbine_ai=nothing, prealloc_turbine_local_ti=nothing, prealloc_wake_deficits=nothing,
-            prealloc_contribution_matrix=nothing, prealloc_deflections=nothing, prealloc_sigma_squared=nothing,
-            force_single_thread=false)
+            rotor_sample_points_y::AbstractVector{<:Real}=Float64[0.0], 
+            rotor_sample_points_z::AbstractVector{<:Real}=Float64[0.0], 
+            hours_per_year::Float64=365.25*24.0, 
+            preallocations::preallocations_struct=create_preallocations(turbine_x, turbine_y, turbine_z, 
+                        rotor_diameter, hub_height, wind_resource, model_set))
 
     # find how many wind states are being calculated
     nstates = length(wind_resource.wind_directions)
@@ -652,145 +662,110 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
 
     AEP = arr_type(0.0)
 
-    # calculate AEP in parallel using multi-threading
-    if Threads.nthreads() > 1 && !reverse_diff && !force_single_thread
-        n_threads = Threads.nthreads()
-        if prealloc_turbine_velocities === nothing
-            prealloc_turbine_velocities = zeros(arr_type,n_turbines,n_threads)
-        end
-        if prealloc_turbine_ct === nothing
-            prealloc_turbine_ct = zeros(arr_type,n_turbines,n_threads)
-        end
-        if prealloc_turbine_ai === nothing
-            prealloc_turbine_ai = zeros(arr_type,n_turbines,n_threads)
-        end
-        if prealloc_turbine_local_ti === nothing
-            prealloc_turbine_local_ti = zeros(arr_type,n_turbines,n_threads)
-        end
-        if prealloc_wake_deficits === nothing
-            prealloc_wake_deficits = zeros(arr_type,n_turbines,n_turbines,n_threads)
-        end
-        if prealloc_contribution_matrix === nothing
-            prealloc_contribution_matrix = zeros(arr_type,n_turbines,n_turbines,n_threads)
-        end
-        if prealloc_deflections === nothing
-            prealloc_deflections = zeros(arr_type,n_turbines,n_turbines,n_threads)
-        end
-        if prealloc_sigma_squared === nothing
-            prealloc_sigma_squared = zeros(arr_type,n_turbines,n_turbines,n_threads)
-        end
+    n_threads = Threads.nthreads()
+    prealloc_turbine_velocities = preallocations.prealloc_turbine_velocities
+    prealloc_turbine_ct = preallocations.prealloc_turbine_ct
+    prealloc_turbine_ai = preallocations.prealloc_turbine_ai
+    prealloc_turbine_local_ti = preallocations.prealloc_turbine_local_ti
+    prealloc_wake_deficits = preallocations.prealloc_wake_deficits
+    prealloc_contribution_matrix = preallocations.prealloc_contribution_matrix
+    prealloc_deflections = preallocations.prealloc_deflections
+    prealloc_sigma_squared = preallocations.prealloc_sigma_squared
+    prealloc_rot_x = preallocations.prealloc_rot_x
+    prealloc_rot_y = preallocations.prealloc_rot_y
+    prealloc_power = preallocations.prealloc_power
+    prealloc_sort_index = preallocations.prealloc_sort_index
+    state_aep = preallocations.prealloc_state_aep
+    state_aep .= 0.0
 
+    # calculate AEP in parallel using multi-threading
+    if n_threads > 1 && !reverse_diff
         if typeof(model_set.wake_combination_model) == SumOfSquaresFreestreamSuperposition
-            state_aep = zeros(arr_type,ndirections)
+            # state_aep = zeros(arr_type,ndirections)
 
             n_per_thread, rem = divrem(ndirections,n_threads)
             rem > 0 && (n_per_thread += 1)
             assignments = 1:n_per_thread:ndirections
 
-            Threads.@threads for i_assignment in eachindex(assignments)
-
-                i_start = assignments[i_assignment]
-                i_stop = min(i_start+n_per_thread-1, ndirections)
-
-                for i = i_start:i_stop
-                    # get indices to all speeds corresponding to this unique direction
-                    wind_speed_ids = findall(wind_resource.wind_directions .== unique_directions[i])
-
-                    # take a speed in the middle (so it is not zero)
-                    middle_id = wind_speed_ids[max(cld(length(wind_speed_ids),2),1)]
-
-                    # get direction aep including all wind speeds for that direction
-                    state_aep[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
-                        turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
-                        rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                        model_set; wind_farm_state_id=middle_id, hours_per_year=hours_per_year, wind_speed_ids=wind_speed_ids,
-                        prealloc_turbine_velocities=view(prealloc_turbine_velocities,:,i_assignment), prealloc_turbine_ct=view(prealloc_turbine_ct,:,i_assignment),
-                        prealloc_turbine_ai=view(prealloc_turbine_ai,:,i_assignment), prealloc_turbine_local_ti=view(prealloc_turbine_local_ti,:,i_assignment),
-                        prealloc_wake_deficits=view(prealloc_wake_deficits,:,:,i_assignment), prealloc_contribution_matrix=view(prealloc_contribution_matrix,:,:,i_assignment),
-                        prealloc_deflections=view(prealloc_deflections,:,:,i_assignment), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,i_assignment))
-                end
-            end
+            calculate_AEP_Threaded_SumofSquares(state_aep, assignments, n_per_thread, ndirections,
+                turbine_x, turbine_y, turbine_z, rotor_diameter,
+                hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+                cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set,
+                hours_per_year,
+                prealloc_turbine_velocities,
+                prealloc_turbine_ct,
+                prealloc_turbine_ai,
+                prealloc_turbine_local_ti,
+                prealloc_wake_deficits,
+                prealloc_contribution_matrix,
+                prealloc_deflections,
+                prealloc_sigma_squared,
+                prealloc_rot_x,
+                prealloc_rot_y,
+                prealloc_power,
+                prealloc_sort_index,
+                rotor_sample_points_y,
+                rotor_sample_points_z,
+                unique_directions)
         else
-            state_aep = zeros(arr_type,nstates)
+            # state_aep = zeros(arr_type,nstates)
             n_per_thread, rem = divrem(nstates,n_threads)
-            rem > 0 && (n_per_thread += 1)
-            assignments = 1:n_per_thread:nstates
+            n = n_per_thread + (rem > 0)
+            assignments = 1:n:nstates
 
-            Threads.@threads for i_assignment in eachindex(assignments)
-
-                i_start = assignments[i_assignment]
-                i_stop = min(i_start+n_per_thread-1, nstates)
-
-                for i = i_start:i_stop
-
-                    state_aep[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
-                        turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
-                        rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                        model_set; wind_farm_state_id=i, hours_per_year=hours_per_year,
-                        prealloc_turbine_velocities=view(prealloc_turbine_velocities,:,i_assignment), prealloc_turbine_ct=view(prealloc_turbine_ct,:,i_assignment),
-                        prealloc_turbine_ai=view(prealloc_turbine_ai,:,i_assignment), prealloc_turbine_local_ti=view(prealloc_turbine_local_ti,:,i_assignment),
-                        prealloc_wake_deficits=view(prealloc_wake_deficits,:,:,i_assignment), prealloc_contribution_matrix=view(prealloc_contribution_matrix,:,:,i_assignment),
-                        prealloc_deflections=view(prealloc_deflections,:,:,i_assignment), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,i_assignment))
-                end
-            end
+            calculate_AEP_Threaded(state_aep, assignments, n, nstates,
+                turbine_x, turbine_y, turbine_z, rotor_diameter,
+                hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+                cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set,
+                hours_per_year,
+                prealloc_turbine_velocities,
+                prealloc_turbine_ct,
+                prealloc_turbine_ai,
+                prealloc_turbine_local_ti,
+                prealloc_wake_deficits,
+                prealloc_contribution_matrix,
+                prealloc_deflections,
+                prealloc_sigma_squared,
+                prealloc_rot_x,
+                prealloc_rot_y,
+                prealloc_power,
+                prealloc_sort_index,
+                rotor_sample_points_y,
+                rotor_sample_points_z)
         end
-
         AEP = sum(state_aep)
 
     # calculate AEP using distributed processing
-    elseif Distributed.nworkers() > 1 && !reverse_diff && !force_single_thread
-        # if possible, avoid recalculating wakes for more than one speed in each direction
-        if typeof(model_set.wake_combination_model) == SumOfSquaresFreestreamSuperposition
-            state_aep = zeros(arr_type,ndirections)
-            AEP = @sync @distributed (+) for i = 1:ndirections
+    # elseif Distributed.nworkers() > 1 && !reverse_diff
+    #     # if possible, avoid recalculating wakes for more than one speed in each direction
+    #     if typeof(model_set.wake_combination_model) == SumOfSquaresFreestreamSuperposition
+    #         state_aep = zeros(arr_type,ndirections)
+    #         AEP = @sync @distributed (+) for i = 1:ndirections
 
-                # get indices to all speeds corresponding to this unique direction
-                wind_speed_ids = findall(wind_resource.wind_directions .== unique_directions[i])
+    #             # get indices to all speeds corresponding to this unique direction
+    #             wind_speed_ids = findall(wind_resource.wind_directions .== unique_directions[i])
 
-                # take a speed in the middle (so it is not zero)
-                middle_id = wind_speed_ids[max(cld(length(wind_speed_ids),2),1)]
+    #             # take a speed in the middle (so it is not zero)
+    #             middle_id = wind_speed_ids[max(cld(length(wind_speed_ids),2),1)]
 
-                # get direction aep including all wind speeds for that direction
-                calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
-                    turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
-                    rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                    model_set; wind_farm_state_id=middle_id, hours_per_year=hours_per_year, wind_speed_ids=wind_speed_ids)
-            end
-        else
-            AEP = @sync @distributed (+) for i = 1:nstates
+    #             # get direction aep including all wind speeds for that direction
+    #             calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
+    #                 turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
+    #                 rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+    #                 model_set; wind_farm_state_id=middle_id, hours_per_year=hours_per_year, wind_speed_ids=wind_speed_ids)
+    #         end
+    #     else
+    #         AEP = @sync @distributed (+) for i = 1:nstates
 
-                calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
-                    turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
-                    rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
-                    model_set; wind_farm_state_id=i, hours_per_year=hours_per_year)
-            end
-        end
+    #             calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
+    #                 turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
+    #                 rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+    #                 model_set; wind_farm_state_id=i, hours_per_year=hours_per_year)
+    #         end
+    #     end
+    # calculate AEP using a single thread
     else
-        state_aep = arr_type(0.0)
-        if prealloc_turbine_velocities === nothing
-            prealloc_turbine_velocities = zeros(arr_type, n_turbines)
-        end
-        if prealloc_turbine_ct === nothing
-            prealloc_turbine_ct = zeros(arr_type, n_turbines)
-        end
-        if prealloc_turbine_ai === nothing
-            prealloc_turbine_ai = zeros(arr_type, n_turbines)
-        end
-        if prealloc_turbine_local_ti === nothing
-            prealloc_turbine_local_ti = zeros(arr_type, n_turbines)
-        end
-        if prealloc_wake_deficits === nothing
-            prealloc_wake_deficits = zeros(arr_type,n_turbines,n_turbines)
-        end
-        if prealloc_contribution_matrix === nothing
-            prealloc_contribution_matrix = zeros(arr_type,n_turbines,n_turbines)
-        end
-        if prealloc_deflections === nothing
-            prealloc_deflections = zeros(arr_type,n_turbines,n_turbines)
-        end
-        if prealloc_sigma_squared === nothing
-            prealloc_sigma_squared = zeros(arr_type,n_turbines,n_turbines)
-        end
+        # state_aep = arr_type(0.0)
         if typeof(model_set.wake_combination_model) == SumOfSquaresFreestreamSuperposition
             for i = 1:ndirections
                 # get indices to all speeds corresponding to this unique direction
@@ -800,32 +775,125 @@ function calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
                 middle_id = wind_speed_ids[max(cld(length(wind_speed_ids),2),1)]
 
                 # get direction aep including all wind speeds for that direction
-                state_aep += calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
+                state_aep[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
                     turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                     rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set; wind_farm_state_id=middle_id, hours_per_year=hours_per_year, wind_speed_ids=wind_speed_ids,
                     prealloc_turbine_velocities=view(prealloc_turbine_velocities,:,1), prealloc_turbine_ct=view(prealloc_turbine_ct,:,1),
                     prealloc_turbine_ai=view(prealloc_turbine_ai,:,1), prealloc_turbine_local_ti=view(prealloc_turbine_local_ti,:,1),
                     prealloc_wake_deficits=view(prealloc_wake_deficits,:,:,1), prealloc_contribution_matrix=view(prealloc_contribution_matrix,:,:,1),
-                    prealloc_deflections=view(prealloc_deflections,:,:,1), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,1))
+                    prealloc_deflections=view(prealloc_deflections,:,:,1), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,1),
+                    prealloc_rot_x=view(prealloc_rot_x,:,1), prealloc_rot_y=view(prealloc_rot_y,:,1),
+                    prealloc_power=view(prealloc_power,:,1), prealloc_sort_index=view(prealloc_sort_index,:,1))
             end
         else
             for i = 1:nstates
-                state_aep += calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
+                state_aep[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
                     turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
                     rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
                     model_set; wind_farm_state_id=i, hours_per_year=hours_per_year,
                     prealloc_turbine_velocities=view(prealloc_turbine_velocities,:,1), prealloc_turbine_ct=view(prealloc_turbine_ct,:,1),
                     prealloc_turbine_ai=view(prealloc_turbine_ai,:,1), prealloc_turbine_local_ti=view(prealloc_turbine_local_ti,:,1),
                     prealloc_wake_deficits=view(prealloc_wake_deficits,:,:,1), prealloc_contribution_matrix=view(prealloc_contribution_matrix,:,:,1),
-                    prealloc_deflections=view(prealloc_deflections,:,:,1), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,1))
+                    prealloc_deflections=view(prealloc_deflections,:,:,1), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,1),
+                    prealloc_rot_x=view(prealloc_rot_x,:,1), prealloc_rot_y=view(prealloc_rot_y,:,1),
+                    prealloc_power=view(prealloc_power,:,1), prealloc_sort_index=view(prealloc_sort_index,:,1))
             end
         end
 
-        AEP = state_aep
+        AEP = sum(state_aep)
     end
 
     return AEP
+end
+
+function calculate_AEP_Threaded(state_aep, assignments, n, nstates,
+    turbine_x, turbine_y, turbine_z, rotor_diameter,
+    hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+    cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set,
+    hours_per_year,
+    prealloc_turbine_velocities,
+    prealloc_turbine_ct,
+    prealloc_turbine_ai,
+    prealloc_turbine_local_ti,
+    prealloc_wake_deficits,
+    prealloc_contribution_matrix,
+    prealloc_deflections,
+    prealloc_sigma_squared,
+    prealloc_rot_x,
+    prealloc_rot_y,
+    prealloc_power,
+    prealloc_sort_index,
+    rotor_sample_points_y,
+    rotor_sample_points_z)
+
+    Threads.@threads for i_assignment in eachindex(assignments)
+
+        i_start = assignments[i_assignment]
+        i_stop = min(i_start+n-1, nstates)
+
+        for i = i_start:i_stop
+
+            state_aep[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
+                turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
+                rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+                model_set; wind_farm_state_id=i, hours_per_year=hours_per_year,
+                prealloc_turbine_velocities=view(prealloc_turbine_velocities,:,i_assignment), prealloc_turbine_ct=view(prealloc_turbine_ct,:,i_assignment),
+                prealloc_turbine_ai=view(prealloc_turbine_ai,:,i_assignment), prealloc_turbine_local_ti=view(prealloc_turbine_local_ti,:,i_assignment),
+                prealloc_wake_deficits=view(prealloc_wake_deficits,:,:,i_assignment), prealloc_contribution_matrix=view(prealloc_contribution_matrix,:,:,i_assignment),
+                prealloc_deflections=view(prealloc_deflections,:,:,i_assignment), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,i_assignment),
+                prealloc_rot_x=view(prealloc_rot_x,:,i_assignment), prealloc_rot_y=view(prealloc_rot_y,:,i_assignment),
+                prealloc_power=view(prealloc_power,:,i_assignment), prealloc_sort_index=view(prealloc_sort_index,:,i_assignment))
+        end
+    end
+end
+
+function calculate_AEP_Threaded_SumofSquares(state_aep, assignments, n_per_thread, ndirections,
+    turbine_x, turbine_y, turbine_z, rotor_diameter,
+    hub_height, turbine_yaw, ct_model, generator_efficiency, cut_in_speed,
+    cut_out_speed, rated_speed, rated_power, wind_resource, power_models, model_set,
+    hours_per_year,
+    prealloc_turbine_velocities,
+    prealloc_turbine_ct,
+    prealloc_turbine_ai,
+    prealloc_turbine_local_ti,
+    prealloc_wake_deficits,
+    prealloc_contribution_matrix,
+    prealloc_deflections,
+    prealloc_sigma_squared,
+    prealloc_rot_x,
+    prealloc_rot_y,
+    prealloc_power,
+    prealloc_sort_index,
+    rotor_sample_points_y,
+    rotor_sample_points_z,
+    unique_directions)
+
+    Threads.@threads for i_assignment in eachindex(assignments)
+
+        i_start = assignments[i_assignment]
+        i_stop = min(i_start+n_per_thread-1, ndirections)
+
+        for i = i_start:i_stop
+            # get indices to all speeds corresponding to this unique direction
+            wind_speed_ids = findall(wind_resource.wind_directions .== unique_directions[i])
+
+            # take a speed in the middle (so it is not zero)
+            middle_id = wind_speed_ids[max(cld(length(wind_speed_ids),2),1)]
+
+            # get direction aep including all wind speeds for that direction
+            state_aep[i] = calculate_state_aep(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
+                turbine_yaw, ct_model, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
+                rated_power, power_models, rotor_sample_points_y, rotor_sample_points_z, wind_resource,
+                model_set; wind_farm_state_id=middle_id, hours_per_year=hours_per_year, wind_speed_ids=wind_speed_ids,
+                prealloc_turbine_velocities=view(prealloc_turbine_velocities,:,i_assignment), prealloc_turbine_ct=view(prealloc_turbine_ct,:,i_assignment),
+                prealloc_turbine_ai=view(prealloc_turbine_ai,:,i_assignment), prealloc_turbine_local_ti=view(prealloc_turbine_local_ti,:,i_assignment),
+                prealloc_wake_deficits=view(prealloc_wake_deficits,:,:,i_assignment), prealloc_contribution_matrix=view(prealloc_contribution_matrix,:,:,i_assignment),
+                prealloc_deflections=view(prealloc_deflections,:,:,i_assignment), prealloc_sigma_squared=view(prealloc_sigma_squared,:,:,i_assignment),
+                prealloc_rot_x=view(prealloc_rot_x,:,i_assignment), prealloc_rot_y=view(prealloc_rot_y,:,i_assignment),
+                prealloc_power=view(prealloc_power,:,i_assignment), prealloc_sort_index=view(prealloc_sort_index,:,i_assignment))
+        end
+    end
 end
 
 """

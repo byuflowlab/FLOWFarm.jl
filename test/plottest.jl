@@ -22,7 +22,7 @@ function plot_velocity_row_deficit()
     include("./model_sets/model_set_2.jl")
 
     # calculate wind turbine velocities and corresponding aerodynamic operational states
-    turbine_inflow_velcities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+    turbine_inflow_velcities, turbine_ct, turbine_ai, turbine_local_ti = ff.turbine_velocities_one_direction_full(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
     sorted_turbine_index, ct_model, rotor_sample_points_y, rotor_sample_points_z, windresource,
     model_set, wind_farm_state_id=1)
 
