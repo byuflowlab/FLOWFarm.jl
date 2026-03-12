@@ -48,7 +48,6 @@ function build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbi
             AEP_scale=0.0,input_type=nothing,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false)
 
     n_turbines = length(turbine_x)
-    n_threads = Threads.nthreads()
     results = DiffResults.GradientResult(x)
     AEP_gradient = zeros(eltype(x),length(x))
     AEP = Array{eltype(x),0}(undef)
