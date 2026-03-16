@@ -50,14 +50,8 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
       - name: Install docs dependencies
         run: julia --project=docs -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
-      - name: Run doctests
-        run: |
-          julia --project=docs -e '
-            using Documenter: DocMeta, doctest
-            using FLOWFarm
-            DocMeta.setdocmeta!(FLOWFarm, :DocTestSetup, :(using FLOWFarm); recursive=true)
-            doctest(FLOWFarm)'
-      - uses: julia-actions/julia-docdeploy@v1
+      - name: Build and deploy docs
+        run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
