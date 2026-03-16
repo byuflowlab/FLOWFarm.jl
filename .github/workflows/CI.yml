@@ -48,7 +48,10 @@ jobs:
           version: '1.11'
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
-      - run: |
+      - name: Install docs dependencies
+        run: julia --project=docs -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+      - name: Run doctests
+        run: |
           julia --project=docs -e '
             using Documenter: DocMeta, doctest
             using FLOWFarm
