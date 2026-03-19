@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Optimization Tutorial · FLOWFarm.jl</title><meta name="title" content="Optimization Tutorial · FLOWFarm.jl"/><meta property="og:title" content="Optimization Tutorial · FLOWFarm.jl"/><meta property="twitter:title" content="Optimization Tutorial · FLOWFarm.jl"/><meta name="description" content="Documentation for FLOWFarm.jl."/><meta property="og:description" content="Documentation for FLOWFarm.jl."/><meta property="twitter:description" content="Documentation for FLOWFarm.jl."/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">FLOWFarm.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Intro</a></li><li><a class="tocitem" href="../Tutorial/">Quick Start</a></li><li class="is-active"><a class="tocitem" href>Optimization Tutorial</a><ul class="internal"><li><a class="tocitem" href="#Run-the-optimization"><span>Run the optimization</span></a></li></ul></li><li><a class="tocitem" href="../WindFarmStruct/">Wind Farm Struct and Sparsity</a></li><li><a class="tocitem" href="../How_to/">How-to Guide</a></li><li><a class="tocitem" href="../Explanation/">Theory</a></li><li><a class="tocitem" href="../Reference/">Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Optimization Tutorial</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Optimization Tutorial</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/byuflowlab/FLOWFarm.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/byuflowlab/FLOWFarm.jl/blob/master/docs/src/Optimization_Tutorial.md#L" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Setting-up-and-running-an-optimization"><a class="docs-heading-anchor" href="#Setting-up-and-running-an-optimization">Setting up and running an optimization</a><a id="Setting-up-and-running-an-optimization-1"></a><a class="docs-heading-anchor-permalink" href="#Setting-up-and-running-an-optimization" title="Permalink"></a></h1><p><strong>Note: First Complete the Quick Start</strong></p><p><code>FLOWFarm</code> is specifically designed for efficient optimization using gradient-based optimization methods. Besides the steps outlined in the <a href="../Tutorial/">Quick Start</a>, we need to define the following before we can run  an optimization:</p><ul><li>(1) Optimization related variables</li><li>(2) A container for non-differentiated parameters</li><li>(3) Objective and constraint function(s) </li><li>(4) Optimization tool specific items</li></ul><p>In this tutorial we demonstrate optimizing using the IPOPT algorithms via SNOW.jl for simplicity.</p><pre><code class="language-julia hljs">using SNOW</code></pre><p>First, set up optimization related variables. We will have two constraints, one to keep  turbines from getting too close to each other (spacing), and the other to keep turbines  inside the desired area (boundary). <code>FLOWFarm</code> provides several different ways of handling  boundary constraints, including concave boundaries. However, for this tutorial we will use  a simple circular boundary.</p><h3 id="(1)-Optimization-related-variables"><a class="docs-heading-anchor" href="#(1)-Optimization-related-variables">(1) Optimization related variables</a><a id="(1)-Optimization-related-variables-1"></a><a class="docs-heading-anchor-permalink" href="#(1)-Optimization-related-variables" title="Permalink"></a></h3><pre><code class="language-julia hljs"># scale objective derivatives to be between 0 and 1
+objectivescale = 1E-6
+
+# scale boundary constraint derivatives to be between 0 and 1
+constraintscaleboundary = 1.0E-3
+
+# scale spacing constraint derivatives to be between 0 and 1
+constraintscalespacing = 1.0
+
+# set the minimum spacing between turbines
+minimumspacing = 160.0
+nothing</code></pre><h3 id="(2)-A-container-for-non-differentiated-parameters"><a class="docs-heading-anchor" href="#(2)-A-container-for-non-differentiated-parameters">(2) A container for non-differentiated parameters</a><a id="(2)-A-container-for-non-differentiated-parameters-1"></a><a class="docs-heading-anchor-permalink" href="#(2)-A-container-for-non-differentiated-parameters" title="Permalink"></a></h3><pre><code class="language-julia hljs"># set up a struct for use in optimization functions
+mutable struct params_struct{}
+    modelset
+    rotorsamplepointsy
+    rotorsamplepointsz
+    turbinez
+    ambientti
+    rotordiameter
+    boundarycenter
+    boundaryradius
+    objectivescale
+    constraintscaleboundary
+    constraintscalespacing
+    minimumspacing
+    hubheight
+    turbineyaw
+    ctmodels
+    generatorefficiency
+    cutinspeed
+    cutoutspeed
+    ratedspeed
+    ratedpower
+    windresource
+    powermodels
+end
+
+params = params_struct(modelset, rotorsamplepointsy, rotorsamplepointsz, turbinez, ambientti,
+    rotordiameter, boundarycenter, boundaryradius, objectivescale, constraintscaleboundary,
+    constraintscalespacing, minimumspacing, hubheight, turbineyaw,
+    ctmodels, generatorefficiency, cutinspeed, cutoutspeed, ratedspeed, ratedpower,
+    windresource, powermodels)
+nothing</code></pre><h3 id="(3)-Objective-and-constraint-function(s)"><a class="docs-heading-anchor" href="#(3)-Objective-and-constraint-function(s)">(3) Objective and constraint function(s)</a><a id="(3)-Objective-and-constraint-function(s)-1"></a><a class="docs-heading-anchor-permalink" href="#(3)-Objective-and-constraint-function(s)" title="Permalink"></a></h3><p>Now we are ready to set up wrapper functions for the objective and constraints.</p><pre><code class="language-julia hljs"># set up boundary constraint wrapper function
+function boundary_wrapper(x, params)
+    # include relevant params
+    boundarycenter = params.boundarycenter
+    boundaryradius = params.boundaryradius
+    constraintscaleboundary = params.constraintscaleboundary
+
+    # find the number of turbines
+    nturbines = Int(length(x)/2)
+
+    # extract x and y locations of turbines from design variables vector
+    turbinex = x[1:nturbines]
+    turbiney = x[nturbines+1:end]
+
+    # get and return boundary distances
+    return FLOWFarm.circle_boundary(boundarycenter, boundaryradius, turbinex, turbiney).*constraintscaleboundary
+end
+
+# set up spacing constraint wrapper function
+function spacing_wrapper(x, params)
+    # include relevant params
+    rotordiameter = params.rotordiameter
+    constraintscalespacing = params.constraintscalespacing
+    minimumspacing = params.minimumspacing
+
+    # get number of turbines
+    nturbines = Int(length(x)/2)
+
+    # extract x and y locations of turbines from design variables vector
+    turbinex = x[1:nturbines]
+    turbiney = x[nturbines+1:end]
+
+    # get and return spacing distances
+    return constraintscalespacing.*(minimumspacing .- FLOWFarm.turbine_spacing(turbinex,turbiney))
+end
+
+# set up aep wrapper function
+function aep_wrapper(x, params)
+
+    # include relevant params
+    turbinez = params.turbinez
+    rotordiameter = params.rotordiameter
+    hubheight = params.hubheight
+    turbineyaw =params.turbineyaw
+    ctmodels = params.ctmodels
+    generatorefficiency = params.generatorefficiency
+    cutinspeed = params.cutinspeed
+    cutoutspeed = params.cutoutspeed
+    ratedspeed = params.ratedspeed
+    ratedpower = params.ratedpower
+    windresource = params.windresource
+    powermodels = params.powermodels
+    modelset = params.modelset
+    rotorsamplepointsy = params.rotorsamplepointsy
+    rotorsamplepointsz = params.rotorsamplepointsy
+    objectivescale = params.objectivescale
+
+    # get number of turbines
+    nturbines = Int(length(x)/2)
+
+    # extract x and y locations of turbines from design variables vector
+    turbinex = x[1:nturbines]
+    turbiney = x[nturbines+1:end]
+
+    # calculate AEP
+    aep = objectivescale*FLOWFarm.calculate_aep(turbinex, turbiney, turbinez, rotordiameter,
+                hubheight, turbineyaw, ctmodels, generatorefficiency, cutinspeed,
+                cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset,
+                rotor_sample_points_y=rotorsamplepointsy,rotor_sample_points_z=rotorsamplepointsz)
+
+    # return the AEP
+    return aep
+end
+
+# set up optimization problem wrapper function
+function wind_farm_opt!(g, x, params)
+
+    nturbines = Int(length(x)/2)
+
+    # calculate spacing constraint value and jacobian
+    spacing_con = spacing_wrapper(x, params)
+
+    # calculate boundary constraint and jacobian
+    boundary_con = boundary_wrapper(x, params)
+
+    # combine constaint values and jacobians into overall constaint value and jacobian arrays
+    g[1:(end-nturbines)] = spacing_con[:]
+    g[end-nturbines+1:end] = boundary_con[:]
+
+    # calculate the objective function and jacobian (negative sign in order to maximize AEP)
+    obj = -aep_wrapper(x, params)[1]
+
+    return obj
+end
+nothing</code></pre><p>The <code>minimize</code> function expects an objective function that only takes two parameters (<code>g</code> and <code>x</code>). By creating a forced signature, we are able to pass in <code>params</code> directly into the optimization.</p><pre><code class="language-julia hljs"># generate objective function wrapper
+obj_func!(g, x) = wind_farm_opt!(g, x, params)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">obj_func! (generic function with 1 method)</code></pre><h3 id="(4)-Optimization-tool-specific-items"><a class="docs-heading-anchor" href="#(4)-Optimization-tool-specific-items">(4) Optimization tool specific items</a><a id="(4)-Optimization-tool-specific-items-1"></a><a class="docs-heading-anchor-permalink" href="#(4)-Optimization-tool-specific-items" title="Permalink"></a></h3><pre><code class="language-julia hljs"># initialize design variable vector
+x0 = [copy(turbinex);copy(turbiney)]
+
+# set general lower and upper bounds for design variables
+lx = zeros(length(x0)) .- boundaryradius
+ux = zeros(length(x0)) .+ boundaryradius
+
+# set general lower and upper bounds for constraints
+ng = Int(nturbines + (nturbines)*(nturbines - 1)/2)
+lg = [-Inf*ones(Int((nturbines)*(nturbines - 1)/2)); -Inf*ones(nturbines)]
+ug = [zeros(Int((nturbines)*(nturbines - 1)/2)); zeros(nturbines)]
+
+# IPOPT options
+ip_options = Dict(
+    &quot;max_iter&quot; =&gt; 100,
+    &quot;tol&quot; =&gt; 1e-6
+)
+solver = IPOPT(ip_options)
+
+# initialize SNOW options
+options = Options(solver=solver, derivatives=ForwardAD())  # choose AD derivatives
+nothing</code></pre><h2 id="Run-the-optimization"><a class="docs-heading-anchor" href="#Run-the-optimization">Run the optimization</a><a id="Run-the-optimization-1"></a><a class="docs-heading-anchor-permalink" href="#Run-the-optimization" title="Permalink"></a></h2><p>Now that the optimizer is set up, we are ready to optimize and check the results:</p><ul><li>Run time (<code>clk</code>)</li><li>Optimization information (<code>info</code>)</li><li>AEP Improvement (<code>100*(aepfinal - aep)/aep</code>)</li><li>Optimized Turbine Positions (<code>turbinexopt</code> and <code>turbineyopt</code>)</li></ul><pre><code class="language-julia hljs"># optimize
+t1 = time() # start time
+xopt, fopt, info, out = minimize(obj_func!, x0, ng, lx, ux, lg, ug, options)
+t2 = time() # end time
+clk = t2-t1 # approximate run time
+
+# get final aep
+aepfinal = -fopt/objectivescale
+
+# print optimization results
+println(&quot;Finished in : &quot;, clk, &quot; (s)&quot;)
+println(&quot;info: &quot;, info)
+println(&quot;Initial AEP: &quot;, aep)
+println(&quot;Final AEP: &quot;, aepfinal)
+println(&quot;AEP improvement (%) = &quot;, 100*(aepfinal - aep)/aep)
+
+# extract final turbine locations
+turbinexopt = copy(xopt[1:nturbines])
+turbineyopt = copy(xopt[nturbines+1:end])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">9-element Vector{Float64}:
+ -255.34037051058704
+  -20.86862136430824
+  342.2632040312789
+ -270.2642265480698
+  -28.102785923667955
+  339.0340833008482
+ -274.4234995869763
+   -1.7852915518775119
+  331.3900205456609</code></pre><p>Initial turbine layout:</p><p><img src="../initial_positions.png" alt/></p><p>Final turbine layout:</p><p><img src="../Optimized_Positions.png" alt/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Tutorial/">« Quick Start</a><a class="docs-footer-nextpage" href="../WindFarmStruct/">Wind Farm Struct and Sparsity »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Thursday 19 March 2026 18:52">Thursday 19 March 2026</span>. Using Julia version 1.11.9.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
