@@ -207,6 +207,12 @@ Helper function that calculates the power fora a single wind state
 - `lock`: SpinLock object to lock the farm struct for multithreadeding
 """
 function calculate_wind_state_power!(pow,x,farm,state_id;prealloc_id=1,hours_per_year=365.25*24.0,lock=nothing)
+    if below_cutin_speed(farm.constants.wind_resource, state_id, farm.constants.turbine_z,
+                         farm.hub_height, farm.constants.cut_in_speed)
+        pow .= 0
+        return pow
+    end
+
     if !isnothing(lock)
         Threads.lock(lock)
     end

@@ -556,3 +556,26 @@ function calculate_flow_field(xrange, yrange, zrange,
         wind_resource, wind_farm_state_id=wind_farm_state_id)
 
 end
+
+"""
+    below_cutin_speed(wind_resource, state_id, turbine_z, hub_height, cut_in_speed)
+
+Return `true` if no turbine can produce power for the given wind state.
+
+Wakes only reduce wind speed, so the maximum velocity any hub can see is the freestream
+speed adjusted for wind shear at the tallest hub elevation. If that maximum is below the
+minimum cut-in speed, all turbine powers are zero and the full wake calculation can be skipped.
+"""
+function below_cutin_speed(wind_resource, state_id, turbine_z, hub_height, cut_in_speed)
+    wind_speed = wind_resource.wind_speeds[state_id]
+    shear_model = wind_resource.wind_shear_model
+    if shear_model.shear_order == "nothing"
+        max_hub_speed = wind_speed
+    else
+        max_hub_z = maximum(turbine_z[i] + hub_height[i] for i in eachindex(hub_height))
+        max_hub_speed = adjust_for_wind_shear(max_hub_z, wind_speed,
+                            wind_resource.measurement_heights[state_id],
+                            shear_model.ground_height, shear_model)
+    end
+    return max_hub_speed < minimum(cut_in_speed)
+end

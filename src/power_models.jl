@@ -516,6 +516,17 @@ function calculate_state_aep(turbine_x::T0, turbine_y::T1, turbine_z::T2, rotor_
     prealloc_sort_index=zeros(Int, n_turbines),
     ) where {T0, T1, T2, T3, T4, T5, T6}
 
+    # short-circuit: skip the full wake calculation when no turbine can produce power
+    if isnothing(wind_speed_ids)
+        if below_cutin_speed(wind_resource, wind_farm_state_id, turbine_z, hub_height, cut_in_speed)
+            return zero(arr_type)
+        end
+    else
+        if all(below_cutin_speed(wind_resource, sid, turbine_z, hub_height, cut_in_speed) for sid in wind_speed_ids)
+            return zero(arr_type)
+        end
+    end
+
     # rotate turbine locations to match the direction of the current state
     rot_x, rot_y = rotate_to_wind_direction!(prealloc_rot_x, prealloc_rot_y, turbine_x, turbine_y, wind_resource.wind_directions[wind_farm_state_id])
 
