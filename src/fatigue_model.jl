@@ -424,8 +424,8 @@ function get_moments(out,Rhub,Rtip,r,az,precone,tilt)
     m_flap = dL_flap/dr
     m_edge = dL_edge/dr
 
-    Lhub_flap = loads_flap[end] + m_flap*(Rtip-r_arr[end-1])
-    Lhub_edge = loads_edge[end] + m_edge*(Rtip-r_arr[end-1])
+    Lhub_flap = loads_flap[end-1] + m_flap*(Rtip-r_arr[end-1])
+    Lhub_edge = loads_edge[end-1] + m_edge*(Rtip-r_arr[end-1])
 
     loads_flap[end] = Lhub_flap
     loads_edge[end] = Lhub_edge
