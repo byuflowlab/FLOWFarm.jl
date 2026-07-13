@@ -5,7 +5,7 @@ This program contains Ipopt, a library for large-scale nonlinear optimization.
          For more information visit https://github.com/coin-or/Ipopt
 ******************************************************************************
 
-This is Ipopt version 3.14.19, running with linear solver MUMPS 5.8.2.
+This is Ipopt version 3.14.19, running with linear solver MUMPS 5.9.0.
 
 Number of nonzeros in equality constraint Jacobian...:        0
 Number of nonzeros in inequality constraint Jacobian.:      810
@@ -112,6 +112,6 @@ Number of inequality constraint evaluations          = 92
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 65
 Number of Lagrangian Hessian evaluations             = 0
-Total seconds in IPOPT                               = 4.504
+Total seconds in IPOPT                               = 4.753
 
 EXIT: Optimal Solution Found.
