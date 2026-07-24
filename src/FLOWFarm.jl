@@ -6,7 +6,10 @@ using Distributed
 using SpecialFunctions
 using Geodesy; const gd = Geodesy
 using YAML
-using SparseDiffTools
+using ADTypes
+using ADTypes: KnownJacobianSparsityDetector
+using DifferentiationInterface
+using SparseMatrixColorings
 using SparseArrays
 using DiffResults
 using ReverseDiff

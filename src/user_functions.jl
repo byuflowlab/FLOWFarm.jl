@@ -176,13 +176,20 @@ function build_boundary_struct(x,n_turbines,n_constraints,scaling,constraint_fun
         boundary_jacobian .+= b_struct.jacobian
     end
     boundary_jacobian = dropzeros(sparse(boundary_jacobian))
-    ad = AutoSparseForwardDiff()
-    sd = JacPrototypeSparsityDetection(; jac_prototype=boundary_jacobian)
-    cache = sparse_jacobian_cache(ad, sd, nothing, boundary_vec, x)
-    T = eltype(cache.cache.t)
+    ad = AutoSparse(AutoForwardDiff(); sparsity_detector=KnownJacobianSparsityDetector(boundary_jacobian),
+                    coloring_algorithm=GreedyColoringAlgorithm())
+    prep = Ref{Any}(nothing)
+
+    # pre-type turbine_x/turbine_y to the Dual type that will be produced when x is
+    # differentiated through, using the chunk width implied by the jacobian's own coloring
+    # (computed directly from the sparsity pattern, no differentiated call needed)
+    n_colors = maximum(column_colors(coloring(boundary_jacobian, ColoringProblem(), GreedyColoringAlgorithm())))
+    T = dual_type(calculate_boundary!, eltype(x), n_colors)
     turbine_x = zeros(T,n_turbines)
     turbine_y = zeros(T,n_turbines)
-    return sparse_boundary_struct(turbine_x,turbine_y,boundary_jacobian,ad,cache,boundary_vec,constraint_function,update_function,scaling)
+    value_context = (turbine_x=zeros(n_turbines), turbine_y=zeros(n_turbines), update_function=update_function,
+                    boundary_function=constraint_function, boundary_scaling_factor=scaling)
+    return sparse_boundary_struct(turbine_x,turbine_y,boundary_jacobian,ad,prep,boundary_vec,constraint_function,update_function,scaling,value_context)
 end
 
 """
