@@ -9,28 +9,42 @@ using YAML
 using ForwardDiff
 using FiniteDiff
 
+function testAEP(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+                ct_models, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
+                rated_power, windresource, power_models, model_set)
+    return ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
+        hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
+        cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set)/1e9
+end
+
+function checkstability(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height, turbine_yaw,
+                ct_models, generator_efficiency, cut_in_speed, cut_out_speed, rated_speed,
+                rated_power, windresource, power_models, model_set)
+    try
+        @inferred testAEP(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
+            turbine_yaw, ct_models, generator_efficiency, cut_in_speed, cut_out_speed,
+            rated_speed, rated_power, windresource, power_models, model_set)
+        return true
+    catch err
+        println(err)
+        return false
+    end
+end
+
 @testset ExtendedTestSet "all tests" begin
-    # This does not pass for some reason but I cannot find the issue
-    # @testset "type stability" begin
-    #     @testset "AEP Calculation" begin
-    #         include("model_sets/model_set_6.jl")
-    #         function testAEP()
-    #             return ff.calculate_aep(turbine_x, turbine_y, turbine_z, rotor_diameter,
-    #                 hub_height, turbine_yaw, ct_models, generator_efficiency, cut_in_speed,
-    #                 cut_out_speed, rated_speed, rated_power, windresource, power_models, model_set)/1e9
-    #         end
-    #         function checkstability()
-    #             try
-    #                 @inferred testAEP()
-    #                 return true
-    #             catch err
-    #                 println(err)
-    #                 return false
-    #             end
-    #         end
-    #         @test checkstability()
-    #     end
-    # end
+    @testset "type stability" begin
+        @testset "AEP Calculation" begin
+            # `testAEP`/`checkstability` above were previously defined with no arguments,
+            # closing over these variables as globals - `@inferred` always reports failure
+            # against non-const globals regardless of whether the underlying code is actually
+            # type-stable, which is why this test never passed. Passing them as arguments here
+            # lets @inferred correctly check `ff.calculate_aep` itself.
+            include("model_sets/model_set_6.jl")
+            @test checkstability(turbine_x, turbine_y, turbine_z, rotor_diameter, hub_height,
+                turbine_yaw, ct_models, generator_efficiency, cut_in_speed, cut_out_speed,
+                rated_speed, rated_power, windresource, power_models, model_set)
+        end
+    end
 
     @testset "cost_models" begin
         Parameters = ff.Levelized()
@@ -2890,12 +2904,22 @@ using FiniteDiff
                 opt_x=true, opt_y=true, opt_yaw=true, tolerance=1e-16,
             )
 
-            x[1:2*n] .+= (randn(2*n) .- 0.5) .* 5 .* rotor_diameter[1]
-            x[2*n+1:end] .= (randn(n) .- 0.5) * deg2rad(10.0)
+            # this farm/turbine count needs more than 12 colors for at least one chunk-width
+            # tier - regression guard for a bug where `ForwardDiff.Chunk(N)` silently clamps N
+            # to 12, which previously caused the farm's dual buffers to end up narrower than
+            # the width DifferentiationInterface actually used
+            @test maximum(unstable_struct.tier_widths) > 12
 
-            FLOWFarm.calculate_aep_gradient!(diff_farm, x)
-            FLOWFarm.calculate_aep_gradient!(unstable_farm, x, unstable_struct)
-            @test isapprox(diff_farm.AEP_gradient, unstable_farm.AEP_gradient, atol=1e-6)
+            # repeated calls with changing x, to exercise sparsity-pattern changes and
+            # chunk-width tier switching across the run, not just a single gradient evaluation
+            for trial = 1:5
+                x[1:2*n] .+= (randn(2*n) .- 0.5) .* 5 .* rotor_diameter[1]
+                x[2*n+1:end] .= (randn(n) .- 0.5) * deg2rad(10.0)
+
+                FLOWFarm.calculate_aep_gradient!(diff_farm, x)
+                FLOWFarm.calculate_aep_gradient!(unstable_farm, x, unstable_struct)
+                @test isapprox(diff_farm.AEP_gradient, unstable_farm.AEP_gradient, atol=1e-6)
+            end
         end
 
         @testset "Stable Sparse Methods" begin
@@ -2934,6 +2958,69 @@ using FiniteDiff
             FLOWFarm.calculate_aep_gradient!(diff_farm, x)
             FLOWFarm.calculate_aep_gradient!(stable_farm, x, stable_struct)
             @test isapprox(diff_farm.AEP_gradient, stable_farm.AEP_gradient, atol=1e-6)
+        end
+
+        @testset "Sparse Spacing and Boundary Constraints" begin
+            n = 6
+            turbine_x0 = collect(range(0.0, 500.0, length=n))
+            turbine_y0 = zeros(n) .+ (1:n) .* 3.0
+            x0 = [turbine_x0; turbine_y0]
+
+            function update_fn(s, x)
+                n = length(s.turbine_x)
+                @inbounds for i in 1:n
+                    s.turbine_x[i] = x[i]
+                    s.turbine_y[i] = x[n+i]
+                end
+                return nothing
+            end
+
+            space = 200.0
+            scaling = 1.0
+
+            spacing_struct = FLOWFarm.build_sparse_spacing_struct(x0, turbine_x0, turbine_y0, space, scaling, update_fn; first_opt=false)
+
+            function dense_spacing!(vec,x,relevant,space,scaling)
+                xs = view(x,1:n)
+                ys = view(x,n+1:2*n)
+                for r in axes(relevant,1)
+                    j = relevant[r,1]; k = relevant[r,2]
+                    vec[r] = sqrt((xs[j]-xs[k])^2 + (ys[j]-ys[k])^2)
+                end
+                vec .= (space .- vec) .* scaling
+                return vec
+            end
+
+            boundary_scaling = 1.0
+            boundary_fn!(bvec, tx, ty) = (bvec .= tx; bvec)
+            n_constraints = n
+            boundary_struct = FLOWFarm.build_boundary_struct(x0, n, n_constraints, boundary_scaling, boundary_fn!, update_fn; using_sparsity=true)
+
+            function dense_boundary!(vec,x,scaling)
+                xs = view(x,1:n)
+                vec .= xs .* scaling
+                return vec
+            end
+
+            # repeated calls with changing x, mirroring how these get called across
+            # optimization iterations
+            for trial = 1:5
+                x = x0 .+ (randn(length(x0)) .- 0.5) .* 20.0
+
+                spacing_vec, spacing_jac = FLOWFarm.calculate_spacing_jacobian!(spacing_struct, x)
+                dense_vec = zeros(length(spacing_vec))
+                dense_jac = ForwardDiff.jacobian((v,xx)->dense_spacing!(v,xx,spacing_struct.relevant_list,space,scaling), dense_vec, x)
+                dense_spacing!(dense_vec, x, spacing_struct.relevant_list, space, scaling)
+                @test isapprox(spacing_vec, dense_vec, atol=1e-8)
+                @test isapprox(Matrix(spacing_jac), dense_jac, atol=1e-6)
+
+                boundary_vec, boundary_jac = FLOWFarm.calculate_boundary_jacobian!(boundary_struct, x)
+                dense_bvec = zeros(n_constraints)
+                dense_bjac = ForwardDiff.jacobian((v,xx)->dense_boundary!(v,xx,boundary_scaling), dense_bvec, x)
+                dense_boundary!(dense_bvec, x, boundary_scaling)
+                @test isapprox(boundary_vec, dense_bvec, atol=1e-8)
+                @test isapprox(Matrix(boundary_jac), dense_bjac, atol=1e-6)
+            end
         end
     end
 end
