@@ -75,11 +75,13 @@ Function that builds a wind_farm_struct and a sparse_AEP_struct_stable_pattern s
 - `opt_yaw`: Boolean to optimize yaw angles of turbines
 - `opt_diam`: Boolean to optimize rotor diameters of turbines
 - `tolerance`: Single float that defines the tolerance for the jacobian pattern (default is 1E-16), set to 0.0 to use traditional sparsity
+- `coloring_algorithm`: SparseMatrixColorings coloring algorithm used for the jacobian coloring (default is `GreedyColoringAlgorithm()`)
 """
 function build_stable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,rotor_diameter,
                 ct_models,generator_efficiency,cut_in_speed,cut_out_speed,rated_speed,rated_power,wind_resource,
                 power_models,model_set,update_function;rotor_sample_points_y=[0.0],rotor_sample_points_z=[0.0],
-                AEP_scale=0.0,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false,tolerance=1E-16)
+                AEP_scale=0.0,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false,tolerance=1E-16,
+                coloring_algorithm=GreedyColoringAlgorithm())
 
     probe_farm = build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,
                 rotor_diameter,ct_models,generator_efficiency,cut_in_speed,
@@ -99,7 +101,7 @@ function build_stable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height,t
     # (built once, below) stay valid no matter which state is being differentiated;
     # derived directly from each state's jacobian sparsity pattern, no differentiated
     # call needed
-    n_colors = shared_chunk_width(jacobians,n_states)
+    n_colors = shared_chunk_width(jacobians,n_states,coloring_algorithm)
     T_dual = dual_type(_wind_state_power_ad!, eltype(x), n_colors)
 
     farm = build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,
@@ -118,7 +120,7 @@ function build_stable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height,t
                 rotor_sample_points_z=rotor_sample_points_z,AEP_scale=AEP_scale,
                 opt_x=opt_x,opt_y=opt_y,opt_hub=opt_hub,opt_yaw=opt_yaw,opt_diam=opt_diam)
 
-    sparse_struct = build_stable_sparse_struct(jacobians,pow,x,n_states,value_farm)
+    sparse_struct = build_stable_sparse_struct(jacobians,pow,x,n_states,value_farm;coloring_algorithm=coloring_algorithm)
 
     return farm, sparse_struct
 end
@@ -141,8 +143,9 @@ and should be preferred; use this method only if you already know what you're do
 - `x`: Vector containing the  design variables
 - `farm`: plain (non-dual) WindFarm struct
 - `tolerance`: Single float that defines the tolerance for the jacobian pattern
+- `coloring_algorithm`: SparseMatrixColorings coloring algorithm used for the jacobian coloring (default is `GreedyColoringAlgorithm()`)
 """
-function build_stable_sparse_struct(x,farm;tolerance=1E-16)
+function build_stable_sparse_struct(x,farm;tolerance=1E-16,coloring_algorithm=GreedyColoringAlgorithm())
     n_states = length(farm.constants.wind_resource.wind_probabilities)
     n_turbines = length(farm.turbine_x)
     pow = zeros(eltype(x),n_turbines,n_states)
@@ -150,11 +153,11 @@ function build_stable_sparse_struct(x,farm;tolerance=1E-16)
 
     define_patterns!(jacobians,x,farm,tolerance,pow,n_states)
 
-    return build_stable_sparse_struct(jacobians,pow,x,n_states,farm)
+    return build_stable_sparse_struct(jacobians,pow,x,n_states,farm;coloring_algorithm=coloring_algorithm)
 end
 
 """
-build_stable_sparse_struct(jacobians,pow,x,n_states,value_farm)
+build_stable_sparse_struct(jacobians,pow,x,n_states,value_farm;coloring_algorithm=GreedyColoringAlgorithm())
 
 Helper function that builds a sparse_AEP_struct_stable_pattern struct from already-computed
 jacobian sparsity patterns
@@ -165,29 +168,30 @@ jacobian sparsity patterns
 - `x`: Vector containing the design variables
 - `n_states`: Number of wind states
 - `value_farm`: a plain (non-dual) WindFarm struct used to compute actual turbine power values
+- `coloring_algorithm`: SparseMatrixColorings coloring algorithm used for the jacobian coloring (default is `GreedyColoringAlgorithm()`)
 """
-function build_stable_sparse_struct(jacobians,pow,x,n_states,value_farm)
+function build_stable_sparse_struct(jacobians,pow,x,n_states,value_farm;coloring_algorithm=GreedyColoringAlgorithm())
     state_gradients = zeros(eltype(x),n_states,length(x))
     preps = [Ref{Any}(nothing) for _ = 1:n_states]
 
     # every state must share one chunk width, since they all read/write through the same
     # (thread-indexed, not state-indexed) preallocated dual buffers on the wind farm struct
-    n_colors = shared_chunk_width(jacobians,n_states)
+    n_colors = shared_chunk_width(jacobians,n_states,coloring_algorithm)
     adtypes = [AutoSparse(AutoForwardDiff(chunksize=n_colors); sparsity_detector=KnownJacobianSparsityDetector(jacobians[i]),
-                    coloring_algorithm=GreedyColoringAlgorithm()) for i = 1:n_states]
+                    coloring_algorithm=coloring_algorithm) for i = 1:n_states]
 
     return sparse_AEP_struct_stable_pattern(preps,jacobians,state_gradients,pow,adtypes,value_farm)
 end
 
 """
-shared_chunk_width(jacobians,n_states)
+shared_chunk_width(jacobians,n_states,coloring_algorithm)
 
 Helper function that returns the largest ForwardDiff chunk width that remains valid
 (<= number of colors) for every wind state's jacobian sparsity pattern, computed directly
 from the patterns themselves (no differentiated function call required)
 """
-function shared_chunk_width(jacobians,n_states)
-    return minimum(maximum(column_colors(coloring(jacobians[i], ColoringProblem(), GreedyColoringAlgorithm()))) for i = 1:n_states)
+function shared_chunk_width(jacobians,n_states,coloring_algorithm)
+    return minimum(maximum(column_colors(coloring(jacobians[i], ColoringProblem(), coloring_algorithm))) for i = 1:n_states)
 end
 
 """
@@ -464,6 +468,8 @@ Struct that holds all the necessary variables to calculate the AEP gradient usin
   that tier's chunk width baked into its preallocated buffers
 - `current_tier`: Vector of Int, one per wind state, index into `tier_widths`/`tier_farms`
   selecting which pre-built tier is currently valid for that state's sparsity pattern
+- `coloring_algorithm`: SparseMatrixColorings coloring algorithm used for jacobian coloring, stored
+  so that `recolor_jacobian!` reuses the same algorithm the struct was built with
 
 Note: since the sparsity pattern can change at runtime and DI requires chunk width <= current
 color count, no single chunk width is guaranteed valid for the whole run. Rather than falling
@@ -473,7 +479,7 @@ pre-built farm/adtype tiers lets each state use the widest pre-built tier still 
 some upfront build cost and a little extra memory (one farm's preallocated buffers per tier) but
 avoids ever rebuilding a farm at runtime.
 """
-struct sparse_AEP_struct_unstable_pattern{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13} <: UnstableSparseMethod
+struct sparse_AEP_struct_unstable_pattern{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14} <: UnstableSparseMethod
     deficit_thresholds::T1
     patterns::T2
     state_gradients::T3
@@ -487,6 +493,7 @@ struct sparse_AEP_struct_unstable_pattern{T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12
     tier_widths::T11
     tier_farms::T12
     current_tier::T13
+    coloring_algorithm::T14
 end
 
 """
@@ -525,11 +532,13 @@ Function that builds a wind_farm_struct and a sparse_AEP_struct_unstable_pattern
 - `opt_yaw`: Boolean to optimize yaw angles of turbines
 - `opt_diam`: Boolean to optimize rotor diameters of turbines
 - `tolerance`: Single float that defines the tolerance for the jacobian pattern (default is 1E-16), set to 0.0 to use traditional sparsity
+- `coloring_algorithm`: SparseMatrixColorings coloring algorithm used for the jacobian coloring (default is `GreedyColoringAlgorithm()`)
 """
 function build_unstable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,rotor_diameter,
                 ct_models,generator_efficiency,cut_in_speed,cut_out_speed,rated_speed,rated_power,wind_resource,
                 power_models,model_set,update_function;rotor_sample_points_y=[0.0],rotor_sample_points_z=[0.0],
-                AEP_scale=0.0,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false,tolerance=1E-16)
+                AEP_scale=0.0,opt_x=false,opt_y=false,opt_hub=false,opt_yaw=false,opt_diam=false,tolerance=1E-16,
+                coloring_algorithm=GreedyColoringAlgorithm())
 
     farm_floats = build_wind_farm_struct(x,turbine_x,turbine_y,turbine_z,hub_height,turbine_yaw,
                 rotor_diameter,ct_models,generator_efficiency,cut_in_speed,
@@ -554,7 +563,7 @@ function build_unstable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height
     # down to 1 (see sparse_AEP_struct_unstable_pattern docstring); one dual-typed farm is built
     # per tier, each tagged to the same top-level function that will actually be differentiated
     # (_wind_state_power_ad!)
-    tier_widths = build_tier_widths(jacobians,n_states)
+    tier_widths = build_tier_widths(jacobians,n_states,coloring_algorithm)
     tier_farms = Vector{Any}(undef,length(tier_widths))
     for (ti,w) = enumerate(tier_widths)
         T_dual = dual_type(_wind_state_power_ad!, eltype(x), w)
@@ -572,21 +581,21 @@ function build_unstable_sparse_struct(x,turbine_x,turbine_y,turbine_z,hub_height
     current_tier = ones(Int,n_states)
 
     sparse_struct = sparse_AEP_struct_unstable_pattern(thresholds,patterns,state_gradients,jacobians,pow,farm_floats,
-                    old_patterns,preps,state_powers,adtypes,tier_widths,tier_farms,current_tier)
+                    old_patterns,preps,state_powers,adtypes,tier_widths,tier_farms,current_tier,coloring_algorithm)
 
     return farm_floats, sparse_struct
 
 end
 
 """
-build_tier_widths(jacobians,n_states)
+build_tier_widths(jacobians,n_states,coloring_algorithm)
 
 Helper function that builds the descending list of candidate chunk widths for the
 unstable-pattern struct, halving from the initial shared color count (the smallest color count
 across all states, so every state has at least one valid tier to start from) down to 1.
 """
-function build_tier_widths(jacobians,n_states)
-    w = minimum(maximum(column_colors(coloring(jacobians[i], ColoringProblem(), GreedyColoringAlgorithm()))) for i = 1:n_states)
+function build_tier_widths(jacobians,n_states,coloring_algorithm)
+    w = minimum(maximum(column_colors(coloring(jacobians[i], ColoringProblem(), coloring_algorithm))) for i = 1:n_states)
     widths = Int[]
     while w > 1
         push!(widths,w)
@@ -613,8 +622,9 @@ This single-tier form exists for callers that only have one farm on hand; the fu
 - `farm`: WindFarm struct
 - `farm_forwarddiff`: WindFarm struct with ForwardDiff input type for deficit tolerance calculation
 - `tolerance`: Single float that defines the tolerance for the jacobian pattern
+- `coloring_algorithm`: SparseMatrixColorings coloring algorithm used for the jacobian coloring (default is `GreedyColoringAlgorithm()`)
 """
-function build_unstable_sparse_struct(x,farm,farm_forwarddiff;tolerance=1E-16)
+function build_unstable_sparse_struct(x,farm,farm_forwarddiff;tolerance=1E-16,coloring_algorithm=GreedyColoringAlgorithm())
     jacobians, thresholds, patterns, old_patterns, state_gradients, state_powers, pow, n_states, n_turbines =
                     build_unstable_sparse_arrays(x,farm,farm_forwarddiff,tolerance)
 
@@ -623,7 +633,7 @@ function build_unstable_sparse_struct(x,farm,farm_forwarddiff;tolerance=1E-16)
     current_tier = ones(Int,n_states)
 
     return sparse_AEP_struct_unstable_pattern(thresholds,patterns,state_gradients,jacobians,pow,farm,old_patterns,
-                    preps,state_powers,adtypes,[1],[farm],current_tier)
+                    preps,state_powers,adtypes,[1],[farm],current_tier,coloring_algorithm)
 end
 
 """
@@ -911,7 +921,7 @@ call - rebuilding the `AutoSparse` detector and re-preparing does the recoloring
 - `wind_state_id`: Wind state id
 """
 function recolor_jacobian!(sparse_struct::T,wind_state_id) where T <: UnstableSparseMethod
-    n_colors = maximum(column_colors(coloring(sparse_struct.jacobians[wind_state_id], ColoringProblem(), GreedyColoringAlgorithm())))
+    n_colors = maximum(column_colors(coloring(sparse_struct.jacobians[wind_state_id], ColoringProblem(), sparse_struct.coloring_algorithm)))
 
     # largest pre-built tier still valid (<=) for the current color count; tier_widths is
     # descending and always ends in 1, so this always finds a match
@@ -920,7 +930,7 @@ function recolor_jacobian!(sparse_struct::T,wind_state_id) where T <: UnstableSp
 
     sparse_struct.adtypes[wind_state_id][] = AutoSparse(AutoForwardDiff(chunksize=sparse_struct.tier_widths[tier_idx]);
                     sparsity_detector=KnownJacobianSparsityDetector(sparse_struct.jacobians[wind_state_id]),
-                    coloring_algorithm=GreedyColoringAlgorithm())
+                    coloring_algorithm=sparse_struct.coloring_algorithm)
     sparse_struct.preps[wind_state_id][] = nothing
     return nothing
 end
@@ -1018,8 +1028,10 @@ Function that builds a sparse_spacing_struct
 - `update_function`: Function that updates the spacing struct with the new design variables
 - `first_opt`: Boolean to determine if this is the first optimization (if true uses no spacing constraints)
 - `relevant_spacing_factor`: Single float that defines the factor of space to be considered relevant
+- `coloring_algorithm`: SparseMatrixColorings coloring algorithm used for the jacobian coloring (default is `GreedyColoringAlgorithm()`)
 """
-function build_sparse_spacing_struct(x,turbine_x,turbine_y,space,scale,update_function;first_opt=true,relevant_spacing_factor=2)
+function build_sparse_spacing_struct(x,turbine_x,turbine_y,space,scale,update_function;first_opt=true,relevant_spacing_factor=2,
+                coloring_algorithm=GreedyColoringAlgorithm())
     if first_opt
         n_constraints = 0
         relevant_list = nothing
@@ -1041,7 +1053,7 @@ function build_sparse_spacing_struct(x,turbine_x,turbine_y,space,scale,update_fu
     spacing_jacobian = dropzeros(sparse(s_struct.jacobian[idx,:]))
 
     ad = AutoSparse(AutoForwardDiff(); sparsity_detector=KnownJacobianSparsityDetector(spacing_jacobian),
-                    coloring_algorithm=GreedyColoringAlgorithm())
+                    coloring_algorithm=coloring_algorithm)
     prep = Ref{Any}(nothing)
     value_context = spacing_value_context(Float64.(turbine_x),Float64.(turbine_y),update_function,relevant_list,space,scale)
 
@@ -1049,7 +1061,7 @@ function build_sparse_spacing_struct(x,turbine_x,turbine_y,space,scale,update_fu
     # differentiated through, using the chunk width implied by the jacobian's own coloring
     # (computed directly from the sparsity pattern, no differentiated call needed), tagged to
     # the same top-level function that will actually be differentiated (calculate_spacing!)
-    n_colors = maximum(column_colors(coloring(spacing_jacobian, ColoringProblem(), GreedyColoringAlgorithm())))
+    n_colors = maximum(column_colors(coloring(spacing_jacobian, ColoringProblem(), coloring_algorithm)))
     T = dual_type(calculate_spacing!, eltype(x), n_colors)
 
     turbine_x = Vector{T}(turbine_x)

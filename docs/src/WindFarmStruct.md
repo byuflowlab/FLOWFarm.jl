@@ -125,6 +125,17 @@ Unstable sparse structs are computed in the same way as stable sparse struct wit
 farm, sparse_struct = ff.build_unstable_sparse_struct(x0, turbinex, turbiney, turbinez, hubheight, turbineyaw, rotordiameter, ctmodels, generatorefficiency, cutinspeed, cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset, my_update_function; AEP_scale=1.0, opt_x=true, opt_y=true, tolerance=1E-16)
 ```
 
+### Coloring Algorithm
+Every sparse struct builder (`build_stable_sparse_struct`, `build_unstable_sparse_struct`, `build_sparse_spacing_struct`, and `build_boundary_struct`) accepts a `coloring_algorithm` keyword argument, which controls the `SparseMatrixColorings` algorithm used to color the jacobian sparsity pattern before differentiating. It defaults to `GreedyColoringAlgorithm()`, matching prior behavior.
+
+`SparseMatrixColorings` is loaded by `FLOWFarm`, so its coloring algorithms and orderings (e.g. `GreedyColoringAlgorithm`, `LargestFirst`, `SmallestLast`, `IncidenceDegree`, `DynamicLargestFirst`, `DynamicDegreeBasedOrder`, `PerfectEliminationOrder`, `RandomOrder`) are available without any extra `using` statement. For example:
+
+```julia
+farm, sparse_struct = ff.build_stable_sparse_struct(x0, turbinex, turbiney, turbinez, hubheight, turbineyaw, rotordiameter, ctmodels, generatorefficiency, cutinspeed, cutoutspeed, ratedspeed, ratedpower, windresource, powermodels, modelset, my_update_function; AEP_scale=1.0, opt_x=true, opt_y=true, tolerance=1E-16, coloring_algorithm=GreedyColoringAlgorithm(LargestFirst()))
+```
+
+For `build_unstable_sparse_struct`, the chosen `coloring_algorithm` is stored on the resulting `sparse_struct` and reused automatically whenever the sparsity pattern (and therefore the coloring) is recomputed during optimization.
+
 ## Constraint Sparsity
 
 ### Boundary Constraints
