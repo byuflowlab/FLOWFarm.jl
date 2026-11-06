@@ -145,7 +145,8 @@ function _niayifar_added_ti_function(x, d_dst, d_ust, h_ust, h_dst, ct_ust, ksta
         # wake of the upstream turbine based on Crespo, A.; Hernandez, J. Turbulence
         # characteristics in wind-turbine wakes. J. Wind Eng. Ind. Aerodyn. 1996,
         # 61, 71–85.
-        ti_added = 0.73*(axial_induction_ust^0.8325)*(ti_ust^0.0325)*((x/d_ust)^(-0.32))
+        # no thrust (axial induction 0) -> no added turbulence; a^0.8325 has an infinite slope at 0
+        ti_added = axial_induction_ust > 0.0 ? 0.73*(axial_induction_ust^0.8325)*(ti_ust^0.0325)*((x/d_ust)^(-0.32)) : zero(ti_ust*x)
 
         rotor_area_dst = 0.25*pi*d_dst^2
         ti_area_ratio_tmp = ti_added*(wake_overlap/rotor_area_dst)
@@ -383,7 +384,8 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
     y_loc = turbine_y[turbine_id]
     z_loc = hub_height[turbine_id]
 
-    intensity = 0
+    T = promote_type(eltype(turbine_x), eltype(turbine_y), eltype(turbine_ct), eltype(turbine_yaw), typeof(ambient_ti))
+    intensity = zero(T)
     Ia = ambient_ti
 
     for i = 1:nturbines
@@ -409,33 +411,39 @@ function calculate_local_ti(turbine_x, turbine_y, ambient_ti, rotor_diameter, hu
             yd = theta_0 * dx
             r = sqrt(dz^2 + (dy + yd)^2)
 
-            # calculate constants
-            k_star = 0.11 * ct^1.07 * Ia^0.20
-            epsilon = 0.23 * ct^(-0.25) * Ia^0.17
-            d = 2.3 * ct^(-1.2)
-            e = Ia^0.1
-            f = 0.7 * ct^(-3.2) * Ia^(-0.45)
-            k1 = 1
-            k2 = 0
             D = rotor_diameter[upstream_turbine]
-            if r/D <= 0.5
-                k1 = (cos(pi/2 * (r/D - 0.5)))^2
-                k2 = (cos(pi/2 * (r/D + 0.5)))^2
-            end
-            sigma = k_star * dx + epsilon * D
-
             if dz >= 0 || hub_height[upstream_turbine] == 0 #to avoid divide by zero
-                delta = 0
+                delta = zero(T)
             else
                 delta = Ia * sin(pi*(-dz/hub_height[upstream_turbine]))^2
             end
-            intensity += ((1 / (d + e*dx/D + f*(1+dx/D)^-2)) * (k1*exp(-((r-D/2)^2/(2*sigma^2))) + k2*exp(-((r+D/2)^2/(2*sigma^2)))) - delta)^10
+
+            if ct == 0
+                # no thrust -> no added turbulence (the constants below divide by ct)
+                base = zero(T)
+            else
+                # calculate constants
+                k_star = 0.11 * ct^1.07 * Ia^0.20
+                epsilon = 0.23 * ct^(-0.25) * Ia^0.17
+                d = 2.3 * ct^(-1.2)
+                e = Ia^0.1
+                f = 0.7 * ct^(-3.2) * Ia^(-0.45)
+                k1 = one(T)
+                k2 = zero(T)
+                if r/D <= 0.5
+                    k1 = (cos(pi/2 * (r/D - 0.5)))^2
+                    k2 = (cos(pi/2 * (r/D + 0.5)))^2
+                end
+                sigma = k_star * dx + epsilon * D
+                base = (1 / (d + e*dx/D + f*(1+dx/D)^-2)) * (k1*exp(-((r-D/2)^2/(2*sigma^2))) + k2*exp(-((r+D/2)^2/(2*sigma^2))))
+            end
+            intensity += (base - delta)^10
         else
             break
         end
     end
 
-    turbine_local_ti[turbine_id] = intensity^(1/10) + ambient_ti
+    turbine_local_ti[turbine_id] = (intensity > 0 ? intensity^(1/10) : zero(T)) + ambient_ti
 
     return turbine_local_ti[turbine_id]
 end

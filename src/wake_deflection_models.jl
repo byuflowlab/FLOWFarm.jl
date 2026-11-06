@@ -182,6 +182,10 @@ function _bpa_theta_0(yaw, ct)
 end
 
 function _bpa_deflection(diam, ct, yaw, ky, kz, sigmay, sigmaz, theta0, x0)
+    # no thrust -> no wake -> no deflection (the formula below is 0/0 at ct = 0)
+    if ct == 0
+        return zero(diam*ct + theta0*x0)
+    end
     diam_inv = 1.0/diam
     a = theta0*x0*diam_inv
     b1 = cos(yaw)
