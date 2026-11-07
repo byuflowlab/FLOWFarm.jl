@@ -832,7 +832,9 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
     else
         r_tilde = sqrt(sqrt_num)/rotor_diameter[upstream_turbine_id]
     end
-    if (-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor)) > -750
+    # evaluated once (bitwise identical to the former repeated expression; one fewer pow in primal and adjoint)
+    wake_exponent = -1 * (r_tilde^m)/(2.0*sigma_n*wec_factor)
+    if wake_exponent > -750
 
         sum_C = 0.0
 
@@ -859,7 +861,7 @@ function wake_deficit_model(locx, locy, locz, turbine_x, turbine_y, turbine_z, d
 
             calc = abs_smooth(a2 - (m*turbine_ct[upstream_turbine_id]*cos(turbine_yaw[upstream_turbine_id]))/(16.0*gamma(2.0/m)*(sigma_n^(2.0/m))*(1.0-sum_C/wind_speed_internal)^2),0.1)
             contribution_matrix[downstream_turbine_id,upstream_turbine_id] = (1-sum_C/wind_speed_internal) * (a1-sqrt(calc))
-            wake_deficits[downstream_turbine_id,upstream_turbine_id] = contribution_matrix[downstream_turbine_id,upstream_turbine_id] * exp(-1 * (r_tilde^m)/(2.0*sigma_n*wec_factor))
+            wake_deficits[downstream_turbine_id,upstream_turbine_id] = contribution_matrix[downstream_turbine_id,upstream_turbine_id] * exp(wake_exponent)
 
             return wake_deficits[downstream_turbine_id,upstream_turbine_id]
         end
@@ -870,7 +872,8 @@ end
 
 # Helper function for the Cumulative Curl model
 function wake_expansion(Ct,TI,x_tilde,model)
-    beta = 0.5*(1.0+sqrt(1.0-Ct))/sqrt(1.0-Ct)
+    sqrt_one_minus_ct = sqrt(1.0-Ct)
+    beta = 0.5*(1.0+sqrt_one_minus_ct)/sqrt_one_minus_ct
     epsilon = (model.c_s1*Ct+model.c_s2)*sqrt(beta)
     k = (model.a_s*TI+model.b_s)
     sigma = k*x_tilde+epsilon
