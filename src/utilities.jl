@@ -1499,51 +1499,16 @@ function pointinpolygon(point, vertices, normals=nothing; s=700, method="raycast
     #     end
     # end
 
-    # iterate through each boundary
+    # Count vertex crossings consistently in either traversal direction.
+    # A vertical edge spans an empty half-open interval.
+    x = real(point[1])
     for j = 1:nvertices
-
-        # check if x-coordinate of turbine is between the x-coordinates of the two boundary vertices
-        if real(vertices[j, 1]) <= real(point[1]) < real(vertices[j+1, 1]) || real(vertices[j, 1]) >= real(point[1]) > real(vertices[j+1, 1])
-
-            # check to see if the turbine is below the boundary
+        xmin, xmax = minmax(real(vertices[j, 1]), real(vertices[j+1, 1]))
+        if xmin <= x < xmax
             y = (vertices[j+1, 2] - vertices[j, 2]) / (vertices[j+1, 1] - vertices[j, 1]) * (point[1] - vertices[j, 1]) + vertices[j, 2]
-            if real(point[2]) < real(y) #(vertices[j+1, 2] - vertices[j, 2]) / (vertices[j+1, 1] - vertices[j, 1]) * (point[1] - vertices[j, 1]) + vertices[j, 2]
-                # println((point[1]-vertices[j, 1]))
-                # check for case in boundary with sharp angle and point is at same x value as the vertex in the sharp angle
-                if isapprox(point[1], vertices[j, 1])
-                    # println("here1")
-                    if j == 1
-                        vprev = vertices[nvertices]
-                    else
-                        vprev = vertices[j-1]
-                    end
-                    vnext = vertices[j+1]
-
-                    if !((vprev[1] <= vertices[j, 1] && vnext[1] <= vertices[j, 1]) || (vprev[1] >= vertices[j, 1] && vnext[1] >= vertices[j, 1]))
-                        # the vertical ray intersects the boundary
-                        intersection_counter += 1
-                    end
-                else
-                    # the vertical ray intersects the boundary
-                    intersection_counter += 1
-                end
-                # intersection_counter += 1
-
+            if real(point[2]) < real(y)
+                intersection_counter += 1
             end
-        # elseif vertices[j, 1] == real(point[1])
-        #     if j == 1
-        #         vprev = vertices[nvertices]
-        #     else
-        #         vprev = vertices[j-1]
-        #     end
-        #     vnext = vertices[j+1]
-
-        #     if (vprev[1] < vertices[j, 1] < vnext[1]) || (vprev[1] > vertices[j, 1] > vnext[1])
-        #         continue
-        #     else
-        #         # the vertical ray intersects the boundary
-        #         intersection_counter += 1
-        #     end
         end
 
         if return_distance #&& !onedge

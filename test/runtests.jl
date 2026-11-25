@@ -406,6 +406,25 @@ end
             distance = -abs(dot(point-vertices[3,:], normal_vector))
             @test isapprox(c, distance)
 
+            @testset "Ray crossing at a concave corner" begin
+                notch = [0.0 0.0; 4.0 0.0; 4.0 2.0; 2.0 2.0; 2.0 4.0; 0.0 4.0]
+                for corners in (notch, reverse(notch; dims=1), circshift(notch, (2, 0)))
+                    @test ff.pointinpolygon([2.0, 1.0], corners; return_distance=false) == -1
+                    @test ff.pointinpolygon([2.0, 3.0], corners; return_distance=false) == -1
+                    @test ff.pointinpolygon([2.0, 5.0], corners; return_distance=false) == 1
+                end
+            end
+
+            @testset "Sides of a vertical boundary at large easting" begin
+                square = [500000.0 0.0; 504000.0 0.0; 504000.0 4000.0; 500000.0 4000.0]
+                normals = ff.boundary_normals_calculator(square)
+                x = [503999.995, 504000.005]
+                y = [3990.0, 3990.0]
+                @test ff.pointinpolygon([x[1], y[1]], square; return_distance=false) == -1
+                @test ff.pointinpolygon([x[2], y[2]], square; return_distance=false) == 1
+                @test ff.ray_casting_boundary(square, normals, x, y) ≈ [-0.005, 0.005]
+            end
+
         end
 
         @testset "point in polygon derivatives" begin
